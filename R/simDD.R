@@ -1,15 +1,16 @@
-#' @rdname simDD
+#' simDD
 #' 
-#' @title Simulation of complex scRNA-seq data 
+#' Simulation of complex scRNA-seq data 
 #' 
-#' @description `simDD` simulates multiple clusters and samples 
-#'   across 2 experimental conditions from a real scRNA-seq data set.
+#' \code{simDD} simulates multiple clusters and samples 
+#' across 2 experimental conditions from a real scRNA-seq data set.
 #' 
-#' @param x a \code{SummarizedExperiment}.
-#' @param fit a NB fit to \code{x}.
+#' @param x a list of length 2 containing a
+#'   \code{\linkS4class{SummarizedExperiment}} & a NB fit.
 #' @param n_genes # of genes to simulate. 
 #' @param n_cells # of cells to simulate. 
-#'   Either a single numeric or range to sample from.
+#'   Either a single numeric or a range to sample from.
+#' @param ns nb. of genes common to 1, 2, ..., all clusters.
 #' @param p_dd numeric vector of length 6.
 #'   Specifies the probability of a gene being
 #'   EE, EP, DE, DP, DM, or DB, respectively.
@@ -27,10 +28,15 @@
 #' @importFrom stats model.matrix rnbinom
 #' @importFrom S4Vectors split
 #' @importFrom zeallot %<-%
+#' 
+#' @export
 
 simDD <- function(x, fit = NULL,
-    n_genes = 200, n_cells = c(50, 100), 
+    n_genes = 200, n_cells = c(50, 100), ns = NULL,
     p_dd = c(0.4, 0.35, 0.12, 0.08, 0.04, 0.01), seed = 1) {
+    
+    fit <- x[[2]]
+    x <- x[[1]]
     
     # validty checks
     stopifnot(class(x) == "SummarizedExperiment")
@@ -46,16 +52,6 @@ simDD <- function(x, fit = NULL,
     n_samples <- length(sample_ids)
     
     set.seed(seed)
-    
-    # fit a NB across all cells
-    if (is.null(fit)) {
-        y <- assays(x)$counts
-        group <- rep(1, ncol(y))
-        dl <- DGEList(y, group = group)
-        mm <- model.matrix(~ 0 + group)
-        dl <- estimateDisp(dl, mm, prior.df = 0)
-        fit <- glmFit(dl)
-    }
     
     # split cells by cluster-sample
     dt <- data.table(
@@ -114,10 +110,12 @@ simDD <- function(x, fit = NULL,
     colnames(is) <- colnames(js) <- cluster_ids
 
     # sample genes to simulate from
-    ns <- sample(n_genes, n_clusters)
-    while (sum(ns) != n_genes)
-        ns <- floor(ns / sum(ns) * n_genes) + sample(c(0, 1), n_clusters, replace = TRUE)
-    
+    if (is.null(ns)) {
+        ns <- sample(n_genes, n_clusters)
+        while (sum(ns) != n_genes)
+            ns <- floor(ns / sum(ns) * n_genes) + sample(c(0, 1), n_clusters, replace = TRUE)
+    } 
+
     gs <- rownames(x)
     gs_used_for_sim <- matrix( 
         sample(gs, n_clusters * n_genes, replace = TRUE), 
@@ -165,12 +163,12 @@ simDD <- function(x, fit = NULL,
             ng2 <- length(g2 <- js[[s, c]][[2]])
 
             # simulate data
-            if (nee > 0) y[iee, c(g1, g2)] <- simdd("ee", gs[iee], cs, ng1, ng2, mu, d)
-            if (nep > 0) y[iep, c(g1, g2)] <- simdd("ep", gs[iep], cs, ng1, ng2, mu, d)
-            if (nde > 0) y[ide, c(g1, g2)] <- simdd("de", gs[ide], cs, ng1, ng2, mu, d)
-            if (ndp > 0) y[idp, c(g1, g2)] <- simdd("dp", gs[idp], cs, ng1, ng2, mu, d)
-            if (ndm > 0) y[idm, c(g1, g2)] <- simdd("dm", gs[idm], cs, ng1, ng2, mu, d)
-            if (ndb > 0) y[idb, c(g1, g2)] <- simdd("db", gs[idb], cs, ng1, ng2, mu, d)
+            if (nee > 0) y[iee, c(g1, g2)] <- simdd("ee", gs[iee, c], cs, ng1, ng2, mu, d)
+            if (nep > 0) y[iep, c(g1, g2)] <- simdd("ep", gs[iep, c], cs, ng1, ng2, mu, d)
+            if (nde > 0) y[ide, c(g1, g2)] <- simdd("de", gs[ide, c], cs, ng1, ng2, mu, d)
+            if (ndp > 0) y[idp, c(g1, g2)] <- simdd("dp", gs[idp, c], cs, ng1, ng2, mu, d)
+            if (ndm > 0) y[idm, c(g1, g2)] <- simdd("dm", gs[idm, c], cs, ng1, ng2, mu, d)
+            if (ndb > 0) y[idb, c(g1, g2)] <- simdd("db", gs[idb, c], cs, ng1, ng2, mu, d)
         }
     }
     
@@ -186,6 +184,11 @@ simDD <- function(x, fit = NULL,
     gene_info <- gene_info[order(as.numeric(gsub("[a-z]", "", gene_info$gene))), ]
     rownames(gene_info) <- NULL
     
+    row_data <- data.frame(
+        row.names = rownames(y), 
+        marker_name = rownames(y),
+        marker_class = factor("state", levels = c("none", "type", "state")))
+    
     col_data <- do.call(rbind, lapply(cluster_ids, function(c) 
         do.call(rbind, lapply(sample_ids, function(s) 
             data.frame(row.names = 1,
@@ -195,9 +198,15 @@ simDD <- function(x, fit = NULL,
     col_data <- col_data[colnames(y), ]
     col_data$sample_id <- paste0(col_data$group, col_data$sample_id)
     
-    SummarizedExperiment(
-        assays = list(counts = y),
-        rowData = NULL, colData = col_data,
-        metadata = list(gene_info = gene_info, 
-            sim_genes = gs_used_for_sim))
+    ei <- data.frame(
+        sample_id = paste0(rep(c("A", "B"), each = length(sample_ids)), sample_ids),
+        group = rep(c("A", "B"), each = length(sample_ids)))
+    md <- list(
+        experiment_info = ei,
+        n_cells = table(col_data$sample_id),
+        gene_info = gene_info, 
+        sim_genes = gs_used_for_sim)
+    
+    SummarizedExperiment(assays = list(counts = y),
+        rowData = row_data, colData = col_data, metadata = md)
 }

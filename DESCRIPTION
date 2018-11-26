@@ -7,13 +7,11 @@ Depends: R (>= 3.5)
 Authors@R: c(
 	person("Helena L.", "Crowell", role=c("aut", "cre"), email="helena@crowells.eu"),
 	person("Mark D.", "Robinson", role=c("aut", "fnd"), email="mark.robinson@imls.uzh.ch"))
-Imports: data.table, edgeR, stats, SummarizedExperiment, S4Vectors, zeallot
+Imports: data.table, dplyr, edgeR, scater, stats, SingleCellExperiment, SummarizedExperiment, S4Vectors, tidyr, zeallot
 Suggests: BiocStyle, knitr, rmarkdown
 biocViews: DifferentialExpression, SingleCell
 License: GPL (>=2)
 VignetteBuilder: knitr
-RoxygenNote: 6.1.0
+RoxygenNote: 6.1.1
 LazyData: TRUE
 Encoding: UTF-8
-
-

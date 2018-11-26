@@ -1,3 +1,42 @@
+# character vector of gene categories
+cats <- c("ee", "ep", "de", "dp", "dm", "db")
+
+# ------------------------------------------------------------------------------
+# removes lowest contribution row/column until all entries >= n
+# used by prepSim() to filter clusters & samples to use for simulation
+# ------------------------------------------------------------------------------
+
+filterMatrix <- function(m, n = 100) {
+    while (any(m < n)) {
+        s <- sum(m)
+        rows <- rowSums(m) / s
+        cols <- colSums(m) / s
+        x <- c(rows, cols)
+        rmv <- names(which.min(x))
+        y <- TRUE
+        while (y) {
+            if (rmv %in% rownames(m)) {
+                if (all(m[rmv, ] >= n)) {
+                    x <- x[names(x) != rmv]
+                    rmv <- names(which.min(x)) 
+                } else {
+                    m <-  m[rownames(m) != rmv, ]
+                    y <- FALSE
+                }
+            } else {
+                if (all(m[, rmv] >= n)) {
+                    x <- x[names(x) != rmv]
+                    rmv <- names(which.min(x))
+                } else {
+                    m <- m[, colnames(m) != rmv]
+                    y <- FALSE
+                }
+            }
+        }
+    }
+    return(m)
+}
+
 # ------------------------------------------------------------------------------
 # helper to sample from a NB across a grid 
 # of dispersions ('size') and means ('mu')
