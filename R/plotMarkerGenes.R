@@ -18,6 +18,7 @@
 #' @import ComplexHeatmap
 #' @import SingleCellExperiment
 #' @importFrom dplyr %>% group_by summarise_all
+#' @importFrom grid gpar
 #' @export
 
 plotMarkerGenes <- function(x, marker_genes, scale = TRUE, cluster_columns = TRUE) {
