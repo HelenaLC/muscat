@@ -82,7 +82,7 @@ run_edgeR <- function(x, pb, design, contrast = NULL, coef = NULL, min_cells = 1
     
     # for ea. cluster, run DEA w/ edgeR
     cluster_ids <- levels(colData(x)$cluster_id)
-    res <- setNames(lapply(cluster_ids, function(k) {
+    res <- lapply(cluster_ids, function(k) {
         if (verbose) message(k, "..", appendLF = FALSE)
         y <- pb[[k]]
         # remove samples w/ less than min_cells
@@ -95,42 +95,37 @@ run_edgeR <- function(x, pb, design, contrast = NULL, coef = NULL, min_cells = 1
         y <- estimateDisp(y, d)
         fit <- glmQLFit(y, d)
         if (!is.null(contrast)) {
-            df <- apply(contrast, 2, function(c) {
-                qlf <- glmQLFTest(fit, contrast = c)
+            df <- do.call(rbind, lapply(colnames(contrast), function(c) {
+                qlf <- glmQLFTest(fit, contrast = contrast[, c])
                 tt <- topTags(qlf, n = Inf, p = Inf)$table
-                df <- data.frame(
-                    gene = rownames(tt), 
+                gs <- rownames(tt)
+                data.frame(
+                    gene = gs, 
                     cluster_id = k, tt,
-                    row.names = NULL,
+                    p_cells[[k]][gs, ], 
+                    contrast = c,
+                    row.names = NULL, 
                     stringsAsFactors = FALSE)
-                cbind(df, p_cells[[k]][df$gene, ])
-            })
+            }))
         } else {
             qlf <- glmQLFTest(fit, coef = coef)
             tt <- topTags(qlf, n = Inf, p = Inf)$table
+            gs <- rownames(tt)
             df <- data.frame(
-                gene = rownames(tt), 
+                gene = gs, 
                 cluster_id = k, tt,
+                p_cells[[k]][gs, ],
                 row.names = NULL,
                 stringsAsFactors = FALSE)
-            df <- cbind(df, p_cells[[k]][df$gene, ])
         }
         return(list(tt = df, dgel = y))
-    }), cluster_ids)
+    })
     # remove skipped clusters
     res <- res[!sapply(res, is.null)]
     
     dgel <- lapply(res, "[[", "dgel")
     res <- lapply(res, "[[", "tt")
-    if (!is.null(contrast)) {
-        res <- lapply(colnames(contrast), function(c)
-            data.frame(
-                do.call(rbind, lapply(res, "[[", c)),
-                contrast = c, row.names = NULL))
-        res <- do.call(rbind, res)
-    } else {
-        res <- do.call(rbind, res)
-    }
+    res <- do.call(rbind, res)
     
     # return results
     list(res, 
