@@ -4,21 +4,16 @@
 \alias{aggregateData}
 \title{Aggregation of single-cell to pseudo-bulk data}
 \usage{
-aggregateData(x, method = c("rawCounts", "normedCounts", "scaledCPM"))
+aggregateData(x, data, fun, scale = FALSE)
 }
 \arguments{
 \item{x}{a \code{[SingleCellExperiment]{SingleCellExperiment}}.}
 
-\item{method}{a character string
-specifying the method to use for aggregation.}
+\item{data}{a character string specifying the assay slot to use as input data.}
 
-\item{cluster_id}{a character string
-specifying the column in \code{colData(x)}
-that contains cluster assignments.}
+\item{fun}{a character string specifying the function to use as summary statistic.}
 
-\item{sample_id}{a character string
-specifying the column in \code{colData(x)}
-that contains unique sample identifies.}
+\item{scale}{logical.}
 }
 \description{
 ...

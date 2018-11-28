@@ -10,6 +10,9 @@ run_edgeR(x, pb, design, contrast = NULL, coef = NULL,
 \arguments{
 \item{x}{a \code{[SingleCellExperiment]{SingleCellExperiment}}.}
 
+\item{pb}{a named list of pseudo-bulk data for each cluster
+computed with \code{aggregateData}.}
+
 \item{design}{a design matrix with row and column names
 created with \code{\link[stats]{model.matrix}}.}
 

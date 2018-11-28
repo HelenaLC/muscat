@@ -2,13 +2,17 @@ Package: ddSingleCell
 Title: Toolkit for differential discovery in single-cell data
 Description: ...
 Type: Package
-Version: 0.99
+Version: 0.100
 Depends: R (>= 3.5)
 Authors@R: c(
 	person("Helena L.", "Crowell", role=c("aut", "cre"), email="helena@crowells.eu"),
 	person("Mark D.", "Robinson", role=c("aut", "fnd"), email="mark.robinson@imls.uzh.ch"))
 Imports: data.table, dplyr, edgeR, scater, stats, SingleCellExperiment, SummarizedExperiment, S4Vectors, tidyr, zeallot
-Suggests: BiocStyle, knitr, rmarkdown
+Suggests: 
+    BiocStyle,
+    knitr,
+    rmarkdown,
+    testthat
 biocViews: DifferentialExpression, SingleCell
 License: GPL (>=2)
 VignetteBuilder: knitr
