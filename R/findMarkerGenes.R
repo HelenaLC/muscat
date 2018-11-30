@@ -36,7 +36,7 @@ findMarkerGenes <- function(x, cluster_id, mc.cores = 1, assay = "RNA", block = 
   cluster_ids <- levels(x@active.ident)
   
   do.call(rbind, lapply(cluster_ids, function(c1) {
-    do.call(rbind, lapply(cluster_ids, function(c2) {
+    do.call(rbind, parallel::mclapply(cluster_ids, function(c2) {
       if (c1 != c2) {
         tryCatch({
           f <- FindMarkers(x, ident.1 = c1, ident.2 = c2, assay = assay, block = block,
