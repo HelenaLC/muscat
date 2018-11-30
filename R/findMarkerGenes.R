@@ -39,7 +39,7 @@ findMarkerGenes <- function(x, cluster_id, mc.cores = 1, assay = "RNA", block = 
     do.call(rbind, mclapply(cluster_ids, function(c2) {
       if (c1 != c2) {
         tryCatch({
-          f <- FindMarkers(so, ident.1 = c1, ident.2 = c2, assay = assay, block = block,
+          f <- FindMarkers(x, ident.1 = c1, ident.2 = c2, assay = assay, block = block,
             logfc.threshold = logfc.threshold, test.use = test.use, min.pct = min.pct, only.pos = TRUE)
           f$gene <- rownames(f)
           f$cluster1 <- c1
