@@ -17,7 +17,7 @@
 #' @export
 
 findMarkerGenes <- function(x, cluster_id, mc.cores = 1, assay = "RNA", block = NULL,
-  logfc.threshold = 1, test.use = "wilcox", min.pct = 0.25) {
+                            logfc.threshold = 1, test.use = "wilcox", min.pct = 0.25) {
   
   stopifnot(class(x) == "Seurat")
   stopifnot(is.numeric(mc.cores), length(mc.cores) == 1, mc.cores > 0)
@@ -32,15 +32,15 @@ findMarkerGenes <- function(x, cluster_id, mc.cores = 1, assay = "RNA", block = 
   if (!is.null(block))
     block <- x@meta.data[[block]]
   x@active.assay <- assay
-  x@active.ident <- x@meta.data[[cluster_id]]
+  x@active.ident <- setNames(x@meta.data[[cluster_id]], rownames(x@meta.data))
   cluster_ids <- levels(x@active.ident)
   
   do.call(rbind, lapply(cluster_ids, function(c1) {
-    do.call(rbind, mclapply(cluster_ids, function(c2) {
+    do.call(rbind, lapply(cluster_ids, function(c2) {
       if (c1 != c2) {
         tryCatch({
           f <- FindMarkers(x, ident.1 = c1, ident.2 = c2, assay = assay, block = block,
-            logfc.threshold = logfc.threshold, test.use = test.use, min.pct = min.pct, only.pos = TRUE)
+                           logfc.threshold = logfc.threshold, test.use = test.use, min.pct = min.pct, only.pos = TRUE)
           f$gene <- rownames(f)
           f$cluster1 <- c1
           f$cluster2 <- c2
