@@ -82,6 +82,7 @@ run_edgeR <- function(x, pb, design, contrast = NULL, coef = NULL, min_cells = 1
     
     # for ea. cluster, run DEA w/ edgeR
     cluster_ids <- levels(colData(x)$cluster_id)
+    names(cluster_ids) <- cluster_ids
     res <- lapply(cluster_ids, function(k) {
         if (verbose) message(k, "..", appendLF = FALSE)
         y <- pb[[k]]
