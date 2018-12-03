@@ -2,7 +2,7 @@ Package: ddSingleCell
 Title: Toolkit for differential discovery in single-cell data
 Description: ...
 Type: Package
-Version: 0.99.0
+Version: 0.99.1
 Depends: R (>= 3.5)
 Authors@R: c(
 	person("Helena L.", "Crowell", role=c("aut", "cre"), email="helena@crowells.eu"),
