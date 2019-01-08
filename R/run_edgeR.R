@@ -74,10 +74,7 @@
 #'
 #' @import SingleCellExperiment
 #' @importFrom edgeR calcNormFactors DGEList estimateDisp glmQLFit glmQLFTest topTags
-#' @importFrom dplyr group_by_ select summarise_at ungroup %>%
-#' @importFrom reshape2 dcast
-#' @importFrom scater calculateCPM normalize
-#' @importFrom tidyr complete
+#' @importFrom data.table data.table split
 #'
 #' @export
 
@@ -112,7 +109,8 @@ run_edgeR <- function(x, pb,
         rowMeans(assays(x)$counts[, i, drop = FALSE] > 0))
 
     # for ea. cluster, run DEA w/ edgeR
-    res <- lapply(levels(cluster_ids), function(k) {
+    cluster_ids <- levels(dt$cluster_id)
+    res <- lapply(cluster_ids, function(k) {
         if (verbose) message(k, "..", appendLF = FALSE)
         y <- pb[[k]]
         # remove samples w/ less than min_cells
