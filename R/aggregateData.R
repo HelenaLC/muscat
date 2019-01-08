@@ -36,39 +36,32 @@ aggregateData <- function(x, data,
         sum = "rowSums",
         mean = "rowMeans",
         median = "rowMedians")
-    fun <- get(fun)
     
     # split cells by cluster-sample
-    cluster_ids <- factor(colData(x)$cluster_id)
-    sample_ids <- factor(colData(x)$sample_id)
-    idx <- split(seq_len(ncol(x)), list(cluster_ids, sample_ids))
+    dt <- data.table(
+        cell = colnames(x),
+        cluster_id = colData(x)$cluster_id,
+        sample_id = colData(x)$sample_id)
+    idx <- split(dt, 
+        by = c("cluster_id", "sample_id"), 
+        sorted = TRUE, flatten = FALSE)
+    idx <- lapply(idx, lapply, "[[", "cell")
     
     # compute pseudo-bulks
-    pb <- sapply(idx, function(i) 
-        fun(assays(x)[[data]][, i, drop = FALSE]))
+    pb <- lapply(idx, sapply, function(i)
+        get(fun)(assays(x)[[data]][, i, drop = FALSE]))
     
     # scale
     if (scale) {
-        if (data == "counts" & fun == "sum") {
+        if (data == "counts" & fun == "rowSums") {
             pb_counts <- pb
         } else {
-            pb_counts <- sapply(idx, function(i) 
+            pb_counts <- lapply(idx, sapply, function(i)
                 rowSums(assays(x)[[data]][, i, drop = FALSE]))
         }
-        lib_sizes <- colSums(pb_counts)
-        pb <- pb * lib_sizes / 1e6
+        lib_sizes <- sapply(pb, colSums)
+        for (k in names(pb))
+            pb[[k]] <- pb[[k]] * lib_sizes[, k] / 1e6
     }
-    
-    # unwrap & split by cluster
-    df <- data.frame(
-        index = seq_len(ncol(pb)),
-        cluster_id = rep(levels(cluster_ids), nlevels(sample_ids)),
-        sample_id = rep(levels(sample_ids), each = nlevels(cluster_ids)))
-    dfs <- split(df, df$cluster_id)
-    
-    lapply(dfs, function(df) {
-        x <- pb[, df$index, drop = FALSE]
-        colnames(x) <- df$sample_id
-        return(x)
-    })
+    return(pb)
 }
