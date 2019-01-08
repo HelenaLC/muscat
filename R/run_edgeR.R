@@ -102,24 +102,18 @@ run_edgeR <- function(x, pb,
         acast(cluster_id ~ sample_id, value.var = "n", fill = 0)
     
     # for each gene, compute percentage of cells 
-    # w/ non-zero counts in each cluster-sample & group
-    cluster_ids <- factor(colData(x)$cluster_id)
-    sample_ids <- factor(colData(x)$sample_id)
+    # w/ non-zero counts in each cluster-sample
+    dt <- data.table(
+        cell = colnames(x),
+        cluster_id = colData(x)$cluster_id,
+        sample_id = colData(x)$sample_id)
+    idx <- split(dt, 
+        by = c("cluster_id", "sample_id"), 
+        sorted = TRUE, flatten = FALSE)
+    idx <- lapply(idx, lapply, "[[", "cell")
     
-    idx <- split(seq_len(ncol(x)), list(cluster_ids, sample_ids))
-    p_cells <- sapply(idx, function(i) 
+    lapply(idx, sapply, function(i)
         rowMeans(assays(x)$counts[, i, drop = FALSE] > 0))
-    df <- data.frame(
-        index = seq_len(ncol(p_cells)),
-        cluster_id = rep(levels(cluster_ids), nlevels(sample_ids)),
-        sample_id = rep(levels(sample_ids), each = nlevels(cluster_ids)))
-    
-    dfs <- split(df, df$cluster_id)
-    p_cells <- lapply(dfs, function(df) {
-        x <- p_cells[, df$index, drop = FALSE]
-        colnames(x) <- df$sample_id
-        return(x)
-    })
 
     # for ea. cluster, run DEA w/ edgeR
     res <- lapply(levels(cluster_ids), function(k) {
