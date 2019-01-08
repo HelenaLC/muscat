@@ -40,11 +40,34 @@
 #'     Scaled CPM are obtained by multiplying pseudo-bulk raw counts
 #'     by effective library sizes and dividing by 1M.}}
 #'
+#' @examples
+#' # simulate 5 clusters, 20% of differentially expressed genes
+#' data(kang)
+#' sim <- simData(kang, n_genes = 10, n_cells = 100, 
+#'     p_dd = c(0.8, 0, 0.2, 0, 0, 0))
+#'     
+#' # compute pseudo-bulk counts
+#' pb <- aggregateData(sim, data = "counts", fun = "sum")
+#' 
+#' # specify design & contrast matrix
+#' ei <- metadata(sim)$experiment_info
+#' design <- model.matrix(~ 0 + ei$group)
+#' dimnames(design) <- list(ei$sample_id, levels(ei$group))
+#' contrast <- makeContrasts("B-A", levels = design)
+#' 
+#' # test for cluster-specific DE 
+#' res <- run_edgeR(sim, pb, design, contrast)
+#' head(res[[1]])
+#' 
+#' # count nb. of DE genes by cluster
+#' sapply(split(res[[1]], res[[1]]$cluster_id), 
+#'     function(x) table(x$FDR < 0.05))
+#'
 #' @author Helena Lucia Crowell \email{helena@crowells.eu}
 #'
 #' @import SingleCellExperiment
 #' @import SummarizedExperiment
-#' @importFrom edgeR DGEList estimateDisp glmQLFit glmQLFTest topTags
+#' @importFrom edgeR calcNormFactors DGEList estimateDisp glmQLFit glmQLFTest topTags
 #' @importFrom dplyr group_by_ select summarise_at ungroup %>%
 #' @importFrom reshape2 dcast
 #' @importFrom scater calculateCPM normalize
@@ -82,7 +105,6 @@ run_edgeR <- function(x, pb, design, contrast = NULL, coef = NULL, min_cells = 1
     
     # for ea. cluster, run DEA w/ edgeR
     cluster_ids <- levels(colData(x)$cluster_id)
-    names(cluster_ids) <- cluster_ids
     res <- lapply(cluster_ids, function(k) {
         if (verbose) message(k, "..", appendLF = FALSE)
         y <- pb[[k]]
@@ -98,7 +120,7 @@ run_edgeR <- function(x, pb, design, contrast = NULL, coef = NULL, min_cells = 1
         if (!is.null(contrast)) {
             df <- do.call(rbind, lapply(colnames(contrast), function(c) {
                 qlf <- glmQLFTest(fit, contrast = contrast[, c])
-                tt <- topTags(qlf, n = Inf, p = Inf)$table
+                tt <- topTags(qlf, n = Inf, p.value = Inf)$table
                 gs <- rownames(tt)
                 data.frame(
                     gene = gs, 
@@ -110,7 +132,7 @@ run_edgeR <- function(x, pb, design, contrast = NULL, coef = NULL, min_cells = 1
             }))
         } else {
             qlf <- glmQLFTest(fit, coef = coef)
-            tt <- topTags(qlf, n = Inf, p = Inf)$table
+            tt <- topTags(qlf, n = Inf, p.value = Inf)$table
             gs <- rownames(tt)
             df <- data.frame(
                 gene = gs, 

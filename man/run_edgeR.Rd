@@ -50,6 +50,30 @@ required to consider the sample for differential testing.}
     Scaled CPM are obtained by multiplying pseudo-bulk raw counts
     by effective library sizes and dividing by 1M.}}
 }
+\examples{
+# simulate 5 clusters, 20\% of differentially expressed genes
+data(kang)
+sim <- simData(kang, n_genes = 10, n_cells = 100, 
+    p_dd = c(0.8, 0, 0.2, 0, 0, 0))
+    
+# compute pseudo-bulk counts
+pb <- aggregateData(sim, data = "counts", fun = "sum")
+
+# specify design & contrast matrix
+ei <- metadata(sim)$experiment_info
+design <- model.matrix(~ 0 + ei$group)
+dimnames(design) <- list(ei$sample_id, levels(ei$group))
+contrast <- makeContrasts("B-A", levels = design)
+
+# test for cluster-specific DE 
+res <- run_edgeR(sim, pb, design, contrast)
+head(res[[1]])
+
+# count nb. of DE genes by cluster
+sapply(split(res[[1]], res[[1]]$cluster_id), 
+    function(x) table(x$FDR < 0.05))
+
+}
 \author{
 Helena Lucia Crowell \email{helena@crowells.eu}
 }
