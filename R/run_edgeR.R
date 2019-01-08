@@ -93,16 +93,7 @@ run_edgeR <- function(x, pb,
     stopifnot(is.null(contrast) | is.matrix(contrast))
     stopifnot(is.null(coef) | is.numeric(coef))
     
-    # compute cluster-sample counts
-    df <- data.frame(
-        t(assays(x)$counts), colData(x),
-        check.names = FALSE)
-    n_cells <- df %>% 
-        count_(c("cluster_id", "sample_id")) %>% 
-        acast(cluster_id ~ sample_id, value.var = "n", fill = 0)
-    
-    # for each gene, compute percentage of cells 
-    # w/ non-zero counts in each cluster-sample
+    # split cells by cluster-sample
     dt <- data.table(
         cell = colnames(x),
         cluster_id = colData(x)$cluster_id,
@@ -112,7 +103,12 @@ run_edgeR <- function(x, pb,
         sorted = TRUE, flatten = FALSE)
     idx <- lapply(idx, lapply, "[[", "cell")
     
-    lapply(idx, sapply, function(i)
+    # compute cluster-sample counts
+    n_cells <- sapply(idx, sapply, length)
+    
+    # for each gene, compute percentage of cells 
+    # w/ non-zero counts in each cluster-sample
+    p_cells <- lapply(idx, sapply, function(i)
         rowMeans(assays(x)$counts[, i, drop = FALSE] > 0))
 
     # for ea. cluster, run DEA w/ edgeR
@@ -120,7 +116,7 @@ run_edgeR <- function(x, pb,
         if (verbose) message(k, "..", appendLF = FALSE)
         y <- pb[[k]]
         # remove samples w/ less than min_cells
-        y <- y[, n_cells[k, ] >= min_cells]
+        y <- y[, n_cells[, k] >= min_cells]
         y <- suppressMessages(DGEList(y, remove.zeros = TRUE))
         y <- calcNormFactors(y)
         d <- design[colnames(y), ]
