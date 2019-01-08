@@ -60,7 +60,7 @@ nb <- function(gs, cs, d, m, fc = 1) {
 
 simdd <- function(
     category = c("ee", "ep", "de", "dp", "dm", "db"),
-    gs, cs, ng1, ng2, m, d) {
+    gs, cs, ng1, ng2, m, d, fc = 2) {
 
     jg1 <- sample(cs, ng1, replace = TRUE)
     jg2 <- sample(cs, ng2, replace = TRUE)
@@ -74,37 +74,37 @@ simdd <- function(
             g2_lo <- sample(ng2, round(ng2 * 0.6))
             cbind(
                 nb(gs, jg1[ g1_lo], d, m),
-                nb(gs, jg1[-g1_lo], d, m, 2),
+                nb(gs, jg1[-g1_lo], d, m, fc),
                 nb(gs, jg2[ g2_lo], d, m),
-                nb(gs, jg2[-g2_lo], d, m, 2))
+                nb(gs, jg2[-g2_lo], d, m, fc))
         },
         de = {
             cbind(
                 nb(gs, jg1, d, m), 
-                nb(gs, jg2, d, m, 2))
+                nb(gs, jg2, d, m, fc))
         },
         dp = {
             g1_lo <- sample(ng1, round(ng1 * 0.4))
             g2_lo <- sample(ng2, round(ng2 * 0.6))
             cbind(
                 nb(gs, jg1[ g1_lo], d, m),
-                nb(gs, jg1[-g1_lo], d, m, 2),
+                nb(gs, jg1[-g1_lo], d, m, fc),
                 nb(gs, jg2[ g2_lo], d, m),
-                nb(gs, jg2[-g2_lo], d, m, 2))
+                nb(gs, jg2[-g2_lo], d, m, fc))
         },
         dm = {
             g2_lo <- sample(ng2, round(ng2 * 0.6))
             cbind(
                 nb(gs, jg1, d, m),
                 nb(gs, jg2[ g2_lo], d, m),
-                nb(gs, jg2[-g2_lo], d, m, 2))
+                nb(gs, jg2[-g2_lo], d, m, fc))
         }, 
         db = {
             g2_lo <- sample(ng2, round(ng2 * 0.5))
             cbind(
-                nb(gs, jg1, d, m, 2),
+                nb(gs, jg1, d, m, fc),
                 nb(gs, jg2[ g2_lo], d, m),
-                nb(gs, jg2[-g2_lo], d, m, 4))
+                nb(gs, jg2[-g2_lo], d, m, fc))
         }
     )
 }
