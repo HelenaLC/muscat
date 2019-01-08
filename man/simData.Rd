@@ -4,7 +4,7 @@
 \alias{simData}
 \title{simData}
 \usage{
-simData(x, n_genes, n_cells, p_dd)
+simData(x, n_genes, n_cells, p_dd, fc = 2, seed = 1)
 }
 \arguments{
 \item{x}{a \code{\link[SingleCellExperiment]{SingleCellExperiment}}.}
@@ -18,9 +18,9 @@ Either a single numeric or a range to sample from.}
 Specifies the probability of a gene being
 EE, EP, DE, DP, DM, or DB, respectively.}
 
-\item{ns}{nb. of genes common to 1, 2, ..., all clusters.}
-
 \item{seed}{random seed.}
+
+\item{ns}{nb. of genes common to 1, 2, ..., all clusters.}
 }
 \description{
 Simulation of complex scRNA-seq data

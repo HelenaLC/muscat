@@ -4,17 +4,25 @@
 \alias{aggregateData}
 \title{Aggregation of single-cell to pseudo-bulk data}
 \usage{
-aggregateData(x, data, fun, scale = FALSE)
+aggregateData(x, data, fun = c("sum", "mean", "median"), scale = FALSE)
 }
 \arguments{
 \item{x}{a \code{[SingleCellExperiment]{SingleCellExperiment}}.}
 
-\item{data}{a character string specifying the assay slot to use as input data.}
+\item{data}{a character string. 
+Specifies the assay slot to use as input data.}
 
-\item{fun}{a character string specifying the function to use as summary statistic.}
+\item{fun}{a character string.
+Specifies the function to use as summary statistic.}
 
 \item{scale}{logical.}
 }
+\value{
+a list of sample-wise pseudo-bulk data for each cluster.
+}
 \description{
 ...
+}
+\author{
+Helena L. Crowel \email{helena.crowell@uzh.ch} and Mark D. Robinson.
 }

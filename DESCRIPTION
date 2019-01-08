@@ -5,9 +5,29 @@ Type: Package
 Version: 0.99.1
 Depends: R (>= 3.5)
 Authors@R: c(
-	person("Helena L.", "Crowell", role=c("aut", "cre"), email="helena@crowells.eu"),
+	person("Helena L.", "Crowell", role=c("aut", "cre"), email="helena.crowell@uzh.ch"),
 	person("Mark D.", "Robinson", role=c("aut", "fnd"), email="mark.robinson@imls.uzh.ch"))
-Imports: data.table, dplyr, edgeR, parallel, scater, stats, SingleCellExperiment, SummarizedExperiment, S4Vectors, tidyr, zeallot
+Imports: 
+	ComplexHeatmap,
+	data.table,
+	diffcyt,
+	dplyr, 
+	edgeR, 
+	magrittr,
+	Matrix,
+	matrixStats,
+	methods,
+	parallel, 
+	reshape2,
+	scater, 
+	scran,
+	stats, 
+	SingleCellExperiment, 
+	SummarizedExperiment, 
+	S4Vectors, 
+	tidyr, 
+	viridis,
+	zeallot
 Suggests: 
     BiocStyle,
     knitr,

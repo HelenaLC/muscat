@@ -16,21 +16,28 @@
 #' @param seed random seed. 
 #' 
 #' @examples
-#' data(kang_se, kang_fit)
-#' simDD(kang_se, kang_fit,
+#' data(kang)
+#' simData(kang,
 #'     n_genes = 10, n_cells = 10,
 #'     p_dd = c(1,0,0,0,0,0), seed = 1)
 #' 
 #' @import SingleCellExperiment 
 #' @importFrom data.table data.table
 #' @importFrom edgeR DGEList estimateDisp glmFit
-#' @importFrom stats model.matrix rnbinom
+#' @importFrom stats model.matrix rnbinom setNames
 #' @importFrom S4Vectors split
 #' @importFrom zeallot %<-%
 #' 
 #' @export
 
-simData <- function(x, n_genes, n_cells, p_dd) {
+simData <- function(x, n_genes, n_cells, p_dd, fc = 2, seed = 1) {
+    
+    stopifnot(class(x) == "SingleCellExperiment")
+    stopifnot(is.numeric(n_genes), length(n_genes) == 1)
+    stopifnot(is.numeric(n_cells), length(n_cells) == 1 | length(n_cells) == 2)
+    stopifnot(is.numeric(p_dd), length(p_dd) == 6, sum(p_dd) == 1)
+    stopifnot(is.numeric(fc), is.numeric(fc))
+    stopifnot(is.numeric(seed), length(seed) == 1)
     
     cluster_ids <- levels(colData(x)$cluster_id)
     sample_ids <- levels(colData(x)$sample_id)
@@ -97,19 +104,16 @@ simData <- function(x, n_genes, n_cells, p_dd) {
     
     for (c in cluster_ids) {
         # get NB parameters
-        m <- rowData(x)$mean[gs[, c]]
-        d <- rowData(x)$dispersion[gs[, c]]
-        
-        # get gene indices & nb. of genes by category
-        c(iee, iep, ide, idp, idm, idb) %<-% sapply(cats, function(i) is[i, c])
-        c(nee, nep, nde, ndp, ndm, ndb) %<-% vapply(cats, function(i) ndd[i, c], numeric(1))
+        m <- rowData(x)[gs[, c], ]$beta
+        d <- rowData(x)[gs[, c], ]$dispersion
+        names(m) <- names(d) <- gs[, c]
         
         for (s in sample_ids) {
             # cells to simulate from
             cs <- cells[[s, c]]
             
             # compute mus
-            o <- colData(x)$offset[cs]
+            o <- setNames(colData(x)[cs, ]$offset, cs)
             mu <- sapply(exp(o), "*", exp(m))
             
             # get cell indices & nb. of cells by group
@@ -117,12 +121,9 @@ simData <- function(x, n_genes, n_cells, p_dd) {
             ng2 <- length(g2 <- js[[s, c]][[2]])
             
             # simulate data
-            if (nee > 0) y[iee, c(g1, g2)] <- simdd("ee", gs[iee, c], cs, ng1, ng2, mu, d)
-            if (nep > 0) y[iep, c(g1, g2)] <- simdd("ep", gs[iep, c], cs, ng1, ng2, mu, d)
-            if (nde > 0) y[ide, c(g1, g2)] <- simdd("de", gs[ide, c], cs, ng1, ng2, mu, d)
-            if (ndp > 0) y[idp, c(g1, g2)] <- simdd("dp", gs[idp, c], cs, ng1, ng2, mu, d)
-            if (ndm > 0) y[idm, c(g1, g2)] <- simdd("dm", gs[idm, c], cs, ng1, ng2, mu, d)
-            if (ndb > 0) y[idb, c(g1, g2)] <- simdd("db", gs[idb, c], cs, ng1, ng2, mu, d)
+            for (cat in cats)
+                if (ndd[cat, c] > 0) y[is[[cat, c]], c(g1, g2)] <- 
+                simdd(cat, gs[is[[cat, c]], c], cs, ng1, ng2, mu, d, fc)
         }
     }
     

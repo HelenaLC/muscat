@@ -4,59 +4,71 @@
 #' @description ...
 #' 
 #' @param x a \code{[SingleCellExperiment]{SingleCellExperiment}}.
-#' @param data a character string specifying the assay slot to use as input data.
-#' @param fun a character string specifying the function to use as summary statistic.
+#' @param data a character string. 
+#'   Specifies the assay slot to use as input data.
+#' @param fun a character string.
+#'   Specifies the function to use as summary statistic.
 #' @param scale logical.
 #' 
+#' @return a list of sample-wise pseudo-bulk data for each cluster.
+#' 
+#' @author Helena L. Crowel \email{helena.crowell@uzh.ch} and Mark D. Robinson.
+#' 
 #' @import SingleCellExperiment
-#' @importFrom DelayedArray t
-#' @importFrom dplyr group_by_ summarise_at ungroup select
-#' @importFrom scater calculateCPM
-#' @importFrom tidyr complete
+#' @importFrom Matrix rowMeans rowSums
+#' @importFrom matrixStats rowMedians
+#' @importFrom methods is
 #' @export
 
-aggregateData <- function(x, data, fun, scale = FALSE) {
+aggregateData <- function(x, data, 
+    fun = c("sum", "mean", "median"), 
+    scale = FALSE) {
     
     # validity checks for input arguments
-    stopifnot(class(x) == "SingleCellExperiment")
+    stopifnot(is(x, "SingleCellExperiment"))
     stopifnot(all(c("cluster_id", "sample_id") %in% colnames(colData(x))))
     stopifnot(is.character(data), length(data) == 1, data %in% assayNames(x))
-    stopifnot(is.character(fun), length(fun) == 1, exists(fun, mode = "function"))
     stopifnot(is.logical(scale), length(scale) == 1)
 
-    df <- data.frame(
-        t(assays(x)[[data]]),
-        cluster_id = colData(x)$cluster_id,
-        sample_id = colData(x)$sample_id,
-        check.names = FALSE)
+    # get aggregation function
+    fun <- match.arg(fun)
+    fun <- switch(fun,
+        sum = "rowSums",
+        mean = "rowMeans",
+        median = "rowMedians")
+    fun <- get(fun)
+    
+    # split cells by cluster-sample
+    cluster_ids <- factor(colData(x)$cluster_id)
+    sample_ids <- factor(colData(x)$sample_id)
+    idx <- split(seq_len(ncol(x)), list(cluster_ids, sample_ids))
     
     # compute pseudo-bulks
-    zeros <- as.list(numeric(nrow(sce)))
-    zeros <- setNames(zeros, rownames(x))
-    pb <- df %>% 
-        group_by_(~cluster_id, ~sample_id) %>% 
-        summarise_at(rownames(x), get(fun)) %>% 
-        complete(sample_id, fill = zeros)
+    pb <- sapply(idx, function(i) 
+        fun(assays(x)[[data]][, i, drop = FALSE]))
     
     # scale
     if (scale) {
         if (data == "counts" & fun == "sum") {
-            lib_sizes <- rowSums(pb %>% select(rownames(x)))
+            pb_counts <- pb
         } else {
-            lib_sizes <- df %>% 
-                group_by_(~cluster_id, ~sample_id) %>%
-                summarise_at(rownames(x), sum) %>%
-                complete(sample_id, fill = zeros) %>%
-                ungroup() %>% select(rownames(x))
-            lib_sizes <- rowSums(lib_sizes)
+            pb_counts <- sapply(idx, function(i) 
+                rowSums(assays(x)[[data]][, i, drop = FALSE]))
         }
+        lib_sizes <- colSums(pb_counts)
         pb <- pb * lib_sizes / 1e6
     }
     
-    # split by cluster
-    pb <- split(pb, pb$cluster_id)
-    lapply(pb, function(x) {
-        x <- x %>% ungroup() %>% select(-"cluster_id")
-        t(data.frame(x, row.names = 1))
+    # unwrap & split by cluster
+    df <- data.frame(
+        index = seq_len(ncol(pb)),
+        cluster_id = rep(levels(cluster_ids), nlevels(sample_ids)),
+        sample_id = rep(levels(sample_ids), each = nlevels(cluster_ids)))
+    dfs <- split(df, df$cluster_id)
+    
+    lapply(dfs, function(df) {
+        x <- pb[, df$index, drop = FALSE]
+        colnames(x) <- df$sample_id
+        return(x)
     })
 }
