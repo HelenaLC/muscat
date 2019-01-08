@@ -8,12 +8,12 @@ sample_ids <- colData(data)$sample_id
 # compute pseudobulks
 pb <- aggregateData(data, data = "counts", fun = "sum")
 
-# randomly select 10 DE genes & multiply counts by 100 in half of samples
+# randomly select 10 DE genes & multiply counts by 1000 for half the samples
 g2 <- sample(levels(sample_ids), round(nlevels(sample_ids) / 2))
 idx <- replicate(nlevels(cluster_ids), sample(nrow(data), 10))
 colnames(idx) <- levels(cluster_ids)
 for (k in levels(cluster_ids))
-    pb[[k]][idx[, k], g2] <- 100 * pb[[k]][idx[, k], g2]
+    pb[[k]][idx[, k], g2] <- 1e3 * pb[[k]][idx[, k], g2]
 
 # specify design & contrast matrices
 ei <- data.frame(sample_id = levels(sample_ids))
@@ -32,7 +32,7 @@ test_that("run_edgeR", {
     expect_true(all(n_de == 10))
     
     # check that DE genes are correct
-    de_gs <- sapply(res_by_cluster, function(x) filter(x, FDR < 1e-3)$gene)
+    de_gs <- lapply(res_by_cluster, function(x) filter(x, FDR < 1e-3)$gene)
     expect_true(all(sapply(levels(cluster_ids), function(k)
-        all(rownames(data)[idx[, k]] %in% de_gs[, k]))))
+            all(rownames(data)[idx[, k]] %in% de_gs[[k]]))))
 })
