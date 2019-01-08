@@ -6,7 +6,7 @@
 #'   measurements and using \code{edgeR} for testing.
 #'
 #' @param x 
-#'   a \code{[SingleCellExperiment]{SingleCellExperiment}}.
+#'   a \code{\link[SingleCellExperiment]{SingleCellExperiment}}.
 #' @param pb a named list of pseudo-bulk data for each cluster
 #'   computed with \code{aggregateData}.
 #' @param design 
@@ -40,8 +40,15 @@
 #'     Scaled CPM are obtained by multiplying pseudo-bulk raw counts
 #'     by effective library sizes and dividing by 1M.}}
 #'
+#' @return a list containing 
+#' \itemize{
+#' \item a data.frame with differential testing results,
+#' \item a \code{\link[edgeR]{DGEList}} object of length nb.-clusters, and
+#' \item the \code{design} matrix, and \code{contrast} or \code{coef} used.
+#' }
+#'
 #' @examples
-#' # simulate 5 clusters, 20% of differentially expressed genes
+#' # simulate 5 clusters, 20% of DE genes
 #' data(kang)
 #' sim <- simData(kang, n_genes = 10, n_cells = 100, 
 #'     p_dd = c(0.8, 0, 0.2, 0, 0, 0))
@@ -63,10 +70,9 @@
 #' sapply(split(res[[1]], res[[1]]$cluster_id), 
 #'     function(x) table(x$FDR < 0.05))
 #'
-#' @author Helena Lucia Crowell \email{helena@crowells.eu}
+#' @author Helena L. Crowell \email{helena.crowell@uzh.ch} and Mark D. Robinson.
 #'
 #' @import SingleCellExperiment
-#' @import SummarizedExperiment
 #' @importFrom edgeR calcNormFactors DGEList estimateDisp glmQLFit glmQLFTest topTags
 #' @importFrom dplyr group_by_ select summarise_at ungroup %>%
 #' @importFrom reshape2 dcast
@@ -75,7 +81,9 @@
 #'
 #' @export
 
-run_edgeR <- function(x, pb, design, contrast = NULL, coef = NULL, min_cells = 10, verbose = TRUE) {
+run_edgeR <- function(x, pb, 
+    design, contrast = NULL, coef = NULL, 
+    min_cells = 10, verbose = TRUE) {
     
     # check validty of input arguments
     stopifnot(class(x) == "SingleCellExperiment")

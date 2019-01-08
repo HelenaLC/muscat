@@ -8,7 +8,7 @@ run_edgeR(x, pb, design, contrast = NULL, coef = NULL,
   min_cells = 10, verbose = TRUE)
 }
 \arguments{
-\item{x}{a \code{[SingleCellExperiment]{SingleCellExperiment}}.}
+\item{x}{a \code{\link[SingleCellExperiment]{SingleCellExperiment}}.}
 
 \item{pb}{a named list of pseudo-bulk data for each cluster
 computed with \code{aggregateData}.}
@@ -28,6 +28,14 @@ required to consider the sample for differential testing.}
 \item{verbose}{logical. Should information on progress be reported?}
 
 \item{method}{a character string (see details).}
+}
+\value{
+a list containing 
+\itemize{
+\item a data.frame with differential testing results,
+\item a \code{\link[edgeR]{DGEList}} object of length nb.-clusters, and
+\item the \code{design} matrix, and \code{contrast} or \code{coef} used.
+}
 }
 \description{
 \code{run_edgeR} tests for cluster-specific 
@@ -51,7 +59,7 @@ required to consider the sample for differential testing.}
     by effective library sizes and dividing by 1M.}}
 }
 \examples{
-# simulate 5 clusters, 20\% of differentially expressed genes
+# simulate 5 clusters, 20\% of DE genes
 data(kang)
 sim <- simData(kang, n_genes = 10, n_cells = 100, 
     p_dd = c(0.8, 0, 0.2, 0, 0, 0))
@@ -75,5 +83,5 @@ sapply(split(res[[1]], res[[1]]$cluster_id),
 
 }
 \author{
-Helena Lucia Crowell \email{helena@crowells.eu}
+Helena L. Crowell \email{helena.crowell@uzh.ch} and Mark D. Robinson.
 }
