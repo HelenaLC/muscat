@@ -91,10 +91,6 @@ run_edgeR <- function(x, pb,
     
     # compute cluster-sample counts
     n_cells <- table(colData(x)$cluster_id, colData(x)$sample_id)
-    
-    # for each gene, compute percentage of cells 
-    # w/ non-zero counts in each cluster-sample
-    p_cells <- calcExprFreq(x)
 
     # for ea. cluster, run DEA w/ edgeR
     cluster_ids <- levels(dt$cluster_id)
@@ -118,7 +114,6 @@ run_edgeR <- function(x, pb,
                 data.frame(
                     gene = gs, 
                     cluster_id = k, tt,
-                    p_cells[[k]][gs, ], 
                     contrast = c,
                     row.names = NULL, 
                     stringsAsFactors = FALSE)
@@ -130,7 +125,6 @@ run_edgeR <- function(x, pb,
             df <- data.frame(
                 gene = gs, 
                 cluster_id = k, tt,
-                p_cells[[k]][gs, ],
                 row.names = NULL,
                 stringsAsFactors = FALSE)
         }
