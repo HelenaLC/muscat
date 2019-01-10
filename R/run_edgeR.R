@@ -72,8 +72,8 @@
 #'
 #' @author Helena L. Crowell \email{helena.crowell@uzh.ch} and Mark D. Robinson.
 #'
-#' @import SingleCellExperiment
 #' @importFrom edgeR calcNormFactors DGEList estimateDisp glmQLFit glmQLFTest topTags
+#' @importFrom SummarizedExperiment colData
 #'
 #' @export
 
@@ -93,7 +93,7 @@ run_edgeR <- function(x, pb,
     n_cells <- table(colData(x)$cluster_id, colData(x)$sample_id)
 
     # for ea. cluster, run DEA w/ edgeR
-    cluster_ids <- levels(dt$cluster_id)
+    cluster_ids <- levels(colData(x)$cluster_id)
     res <- lapply(cluster_ids, function(k) {
         if (verbose) message(k, "..", appendLF = FALSE)
         y <- pb[[k]]
