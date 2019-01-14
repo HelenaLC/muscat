@@ -9,16 +9,16 @@
 #' @param cluster_id a character string specifying the clustering to use.
 #'   Must match a \code{x@meta.data} column.
 #' @param mc.cores passed to \code{\link[parallel]{mclapply}}.
-#' @param assay,block,logfc.threshold,test.use,min.pct 
-#'   passed to \code{\link[Seurat]{FindMarkers}}.
+#' @param block,lfc,test.use,min.pct passed to \code{\link[scran]{findMarkers}}.
 #' 
+#' @importFrom methods is
 #' @importFrom parallel mclapply
-#' @importFrom Seurat FindMarkers
+#' @importFrom scran findMarkers
 #' @export
 
 findMarkerGenes <- function(x, cluster_id, mc.cores = 1, assay = "RNA", block = NULL,
                             logfc.threshold = 1, test.use = "wilcox", min.pct = 0.25) {
-  
+
   stopifnot(class(x) == "Seurat")
   stopifnot(is.numeric(mc.cores), length(mc.cores) == 1, mc.cores > 0)
   stopifnot(is.character(assay), length(assay) == 1, assay %in% names(x@assays))
@@ -28,13 +28,13 @@ findMarkerGenes <- function(x, cluster_id, mc.cores = 1, assay = "RNA", block = 
             test.use %in% c("wilcox", "bimod", "roc", "t", "negbinom",
                             "poisson", "LR", "MAST", "DESeq2"))
   stopifnot(is.numeric(min.pct), length(min.pct) == 1, min.pct > 0, min.pct < 1)
-  
+
   if (!is.null(block))
     block <- x@meta.data[[block]]
   x@active.assay <- assay
   x@active.ident <- setNames(x@meta.data[[cluster_id]], rownames(x@meta.data))
   cluster_ids <- levels(x@active.ident)
-  
+
   do.call(rbind, lapply(cluster_ids, function(c1) {
     do.call(rbind, parallel::mclapply(cluster_ids, function(c2) {
       if (c1 != c2) {
