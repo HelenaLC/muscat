@@ -32,11 +32,12 @@
 
 simData <- function(x, n_genes, n_cells, p_dd, fc = 2, seed = 1) {
     
+    # check validity of input arguments
     stopifnot(class(x) == "SingleCellExperiment")
     stopifnot(is.numeric(n_genes), length(n_genes) == 1)
     stopifnot(is.numeric(n_cells), length(n_cells) == 1 | length(n_cells) == 2)
     stopifnot(is.numeric(p_dd), length(p_dd) == 6, sum(p_dd) == 1)
-    stopifnot(is.numeric(fc), is.numeric(fc))
+    stopifnot(is.numeric(fc), is.numeric(fc), fc > 1)
     stopifnot(is.numeric(seed), length(seed) == 1)
     
     cluster_ids <- levels(colData(x)$cluster_id)
@@ -47,11 +48,12 @@ simData <- function(x, n_genes, n_cells, p_dd, fc = 2, seed = 1) {
     # split cells by cluster-sample
     dt <- data.table(
         cell = colnames(x), 
-        data.frame(colData(x)))
-    cells <- dt %>% split(
+        cluster_id = colData(x)$cluster_id,
+        sample_id = colData(x)$sample_id)
+    dt_split <- split(dt,
         by = c("cluster_id", "sample_id"), 
         keep.by = FALSE, flatten = FALSE)
-    cells <- sapply(cells, sapply, "[[", "cell")
+    cells_by_cluster_sample <- sapply(dt_split, sapply, "[[", "cell")
     
     # sample nb. of cells to simulate per cluster-sample
     if (length(n_cells) == 1) {
@@ -98,9 +100,18 @@ simData <- function(x, n_genes, n_cells, p_dd, fc = 2, seed = 1) {
                 return(x) })), sample_ids))
     
     # sample genes to simulate from
-    gs <- replicate(n_clusters, sample(rownames(x), n_genes))
+    gs <- replicate(n_clusters, sample(rownames(x), n_genes, replace = TRUE))
     rownames(gs) <- rownames(y)
     colnames(gs) <- cluster_ids
+    
+    # sample fold-changes
+    fcs <- sapply(cluster_ids, function(k) 
+        sapply(cats, function(c) { 
+            n <- ndd[c, k]
+            signs <- sample(c(-1, 1), size = n, replace = TRUE)
+            fcs <- 2 ^ ( rgamma(n, 4 , 4 / fc) * signs )
+            setNames(fcs, gs[is[[c, k]], k]) 
+    }))
     
     for (c in cluster_ids) {
         # get NB parameters
@@ -110,7 +121,7 @@ simData <- function(x, n_genes, n_cells, p_dd, fc = 2, seed = 1) {
         
         for (s in sample_ids) {
             # cells to simulate from
-            cs <- cells[[s, c]]
+            cs <- cells_by_cluster_sample[[s, c]]
             
             # compute mus
             o <- setNames(colData(x)[cs, ]$offset, cs)
@@ -123,16 +134,16 @@ simData <- function(x, n_genes, n_cells, p_dd, fc = 2, seed = 1) {
             # simulate data
             for (cat in cats)
                 if (ndd[cat, c] > 0) y[is[[cat, c]], c(g1, g2)] <- 
-                simdd(cat, gs[is[[cat, c]], c], cs, ng1, ng2, mu, d, fc)
+                simdd(cat, gs[is[[cat, c]], c], cs, ng1, ng2, mu, d, fcs[[cat, c]])
         }
     }
     
     # construct SCE
     gi <- do.call(rbind, lapply(cluster_ids, function(c)
         do.call(rbind, lapply(cats, function(cat) if (ndd[cat, c] != 0)
-            data.frame(genes = is[[cat, c]], cluster_id = c, category = cat)))))
+            data.frame(gene = is[[cat, c]], cluster_id = c, category = cat)))))
     gi <- gi[order(as.numeric(gsub("[a-z]", "", gi$gene))), ]
-    levels(gi$category) <- c("ee", "ep", "de", "dp", "dm", "db")
+    gi$category <- factor(gi$category, levels = ddSingleCell:::cats)
     rownames(gi) <- NULL
     
     col_data <- do.call(rbind, lapply(cluster_ids, function(c) 

@@ -42,9 +42,18 @@ filterMatrix <- function(m, n = 100) {
 # of dispersions ('size') and means ('mu')
 # ------------------------------------------------------------------------------
 
-nb <- function(gs, cs, d, m, fc = 1) {
-    t(sapply(gs, function(g) sapply(cs, function(c)
-        rnbinom(1, size = d[g], mu = m[g, c] * fc))))
+nb <- function(gs, cs, d, m, fc = NULL) {
+    n_gs <- length(gs)
+    n_cs <- length(cs)
+    if (is.null(fc))
+        fc <- rep(1, n_gs)
+    fc <- rep(fc, each = n_cs)
+    nb <- rnbinom(n_gs * n_cs, 
+        size = rep(d[gs], each = n_cs), 
+        mu = c(t(m[gs, cs])) * fc)
+    matrix(nb, 
+        nrow = n_gs, ncol = n_cs, 
+        dimnames = list(gs, cs))
 }
 
 # ------------------------------------------------------------------------------
