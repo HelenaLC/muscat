@@ -16,7 +16,7 @@ Must match a \code{x@meta.data} column.}
 
 \item{mc.cores}{passed to \code{\link[parallel]{mclapply}}.}
 
-\item{assay, block, logfc.threshold, test.use, min.pct}{passed to \code{\link[Seurat]{FindMarkers}}.}
+\item{block, lfc, test.use, min.pct}{passed to \code{\link[scran]{findMarkers}}.}
 }
 \description{
 Test for DE expression between all pairs of clusters.

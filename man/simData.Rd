@@ -30,8 +30,8 @@ Simulation of complex scRNA-seq data
 across 2 experimental conditions from a real scRNA-seq data set.
 }
 \examples{
-data(kang_se, kang_fit)
-simDD(kang_se, kang_fit,
+data(kang)
+simData(kang,
     n_genes = 10, n_cells = 10,
     p_dd = c(1,0,0,0,0,0), seed = 1)
 
