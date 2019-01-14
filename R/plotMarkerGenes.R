@@ -19,6 +19,7 @@
 #' @import SingleCellExperiment
 #' @importFrom dplyr %>% group_by summarise_all
 #' @importFrom grid gpar
+#' @importFrom viridis viridis
 #' @export
 
 plotMarkerGenes <- function(x, marker_genes, scale = TRUE, cluster_columns = TRUE) {
@@ -53,7 +54,7 @@ plotMarkerGenes <- function(x, marker_genes, scale = TRUE, cluster_columns = TRU
         rect_gp = gpar(col = "white"))
     hm <- Heatmap(
         matrix = mat, 
-        col = viridis::viridis(10),
+        col = viridis(10),
         name = sprintf("mean%s\nexpression", ifelse(scale, " scaled", "")),
         cluster_rows = FALSE, 
         cluster_columns = FALSE,
