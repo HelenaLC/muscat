@@ -24,8 +24,10 @@
 #' @import SingleCellExperiment
 #' @importFrom dplyr %>% group_by summarise_all
 #' @importFrom grid gpar
+#' @importFrom methods is
 #' @importFrom reshape2 melt
 #' @importFrom tidyr complete
+#' @importFrom viridis viridis
 #' @export
 
 plotDiffGenes <- function(x, y, 
@@ -33,7 +35,7 @@ plotDiffGenes <- function(x, y,
     clusters = NULL, fdr = 0.05, lfc = 1) {
     
     # validity checks of input arguments
-    stopifnot(class(x) == "SingleCellExperiment")
+    stopifnot(is(x, "SingleCellExperiment"))
     stopifnot(is.numeric(top_n), length(top_n) == 1, top_n > 1)
     sort_by <- match.arg(sort_by)
     
@@ -112,7 +114,7 @@ plotDiffGenes <- function(x, y,
     lapply(contrasts, function(i) {
         Heatmap(ms[[i]],
             column_title = i,
-            col = viridis::viridis(10),
+            col = viridis(10),
             name = "avg. scaled\nexpression",
             cluster_rows = FALSE,
             cluster_columns = FALSE,
