@@ -82,7 +82,7 @@ run_edgeR <- function(x, pb,
     min_cells = 10, verbose = TRUE) {
     
     # check validty of input arguments
-    stopifnot(class(x) == "SingleCellExperiment")
+    stopifnot(is(x, "SingleCellExperiment"))
     stopifnot(all(names(pb) %in% levels(colData(x)$cluster_id)))
     stopifnot(is.matrix(design))
     stopifnot(!is.null(contrast) | !is.null(coef))
@@ -93,7 +93,12 @@ run_edgeR <- function(x, pb,
     n_cells <- table(colData(x)$cluster_id, colData(x)$sample_id)
 
     # for ea. cluster, run DEA w/ edgeR
+    if (!is.null(contrast)) {
+        contrasts <- colnames(contrast)
+        names(contrasts) <- contrasts
+    }
     cluster_ids <- levels(colData(x)$cluster_id)
+    names(cluster_ids) <- cluster_ids
     res <- lapply(cluster_ids, function(k) {
         if (verbose) message(k, "..", appendLF = FALSE)
         y <- pb[[k]]
@@ -107,7 +112,7 @@ run_edgeR <- function(x, pb,
         y <- estimateDisp(y, d)
         fit <- glmQLFit(y, d)
         if (!is.null(contrast)) {
-            df <- do.call(rbind, lapply(colnames(contrast), function(c) {
+            df <- lapply(contrasts, function(c) {
                 qlf <- glmQLFTest(fit, contrast = contrast[, c])
                 tt <- topTags(qlf, n = Inf, p.value = Inf)$table
                 gs <- rownames(tt)
@@ -117,7 +122,7 @@ run_edgeR <- function(x, pb,
                     contrast = c,
                     row.names = NULL, 
                     stringsAsFactors = FALSE)
-            }))
+            })
         } else {
             qlf <- glmQLFTest(fit, coef = coef)
             tt <- topTags(qlf, n = Inf, p.value = Inf)$table
@@ -130,15 +135,16 @@ run_edgeR <- function(x, pb,
         }
         return(list(tt = df, dgel = y))
     })
-    # remove skipped clusters
-    res <- res[!sapply(res, is.null)]
     
+    # re-organize results by contrast
+    tt <- lapply(res, "[[", "tt")
+    if (!is.null(contrast))
+        tt <- lapply(contrasts, function(c) 
+            lapply(cluster_ids, function(k) tt[[k]][[c]]))
     dgel <- lapply(res, "[[", "dgel")
-    res <- lapply(res, "[[", "tt")
-    res <- do.call(rbind, res)
     
     # return results
-    list(res, 
+    list(tt, 
         data = dgel,
         design = design,
         contrast = contrast,
