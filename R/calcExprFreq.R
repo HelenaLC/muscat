@@ -24,7 +24,7 @@
 #' names(freqs)
 #' head(freqs[[1]])
 #' 
-#' freqs <- pCells(kang, melt = TRUE)
+#' freqs <- calcExprFreq(kang, melt = TRUE)
 #' head(freqs)
 #' 
 #' @author Helena L. Crowell \email{helena.crowell@uzh.ch} and Mark D. Robinson.
