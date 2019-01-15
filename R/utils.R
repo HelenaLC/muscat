@@ -42,11 +42,12 @@ filterMatrix <- function(m, n = 100) {
 # of dispersions ('size') and means ('mu')
 # ------------------------------------------------------------------------------
 
-nb <- function(gs, cs, d, m, fc = NULL) {
+nb <- function(gs, cs, d, m, lfc = NULL) {
     n_gs <- length(gs)
     n_cs <- length(cs)
-    if (is.null(fc))
-        fc <- rep(1, n_gs)
+    if (is.null(lfc))
+        lfc <- rep(0, n_gs)
+    fc <- 2 ^ lfc
     fc <- rep(fc, each = n_cs)
     nb <- rnbinom(n_gs * n_cs, 
         size = rep(d[gs], each = n_cs), 
@@ -69,7 +70,7 @@ nb <- function(gs, cs, d, m, fc = NULL) {
 
 simdd <- function(
     category = c("ee", "ep", "de", "dp", "dm", "db"),
-    gs, cs, ng1, ng2, m, d, fc = 2) {
+    gs, cs, ng1, ng2, m, d, lfc = 2) {
 
     jg1 <- sample(cs, ng1, replace = TRUE)
     jg2 <- sample(cs, ng2, replace = TRUE)
@@ -83,37 +84,37 @@ simdd <- function(
             g2_lo <- sample(ng2, round(ng2 * 0.6))
             cbind(
                 nb(gs, jg1[ g1_lo], d, m),
-                nb(gs, jg1[-g1_lo], d, m, fc),
+                nb(gs, jg1[-g1_lo], d, m, lfc),
                 nb(gs, jg2[ g2_lo], d, m),
-                nb(gs, jg2[-g2_lo], d, m, fc))
+                nb(gs, jg2[-g2_lo], d, m, lfc))
         },
         de = {
             cbind(
                 nb(gs, jg1, d, m), 
-                nb(gs, jg2, d, m, fc))
+                nb(gs, jg2, d, m, lfc))
         },
         dp = {
             g1_lo <- sample(ng1, round(ng1 * 0.4))
             g2_lo <- sample(ng2, round(ng2 * 0.6))
             cbind(
                 nb(gs, jg1[ g1_lo], d, m),
-                nb(gs, jg1[-g1_lo], d, m, fc),
+                nb(gs, jg1[-g1_lo], d, m, lfc),
                 nb(gs, jg2[ g2_lo], d, m),
-                nb(gs, jg2[-g2_lo], d, m, fc))
+                nb(gs, jg2[-g2_lo], d, m, lfc))
         },
         dm = {
             g2_lo <- sample(ng2, round(ng2 * 0.6))
             cbind(
                 nb(gs, jg1, d, m),
                 nb(gs, jg2[ g2_lo], d, m),
-                nb(gs, jg2[-g2_lo], d, m, fc))
+                nb(gs, jg2[-g2_lo], d, m, lfc))
         }, 
         db = {
             g2_lo <- sample(ng2, round(ng2 * 0.5))
             cbind(
-                nb(gs, jg1, d, m, fc),
+                nb(gs, jg1, d, m, lfc),
                 nb(gs, jg2[ g2_lo], d, m),
-                nb(gs, jg2[-g2_lo], d, m, fc))
+                nb(gs, jg2[-g2_lo], d, m, lfc))
         }
     )
 }

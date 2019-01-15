@@ -105,13 +105,14 @@ simData <- function(x, n_genes, n_cells, p_dd, fc = 2, seed = 1) {
     colnames(gs) <- cluster_ids
     
     # sample fold-changes
-    fcs <- sapply(cluster_ids, function(k) 
+    lfcs <- sapply(cluster_ids, function(k) 
         sapply(cats, function(c) { 
             n <- ndd[c, k]
+            if (c %in% c("ee", "ep")) return(rep(NA, n))
             signs <- sample(c(-1, 1), size = n, replace = TRUE)
-            fcs <- 2 ^ ( rgamma(n, 4, 4 / fc) * signs )
-            names(fcs) <- gs[is[[c, k]], k]
-            return(fcs)
+            lfcs <- rgamma(n, 4, 4 / fc) * signs
+            names(lfcs) <- gs[is[[c, k]], k]
+            return(lfcs)
     }))
     
     for (c in cluster_ids) {
@@ -135,14 +136,16 @@ simData <- function(x, n_genes, n_cells, p_dd, fc = 2, seed = 1) {
             # simulate data
             for (cat in cats)
                 if (ndd[cat, c] > 0) y[is[[cat, c]], c(g1, g2)] <- 
-                simdd(cat, gs[is[[cat, c]], c], cs, ng1, ng2, mu, d, fcs[[cat, c]])
+                simdd(cat, gs[is[[cat, c]], c], cs, ng1, ng2, mu, d, lfcs[[cat, c]])
         }
     }
     
     # construct SCE
-    gi <- do.call(rbind, lapply(cluster_ids, function(c)
-        do.call(rbind, lapply(cats, function(cat) if (ndd[cat, c] != 0)
-            data.frame(gene = is[[cat, c]], cluster_id = c, category = cat)))))
+    gi <- do.call(rbind, lapply(cluster_ids, function(k)
+        do.call(rbind, lapply(cats, function(c) if (ndd[c, k] != 0)
+            data.frame(
+                gene = is[[c, k]], cluster_id = k, 
+                category = c, logFC = lfcs[[c, k]])))))
     gi <- gi[order(as.numeric(gsub("[a-z]", "", gi$gene))), ]
     gi$category <- factor(gi$category, levels = ddSingleCell:::cats)
     rownames(gi) <- NULL
