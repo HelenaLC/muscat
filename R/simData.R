@@ -109,8 +109,9 @@ simData <- function(x, n_genes, n_cells, p_dd, fc = 2, seed = 1) {
         sapply(cats, function(c) { 
             n <- ndd[c, k]
             signs <- sample(c(-1, 1), size = n, replace = TRUE)
-            fcs <- 2 ^ ( rgamma(n, 4 , 4 / fc) * signs )
-            setNames(fcs, gs[is[[c, k]], k]) 
+            fcs <- 2 ^ ( rgamma(n, 4, 4 / fc) * signs )
+            names(fcs) <- gs[is[[c, k]], k]
+            return(fcs)
     }))
     
     for (c in cluster_ids) {
