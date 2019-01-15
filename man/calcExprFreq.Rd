@@ -37,7 +37,7 @@ freqs <- calcExprFreq(kang)
 names(freqs)
 head(freqs[[1]])
 
-freqs <- pCells(kang, melt = TRUE)
+freqs <- calcExprFreq(kang, melt = TRUE)
 head(freqs)
 
 }
