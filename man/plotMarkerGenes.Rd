@@ -2,18 +2,18 @@
 % Please edit documentation in R/plotMarkerGenes.R
 \name{plotMarkerGenes}
 \alias{plotMarkerGenes}
-\title{Heatmap of marker-gene expression by cluster}
+\title{Heatmap of mean marker-gene expression by cluster}
 \usage{
 plotMarkerGenes(x, marker_genes, scale = TRUE, cluster_columns = TRUE)
 }
 \arguments{
-\item{x}{a \code{[SingleCellExperiment]{SingleCellExperiment}}.}
+\item{x}{a \code{\link[SingleCellExperiment]{SingleCellExperiment}}.}
 
 \item{marker_genes}{a names list of marker genes for each cluster.}
 
 \item{scale}{logical. 
 Specifies wether scaled expression values should be scaled 
-between 0 and 1 using 1% and 99% quantiles as boundaries.}
+between 0 and 1 using 1\% and 99\% quantiles as boundaries.}
 
 \item{cluster_columns}{logical. 
 Should columns be hierarchically clustered using euclidean distances.}
@@ -25,5 +25,5 @@ a \code{\link{HeatmapList-class}} object.
 ...
 }
 \author{
-Helena L. Crowell \email{helena@crowells.eu}
+Helena L. Crowell \email{helena.crowells@uzh.ch}.
 }

@@ -1,25 +1,26 @@
 #' @rdname plotMarkerGenes
-#' @title Heatmap of marker-gene expression by cluster
+#' @title Heatmap of mean marker-gene expression by cluster
 #' 
 #' @description ...
 #' 
-#' @param x a \code{[SingleCellExperiment]{SingleCellExperiment}}.
+#' @param x a \code{\link[SingleCellExperiment]{SingleCellExperiment}}.
 #' @param marker_genes a names list of marker genes for each cluster.
 #' @param scale logical. 
 #'   Specifies wether scaled expression values should be scaled 
-#'   between 0 and 1 using 1% and 99% quantiles as boundaries.
+#'   between 0 and 1 using 1\% and 99\% quantiles as boundaries.
 #' @param cluster_columns logical. 
 #'   Should columns be hierarchically clustered using euclidean distances.
 #' 
 #' @return a \code{\link{HeatmapList-class}} object.
 #' 
-#' @author Helena L. Crowell \email{helena@crowells.eu}
+#' @author Helena L. Crowell \email{helena.crowells@uzh.ch}.
 #' 
 #' @import ComplexHeatmap
 #' @import SingleCellExperiment
 #' @importFrom dplyr %>% group_by summarise_all
 #' @importFrom grid gpar
 #' @importFrom viridis viridis
+#' 
 #' @export
 
 plotMarkerGenes <- function(x, marker_genes, scale = TRUE, cluster_columns = TRUE) {
