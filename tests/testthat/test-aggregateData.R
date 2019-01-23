@@ -1,3 +1,5 @@
+context("Aggregation of single-cell to pseudo-bulk data")
+
 # generate toy dataset
 seed <- as.numeric(format(Sys.Date(), "%s"))
 data <- toyData(seed = seed)
