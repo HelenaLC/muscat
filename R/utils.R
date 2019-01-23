@@ -70,7 +70,7 @@ nb <- function(gs, cs, d, m, lfc = NULL) {
 
 simdd <- function(
     category = c("ee", "ep", "de", "dp", "dm", "db"),
-    gs, cs, ng1, ng2, m, d, lfc = 2) {
+    gs, cs, ng1, ng2, m, d, lfc) {
 
     jg1 <- sample(cs, ng1, replace = TRUE)
     jg2 <- sample(cs, ng2, replace = TRUE)

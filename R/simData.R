@@ -13,6 +13,8 @@
 #' @param p_dd numeric vector of length 6.
 #'   Specifies the probability of a gene being
 #'   EE, EP, DE, DP, DM, or DB, respectively.
+#' @param fc numeric value to use as mean logFC
+#'   for DE, DP, DM, and DB type of genes.
 #' @param seed random seed. 
 #' 
 #' @examples
@@ -21,10 +23,11 @@
 #'     n_genes = 10, n_cells = 10,
 #'     p_dd = c(1,0,0,0,0,0), seed = 1)
 #' 
-#' @import SingleCellExperiment 
 #' @importFrom data.table data.table
 #' @importFrom edgeR DGEList estimateDisp glmFit
-#' @importFrom stats model.matrix rnbinom setNames
+#' @importFrom stats model.matrix rgamma setNames
+#' @importFrom SingleCellExperiment SingleCellExperiment
+#' @importFrom SummarizedExperiment colData
 #' @importFrom S4Vectors split
 #' @importFrom zeallot %<-%
 #' 
@@ -33,7 +36,7 @@
 simData <- function(x, n_genes, n_cells, p_dd, fc = 2, seed = 1) {
     
     # check validity of input arguments
-    stopifnot(class(x) == "SingleCellExperiment")
+    stopifnot(is(x, "SingleCellExperiment"))
     stopifnot(is.numeric(n_genes), length(n_genes) == 1)
     stopifnot(is.numeric(n_cells), length(n_cells) == 1 | length(n_cells) == 2)
     stopifnot(is.numeric(p_dd), length(p_dd) == 6, sum(p_dd) == 1)
@@ -108,35 +111,35 @@ simData <- function(x, n_genes, n_cells, p_dd, fc = 2, seed = 1) {
     lfcs <- sapply(cluster_ids, function(k) 
         sapply(cats, function(c) { 
             n <- ndd[c, k]
-            if (c %in% c("ee", "ep")) return(rep(NA, n))
+            if (c == "ee") return(rep(NA, n))
             signs <- sample(c(-1, 1), size = n, replace = TRUE)
             lfcs <- rgamma(n, 4, 4 / fc) * signs
             names(lfcs) <- gs[is[[c, k]], k]
             return(lfcs)
     }))
     
-    for (c in cluster_ids) {
+    for (k in cluster_ids) {
         # get NB parameters
-        m <- rowData(x)[gs[, c], ]$beta
-        d <- rowData(x)[gs[, c], ]$dispersion
-        names(m) <- names(d) <- gs[, c]
+        m <- rowData(x)[gs[, k], ]$beta
+        d <- rowData(x)[gs[, k], ]$dispersion
+        names(m) <- names(d) <- gs[, k]
         
         for (s in sample_ids) {
             # cells to simulate from
-            cs <- cells_by_cluster_sample[[s, c]]
+            cs <- cells_by_cluster_sample[[s, k]]
             
             # compute mus
             o <- setNames(colData(x)[cs, ]$offset, cs)
             mu <- sapply(exp(o), "*", exp(m))
             
             # get cell indices & nb. of cells by group
-            ng1 <- length(g1 <- js[[s, c]][[1]])
-            ng2 <- length(g2 <- js[[s, c]][[2]])
+            ng1 <- length(g1 <- js[[s, k]][[1]])
+            ng2 <- length(g2 <- js[[s, k]][[2]])
             
             # simulate data
-            for (cat in cats)
-                if (ndd[cat, c] > 0) y[is[[cat, c]], c(g1, g2)] <- 
-                simdd(cat, gs[is[[cat, c]], c], cs, ng1, ng2, mu, d, lfcs[[cat, c]])
+            for (c in cats)
+                if (ndd[c, k] > 0) y[is[[c, k]], c(g1, g2)] <- 
+                simdd(c, gs[is[[c, k]], k], cs, ng1, ng2, mu, d, lfcs[[c, k]])
         }
     }
     
@@ -156,13 +159,13 @@ simData <- function(x, n_genes, n_cells, p_dd, fc = 2, seed = 1) {
                 row.names = 1,
                 unlist(js[[s, c]]), 
                 cluster_id = c, sample_id = s, 
-                group = rep.int(c("A", "B"), n_cells[[s, c]]))))))
+                group_id = rep.int(c("A", "B"), n_cells[[s, c]]))))))
     col_data <- col_data[colnames(y), ]
-    col_data$sample_id <- factor(paste(col_data$group, col_data$sample_id, sep = "."))
+    col_data$sample_id <- factor(paste(col_data$group_id, col_data$sample_id, sep = "."))
     
     sample_id <- levels(col_data$sample_id)
-    group <- gsub("(A|B)[.].*", "\\1", sample_id)
-    ei <- data.frame(sample_id, group)
+    group_id <- gsub("(A|B)[.].*", "\\1", sample_id)
+    ei <- data.frame(sample_id, group_id)
     md <- list(
         experiment_info = ei,
         n_cells = table(col_data$sample_id),

@@ -16,16 +16,20 @@
 #' @author Helena L. Crowell \email{helena.crowells@uzh.ch}.
 #' 
 #' @import ComplexHeatmap
-#' @import SingleCellExperiment
 #' @importFrom dplyr %>% group_by summarise_all
 #' @importFrom grid gpar
+#' @importFrom SummarizedExperiment assayNames assays colData
 #' @importFrom viridis viridis
-#' 
 #' @export
 
-plotMarkerGenes <- function(x, marker_genes, scale = TRUE, cluster_columns = TRUE) {
+plotMarkerGenes <- function(x, marker_genes, 
+    scale = TRUE, cluster_columns = TRUE) {
+    
+    stopifnot(is(x, "SingleCellExperiment"))
+    stopifnot("logcounts" %in% assayNames(x))
+    
     cluster_ids <- colData(x)$cluster_id
-    es <- logcounts(x)[unlist(marker_genes), ]
+    es <- assays(x)$logcounts[unlist(marker_genes), ]
     es <- t(as.matrix(es))
     if (scale)
         es <- CATALYST:::scale_exprs(es)

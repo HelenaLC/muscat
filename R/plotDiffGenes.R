@@ -3,9 +3,12 @@
 #' 
 #' @description ...
 #' 
-#' @param x a \code{[SingleCellExperiment]{SingleCellExperiment}}.
-#' @param y a table containing differential testing results
-#'   as returned by, for example, \code{run_edgeR}.
+#' @param x a \code{\link[SingleCellExperiment]{SingleCellExperiment}}.
+#' @param y a list of differential testing results 
+#'   as returned by \code{\link{runDS}}.
+#' @param c a character string specifying the comparison 
+#'   (contrast of coefficient) for which results should be plotted.
+#'   Defaults to the first one available.
 #' @param top_n single numeric specifying the number of genes to include.
 #' @param sort_by a character string specifying a \code{y} column to sort by.
 #' @param clusters a character string specifying which cluster(s) results
@@ -21,103 +24,77 @@
 #' @author Helena L. Crowell \email{helena@crowells.eu}
 #' 
 #' @import ComplexHeatmap
-#' @import SingleCellExperiment
-#' @importFrom dplyr %>% group_by summarise_all
+#' @importFrom dplyr %>% bind_rows filter
 #' @importFrom grid gpar
 #' @importFrom methods is
-#' @importFrom reshape2 melt
-#' @importFrom tidyr complete
+#' @importFrom purrr modify_depth
+#' @importFrom SummarizedExperiment assayNames assays colData
 #' @importFrom viridis viridis
 #' @export
 
-plotDiffGenes <- function(x, y, 
-    top_n = 20, sort_by = c("FDR", "logFC"), 
-    clusters = NULL, fdr = 0.05, lfc = 1) {
+plotDiffGenes <- function(x, y, c = NULL, g = NULL, k = NULL, 
+    top_n = 20, sort_by = c("FDR", "logFC"), fdr = 0.05, lfc = 1) {
     
     # validity checks of input arguments
     stopifnot(is(x, "SingleCellExperiment"))
-    stopifnot(is.numeric(top_n), length(top_n) == 1, top_n > 1)
+    stopifnot("logcounts" %in% assayNames(x))
+    stopifnot(is.null(c) || c %in% names(y$table))
+    stopifnot(is.numeric(top_n), length(top_n) == 1, top_n > 0)
     sort_by <- match.arg(sort_by)
     
-    cluster_ids <- colData(x)$cluster_id
-    contrasts <- levels(y$contrast)
+    # default to 1st contrast/coef
+    y <- y$table
+    if (is.null(c)) c <- names(y)[1]
+    y <- y[[c]]
+    y <- y[!sapply(y, is.null)]
     
     # filter results
-    if (is.null(clusters)) clusters <- levels(cluster_ids)
-    y <- y %>% filter(FDR < fdr, abs(logFC) > lfc, cluster_id %in% clusters)
-    
-    # order results
-    if (sort_by == "FDR") {
-        o <- order(y$FDR)
-    } else if (sort_by == "logFC") {
-        o <- order(abs(y$logFC), decreasing = TRUE)
+    if (!is.null(g)) {
+        y <- lapply(y, filter, gene %in% g)
     }
-    y <- y[o, ]
+    if (!is.null(k)) {
+        if (k == "all") {
+            cluster_ids <- colData(x)$cluster_id
+            k <- levels(cluster_ids)
+        }
+        y <- y[k]
+    }
+    y <- lapply(y, filter, FDR < fdr, abs(logFC) > lfc)
     
-    # split results by contrast & cluster
-    y <- split(y, y$contrast)
-    y <- lapply(y, function(x) {
-        rownames(x) <- sprintf("%s(%s)", x$gene, x$cluster_id)
-        return(x)
-    })
-    y <- lapply(y, function(x) split(x, x$cluster_id))
+    # order & subset top_n results
+    y <- switch(sort_by,
+        FDR = bind_rows(lapply(y, function(u) {
+            o <- order(u$FDR)
+            o <- o[seq_len(top_n)]
+            u[o[!is.na(o)], ]
+        }))
+        ,
+        logFC = bind_rows(lapply(y, function(u) {
+            o <- order(u$logFC, decreasing = TRUE)
+            o <- o[seq_len(top_n)]
+            u[o[!is.na(o)], ]
+        }))
+    )
     
-    # subset top_n hits
-    y <- lapply(y, lapply, "[", i = seq_len(top_n), j = TRUE)
-    y <- lapply(y, lapply, function(x) x[!is.na(x$gene), ])
+    es <- as.matrix(logcounts(x)[unlist(y$gene), ])
+    es0 <- t(CATALYST:::scale_exprs(t(es)))
+    dt <- data.table(data.frame(colData(x)), cell = colnames(x))
+    dt_split <- split(dt, by = c("cluster_id", "sample_id"), sorted = TRUE, flatten = FALSE)
+    cells_by_cluster_sample <- modify_depth(dt_split, 2, "cell")
     
-    gs <- lapply(y, lapply, "[[", "gene")
-    gs <- unlist(Reduce(c, gs))
-    gs <- make.names(gs)
-    gs <- unique(gs)
+    ms <- t(apply(y, 1, function(u) {
+        g <- u[["gene"]]
+        k <- u[["cluster_id"]]
+        sapply(cells_by_cluster_sample[[k]], function(i) mean(es0[g, i]))
+    }))
+    rownames(ms) <- sprintf("%s(%s)", y$gene, y$cluster_id)
+    colnames(ms) <- levels(colData(x)$sample_id)
     
-    rownames(x) <- gsub("[-]|[(]|[)]", ".", rownames(x))
-    es <- logcounts(x[gs, ])
-    es <- as.matrix(t(es))
-    es <- CATALYST:::scale_exprs(es)
-    df <- data.frame(
-        check.names = FALSE, es,
-        cluster_id = colData(x)$cluster_id,
-        sample_id = colData(x)$sample_id)
-    
-    zeros <- setNames(as.list(numeric(nrow(x))), rownames(x))
-    ms <- df %>% 
-        group_by_(~cluster_id, ~sample_id) %>% 
-        summarise_at(gs, mean) %>% 
-        complete(sample_id, fill = zeros) %>% 
-        melt(id.var = c("cluster_id", "sample_id"),
-            variable.name = "gene", value.name = "expr")
-    
-    # reformat (rows = genes, columns = samples)
-    ms <- split(ms, ms$gene)
-    ms <- lapply(ms, acast, cluster_id ~ sample_id, value.var = "expr")
-    ms <- do.call(rbind, ms)
-    rownames(ms) <- sprintf("%s(%s)",
-        rep(gs, each = nlevels(cluster_ids)),
-        rep(levels(cluster_ids), length(gs)))
-    
-    # split by contrast
-    ms <- setNames(lapply(contrasts, function(i)
-        ms[unlist(sapply(y[[i]], rownames)), ]),
-        contrasts)
-    
-    # retain only samples of compaired groups & reorder
-    ei <- metadata(x)$experiment_info
-    ei$group <- gsub("[-]|[(]|[)]|[/]", ".", ei$group)
-    g1 <- setNames(gsub(".*-", "", contrasts), contrasts)
-    g2 <- setNames(gsub("-.*", "", contrasts), contrasts)
-    groups <- sapply(contrasts, function(c)
-        unlist(sapply(list(g1 = g1[c], g2 = g2[c]), function(x) 
-            as.character(ei$sample_id[ei$group %in% x]))))
-    ms <- setNames(lapply(contrasts, function(i) ms[[i]][, groups[, i]]), contrasts)
-    
-    lapply(contrasts, function(i) {
-        Heatmap(ms[[i]],
-            column_title = i,
-            col = viridis(10),
-            name = "avg. scaled\nexpression",
-            cluster_rows = FALSE,
-            cluster_columns = FALSE,
-            row_names_gp = gpar(fontsize = 6))
-    })
+    Heatmap(ms,
+        col = viridis(10),
+        name = "avg. scaled\nexpression",
+        column_title = sprintf("%s (top %s %s)", c, top_n, sort_by),
+        cluster_rows = FALSE,
+        cluster_columns = FALSE,
+        row_names_gp = gpar(fontsize = 6))
 }

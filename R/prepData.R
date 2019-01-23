@@ -14,7 +14,8 @@
 #'   specifying columns  in \code{colData(x)}
 #'   that containfactors of interest.
 #' 
-#' @import SingleCellExperiment
+#' @importFrom SingleCellExperiment reducedDims SingleCellExperiment
+#' @importFrom SummarizedExperiment assays colData rowData
 #' @export
 
 prepData <- function(x, cluster_id, sample_id, factors) {

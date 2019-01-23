@@ -19,7 +19,7 @@
 findMarkerGenes <- function(x, cluster_id, mc.cores = 1, assay = "RNA", block = NULL,
                             logfc.threshold = 1, test.use = "wilcox", min.pct = 0.25) {
 
-  stopifnot(class(x) == "Seurat")
+  stopifnot(is(x, "Seurat"))
   stopifnot(is.numeric(mc.cores), length(mc.cores) == 1, mc.cores > 0)
   stopifnot(is.character(assay), length(assay) == 1, assay %in% names(x@assays))
   stopifnot(is.null(block) | (is.character(block) & length(block) == 1 & block %in% names(x@meta.data)))

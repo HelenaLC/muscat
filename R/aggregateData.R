@@ -14,10 +14,11 @@
 #' 
 #' @author Helena L. Crowel \email{helena.crowell@uzh.ch} and Mark D. Robinson.
 #' 
-#' @import SingleCellExperiment
-#' @importFrom Matrix rowMeans rowSums
+#' @importFrom Matrix colSums rowMeans rowSums
 #' @importFrom matrixStats rowMedians
 #' @importFrom methods is
+#' @importFrom SummarizedExperiment assayNames assays colData
+#' 
 #' @export
 
 aggregateData <- function(x, data, 
@@ -26,7 +27,7 @@ aggregateData <- function(x, data,
     
     # validity checks for input arguments
     stopifnot(is(x, "SingleCellExperiment"))
-    stopifnot(all(c("cluster_id", "sample_id") %in% colnames(colData(x))))
+    stopifnot(c("cluster_id", "sample_id") %in% colnames(colData(x)))
     stopifnot(is.character(data), length(data) == 1, data %in% assayNames(x))
     stopifnot(is.logical(scale), length(scale) == 1)
 
@@ -48,18 +49,21 @@ aggregateData <- function(x, data,
     idx <- lapply(idx, lapply, "[[", "cell")
     
     # compute pseudo-bulks
-    pb <- lapply(idx, sapply, function(i)
-        get(fun)(assays(x)[[data]][, i, drop = FALSE]))
+    pb <- lapply(idx, vapply, function(i)
+        get(fun)(assays(x)[[data]][, i, drop = FALSE]),
+        numeric(nrow(x)))
     
     # scale
     if (scale) {
         if (data == "counts" & fun == "rowSums") {
             pb_counts <- pb
         } else {
-            pb_counts <- lapply(idx, sapply, function(i)
-                rowSums(assays(x)[[data]][, i, drop = FALSE]))
+            pb_counts <- lapply(idx, vapply, function(i)
+                rowSums(assays(x)[[data]][, i, drop = FALSE]),
+                numeric(nrow(x)))
         }
-        lib_sizes <- sapply(pb, colSums)
+        n_samples <- nlevels(dt$sample_id)
+        lib_sizes <- vapply(pb, colSums, numeric(n_samples))
         for (k in names(pb))
             pb[[k]] <- pb[[k]] * lib_sizes[, k] / 1e6
     }
