@@ -18,6 +18,9 @@ Either a single numeric or a range to sample from.}
 Specifies the probability of a gene being
 EE, EP, DE, DP, DM, or DB, respectively.}
 
+\item{fc}{numeric value to use as mean logFC
+for DE, DP, DM, and DB type of genes.}
+
 \item{seed}{random seed.}
 
 \item{ns}{nb. of genes common to 1, 2, ..., all clusters.}

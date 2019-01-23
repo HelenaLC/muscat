@@ -4,28 +4,32 @@
 \alias{plotDiffGenes}
 \title{Heatmap of mean-marker expression by cluster-sample}
 \usage{
-plotDiffGenes(x, y, top_n = 20, sort_by = c("FDR", "logFC"),
-  clusters = NULL, fdr = 0.05, lfc = 1)
+plotDiffGenes(x, y, c = NULL, g = NULL, k = NULL, top_n = 20,
+  sort_by = c("FDR", "logFC"), fdr = 0.05, lfc = 1)
 }
 \arguments{
-\item{x}{a \code{[SingleCellExperiment]{SingleCellExperiment}}.}
+\item{x}{a \code{\link[SingleCellExperiment]{SingleCellExperiment}}.}
 
-\item{y}{a table containing differential testing results
-as returned by, for example, \code{run_edgeR}.}
+\item{y}{a list of differential testing results 
+as returned by \code{\link{runDS}}.}
+
+\item{c}{a character string specifying the comparison 
+(contrast of coefficient) for which results should be plotted.
+Defaults to the first one available.}
 
 \item{top_n}{single numeric specifying the number of genes to include.}
 
 \item{sort_by}{a character string specifying a \code{y} column to sort by.}
-
-\item{clusters}{a character string specifying which cluster(s) results
-should be included for. If NULL (the default), the \code{top_n} hits
-for each cluster will be included.}
 
 \item{fdr}{single numeric specifying the threshold on adjusted p-values
 below which results should be considered significant.}
 
 \item{lfc}{single numeric specifying the threshold on absolute logFCs
 above which results should be included.}
+
+\item{clusters}{a character string specifying which cluster(s) results
+should be included for. If NULL (the default), the \code{top_n} hits
+for each cluster will be included.}
 }
 \value{
 a \code{\link{HeatmapList-class}} object.
