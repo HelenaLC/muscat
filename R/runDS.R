@@ -111,8 +111,9 @@ runDS <- function(x, pb,
         names(cs) <- cs
     } else {
         ctype <- "coef"
-        cs <- sapply(coef, function(i) 
-            paste(colnames(design)[i], collapse = "--"))
+        cs <- vapply(coef, function(i) 
+            paste(colnames(design)[i], collapse = "--"),
+            character(1))
         names(cs) <- names(coef) <- cs
     }
     cluster_ids <- levels(colData(x)$cluster_id)
@@ -155,15 +156,19 @@ runDS <- function(x, pb,
             })
         return(list(tt = tt, data = y))
     })
-    # re-organize results by comparison
+    # remove empty clusters
+    res <- res[!vapply(res, is.null, logical(1))]
     data <- lapply(res, "[[", "data")
     tt <- lapply(res, "[[", "tt")
+    
+    # re-organize results by comparison
+    cluster_ids <- cluster_ids[names(res)]
     tt <- lapply(cs, function(c) 
         lapply(cluster_ids, function(k) tt[[k]][[c]]))
-
+    
     # return results
-    list(tt, 
-        data = data,
+    list(table = tt, 
+        data = data, 
         design = design, 
         contrast = contrast, 
         coef = coef)
