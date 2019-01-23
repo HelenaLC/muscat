@@ -19,6 +19,7 @@ Imports:
 	matrixStats,
 	methods,
 	parallel, 
+	purrr,
 	reshape2,
 	scater, 
 	scran,
