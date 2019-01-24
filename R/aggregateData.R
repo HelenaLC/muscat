@@ -4,13 +4,24 @@
 #' @description ...
 #' 
 #' @param x a \code{[SingleCellExperiment]{SingleCellExperiment}}.
-#' @param data a character string. 
+#' @param assay a character string. 
 #'   Specifies the assay slot to use as input data.
 #' @param fun a character string.
 #'   Specifies the function to use as summary statistic.
 #' @param scale logical.
 #' 
 #' @return a list of sample-wise pseudo-bulk data for each cluster.
+#' 
+#' @examples 
+#' data(kang)
+#' 
+#' pb <- aggregateData(kang, assay = "counts", fun = "sum")
+#' names(pb)
+#' head(pb[[1]])
+#' 
+#' assays(kang)$cpm <- calculateCPM(kang)
+#' pb <- aggregateData(kang, assay = "cpm", fun = "sum", scale = TRUE)
+#' head(pb[[1]])
 #' 
 #' @author Helena L. Crowel \email{helena.crowell@uzh.ch} and Mark D. Robinson.
 #' 
@@ -21,14 +32,14 @@
 #' 
 #' @export
 
-aggregateData <- function(x, data, 
+aggregateData <- function(x, assay, 
     fun = c("sum", "mean", "median"), 
     scale = FALSE) {
     
     # validity checks for input arguments
     stopifnot(is(x, "SingleCellExperiment"))
     stopifnot(c("cluster_id", "sample_id") %in% colnames(colData(x)))
-    stopifnot(is.character(data), length(data) == 1, data %in% assayNames(x))
+    stopifnot(is.character(assay), length(assay) == 1, assay %in% assayNames(x))
     stopifnot(is.logical(scale), length(scale) == 1)
 
     # get aggregation function
@@ -50,22 +61,24 @@ aggregateData <- function(x, data,
     
     # compute pseudo-bulks
     pb <- lapply(idx, vapply, function(i)
-        get(fun)(assays(x)[[data]][, i, drop = FALSE]),
+        get(fun)(assays(x)[[assay]][, i, drop = FALSE]),
         numeric(nrow(x)))
     
     # scale
     if (scale) {
-        if (data == "counts" & fun == "rowSums") {
+        if (assay == "counts" & fun == "rowSums") {
             pb_counts <- pb
         } else {
             pb_counts <- lapply(idx, vapply, function(i)
-                rowSums(assays(x)[[data]][, i, drop = FALSE]),
+                rowSums(assays(x)[[assay]][, i, drop = FALSE]),
                 numeric(nrow(x)))
         }
         n_samples <- nlevels(dt$sample_id)
-        lib_sizes <- vapply(pb, colSums, numeric(n_samples))
-        for (k in names(pb))
-            pb[[k]] <- pb[[k]] * lib_sizes[, k] / 1e6
+        lib_sizes <- vapply(pb_counts, colSums, numeric(n_samples))
+        cluster_ids <- levels(colData(x)$cluster_id)
+        names(cluster_ids) <- cluster_ids
+        pb <- lapply(cluster_ids, function(k) 
+          pb[[k]] / lib_sizes[, k] * 1e6)
     }
     return(pb)
 }

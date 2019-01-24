@@ -4,12 +4,13 @@
 \alias{aggregateData}
 \title{Aggregation of single-cell to pseudo-bulk data}
 \usage{
-aggregateData(x, data, fun = c("sum", "mean", "median"), scale = FALSE)
+aggregateData(x, assay, fun = c("sum", "mean", "median"),
+  scale = FALSE)
 }
 \arguments{
 \item{x}{a \code{[SingleCellExperiment]{SingleCellExperiment}}.}
 
-\item{data}{a character string. 
+\item{assay}{a character string. 
 Specifies the assay slot to use as input data.}
 
 \item{fun}{a character string.
@@ -22,6 +23,18 @@ a list of sample-wise pseudo-bulk data for each cluster.
 }
 \description{
 ...
+}
+\examples{
+data(kang)
+
+pb <- aggregateData(kang, assay = "counts", fun = "sum")
+names(pb)
+head(pb[[1]])
+
+assays(kang)$cpm <- calculateCPM(kang)
+pb <- aggregateData(kang, assay = "cpm", fun = "sum", scale = TRUE)
+head(pb[[1]])
+
 }
 \author{
 Helena L. Crowel \email{helena.crowell@uzh.ch} and Mark D. Robinson.
