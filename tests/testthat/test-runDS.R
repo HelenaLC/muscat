@@ -1,14 +1,20 @@
 context("DS analysis using edgeR & limma")
 
+# load packages
+suppressPackageStartupMessages({
+    library(SummarizedExperiment)
+})
+
 # generate toy dataset
 seed <- as.numeric(format(Sys.time(), "%s"))
-sce <- toyData(seed = seed)
+set.seed(seed)
+sce <- toyData()
 
 cluster_ids <- colData(sce)$cluster_id
 sample_ids <- colData(sce)$sample_id
 
 # compute pseudobulks
-pb <- aggregateData(sce, data = "counts", fun = "sum")
+pb <- aggregateData(sce, assay = "counts", fun = "sum")
 
 # randomly select 10 DE genes & multiply counts by 100 for half the samples
 g2 <- sample(levels(sample_ids), round(nlevels(sample_ids) / 2))

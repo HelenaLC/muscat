@@ -1,18 +1,24 @@
 context("Aggregation of single-cell to pseudo-bulk data")
 
+# load packages
+suppressPackageStartupMessages({
+    library(SummarizedExperiment)
+})
+
 # generate toy dataset
 seed <- as.numeric(format(Sys.Date(), "%s"))
-data <- toyData(seed = seed)
+set.seed(seed)
+data <- toyData()
 
 cluster_ids <- colData(data)$cluster_id
 sample_ids <- colData(data)$sample_id
 
 # compute pseudobulks
-pb <- aggregateData(data, data = "counts", fun = "sum")
+pb <- aggregateData(data, assay = "counts", fun = "sum")
 
 test_that("aggregateData", {
-    expect_error(aggregateData(data, data = "missing_assay", fun = "sum"))
-    expect_error(aggregateData(data, data = "counts", fun = "missing_function"))
+    expect_error(aggregateData(data, assay = "xxx", fun = "sum"))
+    expect_error(aggregateData(data, assay = "counts", fun = "xxx"))
     
     expect_is(pb, "list")
     expect_equal(length(pb), nlevels(cluster_ids))

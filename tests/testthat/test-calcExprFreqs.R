@@ -1,8 +1,19 @@
 context("Expression frequencies by sample & group")
 
+# load packages
+suppressPackageStartupMessages({
+    library(SummarizedExperiment)
+})
+
 # generate toy dataset
 seed <- as.numeric(format(Sys.time(), "%s"))
-sce <- toyData(seed = seed)
+set.seed(seed)
+sce <- toyData()
+
+# put in 50% of random 0s
+n <- length(assay(sce))
+i <- sample(assay(sce), round(n * 0.5))
+assay(sce)[i] <- 0
 
 # randomly split into 2 groups
 ei <- data.frame(sample_id = levels(colData(sce)$sample_id))
@@ -10,19 +21,20 @@ g2 <- sample(ei$sample_id, round(nlevels(ei$sample_id) / 2))
 ei$group_id <- "A"
 m <- match(g2, ei$sample_id)
 ei$group_id[m] <- "B"
+ei$group_id <- factor(ei$group_id)
 
 metadata(sce)$experiment_info <- ei
 m <- match(colData(sce)$sample_id, ei$sample_id)
 colData(sce)$group_id <- factor(ei$group_id[m])
 
 # calculate expr. freqs.
-x <- calcExprFreqs(sce)
+x <- calcExprFreqs(sce, assay = "counts", th = 0)
 
 test_that("Frequencies lie in [0, 1] w/o NAs", {
     expect_true(all(!sapply(x, function(u) any(is.na(u)))))
     r <- sapply(x, range)
     expect_true(all(r[1, ] >= 0))
-    expect_true(all(r[2, ] <= 0))
+    expect_true(all(r[2, ] <= 1))
 })
 
 test_that("Output is list w/ names corresponding to cluster IDs", {
@@ -46,8 +58,8 @@ test_that("Spot check", {
     k <- sample(levels(cluster_ids), 1)
     ki <- cluster_ids == k
     # sample sample & group
-    s <- sample(ei$sample_id, 1)
-    g <- sample(ei$group_id, 1)
+    s <- sample(levels(ei$sample_id), 1)
+    g <- sample(levels(ei$group_id), 1)
     si <- colData(sce)$sample_id == s & ki
     gi <- colData(sce)$group_id == g & ki
     # sample gene & check frequencies vs. truth
