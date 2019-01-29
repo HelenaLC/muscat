@@ -31,7 +31,8 @@ pb <- aggregateData(kang, assay = "counts", fun = "sum")
 names(pb)
 head(pb[[1]])
 
-assays(kang)$cpm <- calculateCPM(kang)
+counts <- assay(kang)
+assays(kang)$cpm <- edgeR::cpm(counts)
 pb <- aggregateData(kang, assay = "cpm", fun = "sum", scale = TRUE)
 head(pb[[1]])
 
