@@ -64,7 +64,7 @@
 #' 
 #' @author Helena L. Crowell \email{helena.crowell@uzh.ch} and Mark D. Robinson.
 #' 
-#' @importFrom dplyr %>% bind_rows full_join mutate mutate_if select
+#' @importFrom dplyr %>% bind_rows inner_join full_join mutate mutate_if select
 #' @importFrom edgeR cpm
 #' @importFrom methods is
 #' @importFrom purrr reduce
@@ -99,7 +99,7 @@ resDS <- function(x, y, bind = c("col", "row"),
                 colnames(df)[i] <- paste(colnames(df)[i], c, sep = "__")
                 return(df)
             })
-            res %>% reduce(`full_join`, 
+            res %>% reduce(full_join, 
                 by = c("gene", "cluster_id"))
         },
         col = {
@@ -110,7 +110,7 @@ resDS <- function(x, y, bind = c("col", "row"),
         m1 <- match(ei$sample_id, colnames(u))
         m2 <- match(levels(ei$group_id), colnames(u))
         if (all(is.na(m2))) m2 <- 0
-        colnames(u)[m1] <- with(ei, paste0(sample_id, "__", group_id, append))
+        colnames(u)[m1] <- paste0(ei$sample_id, "__", ei$group_id, append)
         colnames(u)[m2] <- paste0(colnames(u)[m2], append)
         k <- seq_len(ncol(u))[-c(m1, m2)]
         u[, c(k, m1[order(ei$group)], m2)]
@@ -124,7 +124,7 @@ resDS <- function(x, y, bind = c("col", "row"),
             cluster_id = rep(names(frq), each = nrow(x)), bind_rows(frq), 
             row.names = NULL, check.names = FALSE, stringsAsFactors = FALSE)
         frq <- reorder_summary(frq, ei, append = ".frq")
-        res <- res %>% full_join(frq, by = c("gene", "cluster_id"))
+        res <- inner_join(frq, res, by = c("gene", "cluster_id"))
     }
 
     # append CPMs if available
@@ -137,7 +137,7 @@ resDS <- function(x, y, bind = c("col", "row"),
         })
         cpm <- bind_rows(cpm)
         cpm <- reorder_summary(cpm, ei, append = ".cpm")
-        res <- res %>% full_join(cpm, by = c("gene", "cluster_id"))
+        res <- inner_join(frq, res, by = c("gene", "cluster_id"))
     }
     res %>% mutate_if(is.numeric, signif, digits)
 }
