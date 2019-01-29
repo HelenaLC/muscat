@@ -1,5 +1,4 @@
-toyData <- function(seed) {
-    set.seed(seed)
+toyData <- function() {
     
     # specify ranges to sample from
     n_groups   <- 2:4
