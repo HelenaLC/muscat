@@ -1,51 +1,88 @@
-#' runMAST
-#' Run MAST
+#' @rdname runMAST
+#' @title Run DS analysis using MAST
 #' 
-#' ...
+#' @description ...
 #' 
 #' @param x a \code{\link[SingleCellExperiment]{SingleCellExperiment}}.
+#' @param formula model formula.
+#' @param contrast a contrast matrix 
+#'   created with \code{\link[limma]{makeContrasts}}.
+#' @param assay character string specifying 
+#'   which assay to use as input data.
+#' 
+#' @return a list containing \itemize{
+#' \item \code{table}: a list of differential testing results 
+#' for each contrast and cluster, and 
+#' \item the \code{formula} and \code{contrast} used.}
 #' 
 #' @examples 
 #' data(kang)
-#' sce <- simData(kang, n_genes = 200, n_cells = 200, 
+#' sce <- simData(kang, n_genes = 200, n_cells = 100, 
 #'     p_dd = c(0.8, 0, 0.2, 0, 0, 0), fc = 4)
 #'     
 #' library(edgeR)
 #' library(SingleCellExperiment)
+#' 
 #' dge <- DGEList(counts = assay(sce))
 #' dge <- calcNormFactors(dge)
 #' cpm <- cpm(dge)
 #' assays(sce)$logcpm <- log2(cpm+1)
 #' 
-#' @importFrom data.table data.table split
-#' @importFrom MAST FromMatrix lrTest zlm.SingleCellAssay
+#' formula <- ~ 0 + group_id
+#' contrast <- limma::makeContrasts("B-A", levels = c("A", "B"))
+#' 
+#' res <- runMAST(sce, formula, contrast)
+#' names(res)
+#' names(res$table)       # one list per contrast
+#' names(res$table$`B-A`) # one table per cluster
+#' 
+#' # access results for a specific contrast & cluster
+#' head(res$table$`B-A`[[1]])
+#' 
+#' # filter results
+#' tbl_fil <- purrr::modify_depth(res$table, 
+#'     depth = 2, dplyr::filter, p.adj < 0.05)
+#' max(res$table$`B-A`[[1]]$p.adj) # before
+#' max(tbl$`B-A`[[1]]$p.adj)       # after
+#' 
+#' @author Helena L. Crowell \email{helena.crowell@uzh.ch}
+#' 
+#' @importFrom data.table data.table
+#' @importFrom MAST FromMatrix lrTest SceToSingleCellAssay zlm
 #' @importFrom methods is
-#' @importFrom SummarizedExperiment assays colData
+#' @importFrom stats p.adjust
+#' @importFrom SummarizedExperiment assays colData rowData
+#' @importFrom tibble add_column
 #' 
 #' @export
 
-runMAST <- function(x, formula, contrast,  assay = "logcpm") {
-    
-    stopifnot(is(x, "SingleCellExperiment"))
-    stopifnot(assay %in% assayNames(x))
-    
-    # split by cluster
-    dt <- data.table(data.frame(colData(x)), cell = colnames(x))
-    dt_split <- split(dt, by = "cluster_id", flatten = FALSE)
-    cells_by_cluster <- lapply(dt_split, "[[", "cell")
-    
-    cluster_ids <- levels(colData(x)$cluster_id)
-    names(cluster_ids) <- cluster_ids
-    
-    colData(x)$wellKey <- colnames(x)
-    rowData(x)$primerid <- rownames(x)
+runMAST <- function(x, formula, contrast, assay = "logcpm") {
     
     cs <- colnames(contrast)
     names(cs) <- cs
     
+    # validity checks
+    stopifnot(is(x, "SingleCellExperiment"))
+    stopifnot(is(formula, "formula"))
+    stopifnot(is.character(assay), length(assay) == 1, assay %in% assayNames(x))
+    stopifnot(is(contrast, "matrix"), !is.null(cs), length(cs) == length(unique(cs)))
+    
+    # split by cluster
+    dt <- data.table(data.frame(colData(x)), i = colnames(x))
+    dt_split <- split(dt, by = "cluster_id", flatten = FALSE)
+    cells_by_cluster <- lapply(dt_split, "[[", "i")
+    
+    cluster_ids <- levels(colData(x)$cluster_id)
+    names(cluster_ids) <- cluster_ids
+    n_clusters <- length(cluster_ids)
+    
+    # need this for MAST to be happy
+    colData(x)$wellKey <- colnames(x)
+    rowData(x)$primerid <- rownames(x)
+    
     res <- lapply(cluster_ids, function(k) {
-        sce <- x[, cells_by_cluster[[k]]]
-        sca <- SceToSingleCellAssay(sce, check_sanity = FALSE)
+        y <- x[, cells_by_cluster[[k]]]
+        sca <- SceToSingleCellAssay(y, check_sanity = FALSE)
         suppressMessages(fit <- zlm(formula, sca))
         lapply(cs, function(c) {
             cm <- as.matrix(contrast[, c])
@@ -55,19 +92,28 @@ runMAST <- function(x, formula, contrast,  assay = "logcpm") {
                 contrast = c, row.names = NULL, stringsAsFactors = FALSE)
         })
     })
-    
     # re-organize by contrast
-    lapply(cs, function(c) lapply(res, "[[", c))
+    res <- lapply(cs, function(c) lapply(res, "[[", c))
+    p.val <- modify_depth(res, 2, "p.val")
+    
+    # p-value adjustment (across all test in ea. cluster)
+    p.adj <- vapply(p.val, function(u) 
+        p.adjust(unlist(u), "BH"),
+        numeric(nrow(x) * n_clusters))
+    
+    # re-split by cluster
+    p.adj <- apply(p.adj, 2, split, 
+        rep(cluster_ids, each = nrow(x)))
+    
+    # insert adjusted p-values into results
+    res <- lapply(cs, function(c) 
+        lapply(cluster_ids, function(k) 
+            res[[c]][[k]] %>% add_column(
+                p.adj = p.adj[[c]][[k]], 
+                .before = "contrast")))
+    
+    # return results
+    list(table = res,
+        formula = formula,
+        contrast = contrast)
 }
-# x <- sce0
-# groups <- colData(x)$group_id
-# groups <- factor(groups, levels = c("A", "B", "C"))
-# groups[1:10] <- "C"
-# colData(x)$group_id <- groups
-# design <- model.matrix(~0 + groups)
-# colnames(design) <- levels(groups)
-# contrast <- makeContrasts(contrasts = c("B-A", "C-A"), levels = design)
-# res <- runMAST(x, ~group_id, contrast)
-# names(res)
-# names(res[[1]])
-# head(res[[1]])
