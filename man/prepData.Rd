@@ -21,6 +21,9 @@ that contains unique sample identifies.}
 specifying columns  in \code{colData(x)}
 that containfactors of interest.}
 }
+\value{
+a \code{[SingleCellExperiment]{SingleCellExperiment}}.
+}
 \description{
 ...
 }
