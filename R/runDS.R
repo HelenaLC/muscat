@@ -54,13 +54,13 @@
 #'     p_dd = c(0.8, 0, 0.2, 0, 0, 0), fc = 4)
 #'     
 #' # compute pseudo-bulk counts
-#' pb <- aggregateData(sim, data = "counts", fun = "sum")
+#' pb <- aggregateData(sim, assay = "counts", fun = "sum")
 #' 
 #' # specify design & contrast matrix
 #' ei <- metadata(sim)$experiment_info
 #' design <- model.matrix(~ 0 + ei$group)
 #' dimnames(design) <- list(ei$sample_id, levels(ei$group))
-#' contrast <- makeContrasts("B-A", levels = design)
+#' contrast <- limma::makeContrasts("B-A", levels = design)
 #' 
 #' # test for cluster-specific DE 
 #' res <- runDS(sim, pb, design, contrast, method = "edgeR")
@@ -82,6 +82,7 @@
 #' @author Helena L. Crowell \email{helena.crowell@uzh.ch} and Mark D. Robinson.
 #'
 #' @importFrom edgeR calcNormFactors DGEList estimateDisp glmQLFit glmQLFTest topTags
+#' @importFrom dplyr rename
 #' @importFrom limma contrasts.fit eBayes lmFit topTable
 #' @importFrom SummarizedExperiment colData
 #'
@@ -140,7 +141,8 @@ runDS <- function(x, pb,
                     cfit <- contrasts.fit(fit, contrast[, c], coef[[c]])
                     efit <- eBayes(cfit, trend = TRUE)
                     tt <- topTable(efit, number = Inf, sort.by = "none")
-                    res_df(k, tt, ctype, c)
+                    res_df(k, tt, ctype, c) %>% 
+                        rename(p_val = "P.Value", p_adj = "adj.P.Val")
                 })
             },
             edgeR = {
@@ -151,7 +153,8 @@ runDS <- function(x, pb,
                 lapply(cs, function(c) {
                     qlf <- glmQLFTest(fit, coef = coef[[c]], contrast = contrast[, c])
                     tt <- topTags(qlf, n = Inf, sort.by = "none")
-                    res_df(k, tt, ctype, c)
+                    res_df(k, tt, ctype, c) %>% 
+                        rename(p_val = "PValue", p_adj = "FDR")
                 })
             })
         return(list(tt = tt, data = y))
