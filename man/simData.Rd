@@ -4,7 +4,7 @@
 \alias{simData}
 \title{simData}
 \usage{
-simData(x, n_genes, n_cells, p_dd, fc = 2, seed = 1)
+simData(x, n_genes, n_cells, p_dd, fc = 2)
 }
 \arguments{
 \item{x}{a \code{\link[SingleCellExperiment]{SingleCellExperiment}}.}
@@ -21,9 +21,11 @@ EE, EP, DE, DP, DM, or DB, respectively.}
 \item{fc}{numeric value to use as mean logFC
 for DE, DP, DM, and DB type of genes.}
 
-\item{seed}{random seed.}
-
 \item{ns}{nb. of genes common to 1, 2, ..., all clusters.}
+}
+\value{
+a \code{\link[SingleCellExperiment]{SingleCellExperiment}}
+  containing multiple clusters & samples across 2 groups.
 }
 \description{
 Simulation of complex scRNA-seq data
@@ -36,6 +38,6 @@ across 2 experimental conditions from a real scRNA-seq data set.
 data(kang)
 simData(kang,
     n_genes = 10, n_cells = 10,
-    p_dd = c(1,0,0,0,0,0), seed = 1)
+    p_dd = c(1,0,0,0,0,0))
 
 }
