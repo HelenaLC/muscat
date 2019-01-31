@@ -67,10 +67,8 @@ runMAST <- function(x, formula, contrast, assay = "logcpm") {
     stopifnot(is.character(assay), length(assay) == 1, assay %in% assayNames(x))
     stopifnot(is(contrast, "matrix"), !is.null(cs), length(cs) == length(unique(cs)))
     
-    # split by cluster
-    dt <- data.table(data.frame(colData(x)), i = colnames(x))
-    dt_split <- split(dt, by = "cluster_id", flatten = FALSE)
-    cells_by_cluster <- lapply(dt_split, "[[", "i")
+    # split cells by cluster
+    cells_by_cluster <- .split_cells(x, by = "cluster_id")
     
     cluster_ids <- levels(colData(x)$cluster_id)
     names(cluster_ids) <- cluster_ids
