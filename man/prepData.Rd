@@ -27,3 +27,33 @@ a \code{[SingleCellExperiment]{SingleCellExperiment}}.
 \description{
 ...
 }
+\examples{
+# generate random counts
+n_genes <- 50
+n_cells <- 100
+counts <- matrix(
+    sample(n_genes * n_cells),
+    nrow = n_genes, ncol = n_cells)
+    
+# generate some cell metadata
+sids <- sample(paste0("sample", 1:5), n_cells, TRUE)  # sample IDs
+cids <- sample(paste0("cluster", 1:5), n_cells, TRUE) # cluster IDs
+condition <- sample(c("ctrl", "stim"), n_cells, TRUE) # conditions
+batch <- sample(1:3, n_cells, TRUE)                   # batch nb.
+
+# construct SCE
+library(SingleCellExperiment)
+sce <- SingleCellExperiment(
+    assays = list(counts = counts),
+    colData = data.frame(id = sids, cluster = cids, batch, condition))
+    
+# prep. for workflow
+sce <- prepData(sce, 
+    cluster_id = "cluster", 
+    sample_id = "id", 
+    factors = c("batch", "condition"))
+    
+head(colData(sce))
+metadata(sce)$experiment_info
+
+}
