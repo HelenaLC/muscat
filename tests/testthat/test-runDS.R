@@ -36,12 +36,11 @@ for (method in c("edgeR", "limma")) {
         res <- runDS(sce, pb, design, contrast, method = method, verbose = FALSE)
         res <- res$table$`B-A`   
         # check that nb. of DE genes is 10 in ea. cluster
-        i <- ifelse(method == "edgeR", "FDR", "adj.P.Val")
-        n_de <- sapply(res, function(x) sum(x[[i]] < 1e-6))
+        n_de <- sapply(res, function(x) sum(x$p_adj < 1e-6))
         expect_true(all(n_de == 10))
         # check that DE genes are correct
         de_gs <- lapply(res, function(x) 
-            x$gene[order(x[[i]])][seq_len(10)])
+            x$gene[order(x$p_adj)][seq_len(10)])
         expect_true(all(sapply(levels(cluster_ids), function(k)
             all(rownames(sce)[idx[, k]] %in% de_gs[[k]]))))
     })
