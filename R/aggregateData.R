@@ -51,17 +51,10 @@ aggregateData <- function(x, assay,
         median = "rowMedians")
     
     # split cells by cluster-sample
-    dt <- data.table(
-        cell = colnames(x),
-        cluster_id = colData(x)$cluster_id,
-        sample_id = colData(x)$sample_id)
-    idx <- split(dt, 
-        by = c("cluster_id", "sample_id"), 
-        sorted = TRUE, flatten = FALSE)
-    idx <- lapply(idx, lapply, "[[", "cell")
+    cells_by_cluster_sample <- .split_cells(x)
     
     # compute pseudo-bulks
-    pb <- lapply(idx, vapply, function(i)
+    pb <- lapply(cells_by_cluster_sample, vapply, function(i)
         get(fun)(assays(x)[[assay]][, i, drop = FALSE]),
         numeric(nrow(x)))
     
@@ -70,11 +63,11 @@ aggregateData <- function(x, assay,
         if (assay == "counts" & fun == "rowSums") {
             pb_counts <- pb
         } else {
-            pb_counts <- lapply(idx, vapply, function(i)
+            pb_counts <- lapply(cells_by_cluster_sample, vapply, function(i)
                 rowSums(assays(x)[[assay]][, i, drop = FALSE]),
                 numeric(nrow(x)))
         }
-        n_samples <- nlevels(dt$sample_id)
+        n_samples <- nlevels(colData(x)$sample_id)
         lib_sizes <- vapply(pb_counts, colSums, numeric(n_samples))
         cluster_ids <- levels(colData(x)$cluster_id)
         names(cluster_ids) <- cluster_ids
