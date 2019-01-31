@@ -2,7 +2,7 @@ Package: ddSingleCell
 Title: Toolkit for differential discovery in single-cell data
 Description: ...
 Type: Package
-Version: 0.99.5
+Version: 0.99.6
 Depends: R (>= 3.5)
 Authors@R: c(
 	person("Helena L.", "Crowell", role=c("aut", "cre"), email="helena.crowell@uzh.ch"),
@@ -14,6 +14,7 @@ Imports:
 	edgeR, 
 	grid,
     limma,
+	magrittr,
 	Matrix,
 	matrixStats,
 	MAST,
