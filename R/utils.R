@@ -117,7 +117,6 @@ cats <- factor(cats, levels = cats)
     if (is.null(lfc))
         lfc <- rep(0, n_gs)
     lfc[lfc < 0] <- 0
-    print(summary(lfc))
     fc <- 2 ^ lfc
     fc <- rep(fc, each = n_cs)
     nb <- rnbinom(n_gs * n_cs, 
