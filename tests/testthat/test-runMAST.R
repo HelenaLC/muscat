@@ -28,7 +28,7 @@ g2 <- colData(sce)$group_id == "B"
 assay(sce)[de_gs, g2] <- assay(sce)[de_gs, g2] * 100
 
 # compute CPM
-cpm <- cpm(assay(sce))
+cpm <- edgeR::cpm(assay(sce))
 assays(sce)$logcpm <- log2(cpm + 1)
 
 # run MAST
