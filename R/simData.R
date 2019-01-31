@@ -15,25 +15,35 @@
 #'   EE, EP, DE, DP, DM, or DB, respectively.
 #' @param fc numeric value to use as mean logFC
 #'   for DE, DP, DM, and DB type of genes.
-#' @param seed random seed. 
+#' 
+#' @return a \code{\link[SingleCellExperiment]{SingleCellExperiment}}
+#'   containing multiple clusters & samples across 2 groups.
 #' 
 #' @examples
 #' data(kang)
 #' simData(kang,
 #'     n_genes = 10, n_cells = 10,
-#'     p_dd = c(1,0,0,0,0,0), seed = 1)
+#'     p_dd = c(1,0,0,0,0,0))
 #' 
 #' @importFrom data.table data.table
+#' @importFrom dplyr mutate_all mutate_at
 #' @importFrom edgeR DGEList estimateDisp glmFit
+#' @importFrom purrr modify_at
 #' @importFrom stats model.matrix rgamma setNames
 #' @importFrom SingleCellExperiment SingleCellExperiment
 #' @importFrom SummarizedExperiment colData
 #' @importFrom S4Vectors split
+#' @importFrom tibble column_to_rownames
 #' @importFrom zeallot %<-%
 #' 
 #' @export
 
-simData <- function(x, n_genes, n_cells, p_dd, fc = 2, seed = 1) {
+simData <- function(x, n_genes = 500, n_cells = 300, probs = NULL, p_dd = diag(6)[1, ], fc = 2) {
+    
+    # throughout this code...
+    # k: cluster ID
+    # s: sample ID
+    # c: gene category
     
     # check validity of input arguments
     stopifnot(is(x, "SingleCellExperiment"))
@@ -41,157 +51,138 @@ simData <- function(x, n_genes, n_cells, p_dd, fc = 2, seed = 1) {
     stopifnot(is.numeric(n_cells), length(n_cells) == 1 | length(n_cells) == 2)
     stopifnot(is.numeric(p_dd), length(p_dd) == 6, sum(p_dd) == 1)
     stopifnot(is.numeric(fc), is.numeric(fc), fc > 1)
-    stopifnot(is.numeric(seed), length(seed) == 1)
     
-    cluster_ids <- levels(colData(x)$cluster_id)
-    sample_ids <- levels(colData(x)$sample_id)
-    n_clusters <- length(cluster_ids)
-    n_samples <- length(sample_ids)
-    
-    # split cells by cluster-sample
-    dt <- data.table(
-        cell = colnames(x), 
-        cluster_id = colData(x)$cluster_id,
-        sample_id = colData(x)$sample_id)
-    dt_split <- split(dt,
-        by = c("cluster_id", "sample_id"), 
-        keep.by = FALSE, flatten = FALSE)
-    cells_by_cluster_sample <- sapply(dt_split, sapply, "[[", "cell")
-    
-    # sample nb. of cells to simulate per cluster-sample
-    if (length(n_cells) == 1) {
-        n_cells <- list(rep(n_cells, 2))
-    } else {
-        n_cells <- replicate(n_clusters * n_samples, 
-            list(sample(n_cells[1]:n_cells[2], 2)))
-    }
-    n_cells <- matrix(n_cells, 
-        nrow = n_samples, ncol = n_clusters, 
-        dimnames = list(sample_ids, cluster_ids))
+    kids <- levels(colData(x)$cluster_id)
+    sids <- levels(colData(x)$sample_id)
+    gids <- c("A", "B")
+    names(kids) <- kids
+    names(sids) <- sids
+    names(gids) <- gids
+    nk <- length(kids)
     
     # initialize count matrix
-    y <- matrix(0, 
-        nrow = n_genes, 
-        ncol = sum(unlist(n_cells)),
-        dimnames = list(
-            paste0("gene", seq_len(n_genes)),
-            paste0("cell", seq_len(sum(unlist(n_cells))))))
+    gs <- paste0("gene", seq_len(n_genes))
+    cs <- paste0("cell", seq_len(n_cells))
+    y <- matrix(0, n_genes, n_cells, dimnames = list(gs, cs))
     
-    # sample nb. of genes to simulate per category
-    ndd <- replicate(n_clusters, {
-        ns <- sample(cats, n_genes, replace = TRUE, prob = p_dd)
-        factor(ns, levels = cats) 
-    }, simplify = FALSE)
-    ndd <- sapply(ndd, table)
-    colnames(ndd) <- cluster_ids
+    # sample cell metadata
+    cd <- .sample_cell_md(
+        n = n_cells, probs = NULL,
+        ids = list(kids, sids, gids)) %>% set_rownames(cs)
+    cs_idx <- .split_cells(cd, by = colnames(cd))
+    n_cs <- modify_depth(cs_idx, -1, length)
     
-    # sample gene indices
-    is <- sapply(cluster_ids, function(c, gs = rownames(y))
-        sapply(cats, function(cat) { 
-            n <- ndd[cat, c]
-            x <- sample(gs, n)
-            gs <<- setdiff(gs, x)
-            return(x) }))
+    # split input cells by cluster-sample
+    cs_by_ks <- .split_cells(x)
     
-    # sample cell indices
-    cs <- colnames(y)
-    js <- sapply(cluster_ids, function(c) 
-        setNames(lapply(sample_ids, function(s)
-            lapply(n_cells[[s, c]], function(n) {
-                x <- sample(cs, n)
-                cs <<- setdiff(cs, x)
-                return(x) })), sample_ids))
+    # sample nb. of genes to simulate per category & gene indices
+    n_dd <- replicate(nk, 
+        table(sample(factor(cats, levels = cats), n_genes, TRUE, p_dd))) %>% 
+        set_colnames(kids)
+    gs_idx <- .sample_gene_inds(gs, n_dd)
     
-    # sample genes to simulate from
-    gs <- replicate(n_clusters, sample(rownames(x), n_genes, replace = TRUE))
-    rownames(gs) <- rownames(y)
-    colnames(gs) <- cluster_ids
+    # for ea. cluster, sample unique set of genes to simulate from
+    gs_by_k <- replicate(nk, 
+        setNames(sample(rownames(x), n_genes, TRUE), gs),
+        simplify = FALSE) %>% set_names(kids)
+    gs_by_kc <- lapply(kids, function(k) 
+        lapply(cats, function(c)
+            gs_by_k[[k]][gs_idx[[c, k]]]) %>% 
+            set_names(cats))
     
-    # sample fold-changes
-    lfcs <- sapply(cluster_ids, function(k) 
-        sapply(cats, function(c) { 
-            n <- ndd[c, k]
+    # sample logFCs
+    lfc <- vapply(kids, function(k) 
+        lapply(cats, function(c) { 
+            n <- n_dd[c, k]
             if (c == "ee") return(rep(NA, n))
-            signs <- sample(c(-1, 1), size = n, replace = TRUE)
-            lfcs <- rgamma(n, 4, 4 / fc) * signs
-            names(lfcs) <- gs[is[[c, k]], k]
-            return(lfcs)
-    }))
+            signs <- sample(c(-1, 1), n, TRUE)
+            lfc <- rgamma(n, 4, 4/fc) * signs
+            names(lfc) <- gs_by_kc[[k]][[c]]
+            return(lfc)
+        }), vector("list", length(cats))) %>% 
+        set_rownames(cats)
     
-    for (k in cluster_ids) {
-        # get NB parameters
-        m <- rowData(x)[gs[, k], ]$beta
-        d <- rowData(x)[gs[, k], ]$dispersion
-        names(m) <- names(d) <- gs[, k]
-        
-        for (s in sample_ids) {
-            # cells to simulate from
-            cs <- cells_by_cluster_sample[[s, k]]
-            
-            # compute mus
-            o <- setNames(colData(x)[cs, ]$offset, cs)
-            mu <- sapply(exp(o), "*", exp(m))
-            
-            # get cell indices & nb. of cells by group
-            ng1 <- length(g1 <- js[[s, k]][[1]])
-            ng2 <- length(g2 <- js[[s, k]][[2]])
-            
-            # simulate data
-            for (c in cats)
-                if (ndd[c, k] > 0) y[is[[c, k]], c(g1, g2)] <- 
-                simdd(c, gs[is[[c, k]], k], cs, ng1, ng2, mu, d, lfcs[[c, k]])
+    # compute NB parameters
+    b <- exp(rowData(x)$beta)
+    o <- exp(colData(x)$offset)
+    m <- vapply(o, function(l) b*l, numeric(nrow(x)))
+    dimnames(m) <- dimnames(x)
+    d <- rowData(x)$dispersion
+    names(d) <- rownames(x)
+    
+    for (k in kids) {
+        for (s in sids) {
+            for (c in cats[n_dd[, k] != 0]) {
+                gs_kc <- gs_by_kc[[k]][[c]]
+                cs_ks <- cs_by_ks[[k]][[s]]
+                
+                g1 <- cs_idx[[k]][[s]]$A
+                g2 <- cs_idx[[k]][[s]]$B
+                
+                ng1 <- length(g1)
+                ng2 <- length(g2) 
+                
+                cs_g1 <- sample(cs_ks, ng1, replace = TRUE)
+                cs_g2 <- sample(cs_ks, ng2, replace = TRUE)
+                
+                m_g1 <- m[gs_kc, cs_g1]
+                m_g2 <- m[gs_kc, cs_g2]
+                d_kc <- d[gs_kc]
+                lfc_kc <- lfc[[c, k]]
+                
+                counts <- .sim(c, cs_g1, cs_g2, m_g1, m_g2, d = d_kc, lfc = lfc_kc)
+                y[gs_idx[[c, k]], c(g1, g2)] <- counts
+            }
         }
     }
     
+    # construct gene metadata table storing
+    # gene | cluster_id | category | logFC
+    gi <- data.frame(
+        gene = unlist(gs_idx),
+        cluster_id = rep.int(rep(kids, each = length(cats)), c(n_dd)),
+        category = rep.int(rep(cats, nk), c(n_dd)),
+        # mean = ,
+        # disp = ,
+        logFC = unlist(lfc)) %>% 
+        mutate_at("gene", as.character)
+    o <- order(as.numeric(gsub("[a-z]", "", gi$gene)))
+    gi <- gi[o, ] %>% set_rownames(NULL)
+    
     # construct SCE
-    gi <- do.call(rbind, lapply(cluster_ids, function(k)
-        do.call(rbind, lapply(cats, function(c) if (ndd[c, k] != 0)
-            data.frame(
-                gene = is[[c, k]], cluster_id = k, 
-                category = c, logFC = lfcs[[c, k]])))))
-    gi <- gi[order(as.numeric(gsub("[a-z]", "", gi$gene))), ]
-    gi$category <- factor(gi$category, levels = ddSingleCell:::cats)
-    rownames(gi) <- NULL
+    cd$sample_id <- factor(paste(cd$sample_id, cd$group_id, sep = "."))
+    m <- match(levels(cd$sample_id), cd$sample_id)
+    gids <- cd$group_id[m]
+    o <- order(gids)
+    sids <- levels(cd$sample_id)[o]
+    ei <- data.frame(sample_id = sids, group_id = gids[o])
+    cd <- cd %>% mutate_at("sample_id", factor, levels = sids)
     
-    col_data <- do.call(rbind, lapply(cluster_ids, function(c) 
-        do.call(rbind, lapply(sample_ids, function(s) 
-            data.frame(
-                row.names = 1,
-                unlist(js[[s, c]]), 
-                cluster_id = c, sample_id = s, 
-                group_id = rep.int(c("A", "B"), n_cells[[s, c]]))))))
-    col_data <- col_data[colnames(y), ]
-    col_data$sample_id <- factor(paste(col_data$group_id, col_data$sample_id, sep = "."))
-    
-    sample_id <- levels(col_data$sample_id)
-    group_id <- gsub("(A|B)[.].*", "\\1", sample_id)
-    ei <- data.frame(sample_id, group_id)
     md <- list(
         experiment_info = ei,
-        n_cells = table(col_data$sample_id),
-        gene_info = gi, sim_genes = gs)
+        n_cells = table(cd$sample_id),
+        gene_info = gi, sim_genes = gs_in)
     
     SingleCellExperiment(
-        assays = list(counts = y),
-        colData = col_data, 
+        assays = list(counts = as.matrix(y)),
+        colData = cd, 
         metadata = md)
 }
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
