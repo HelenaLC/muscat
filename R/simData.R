@@ -125,8 +125,8 @@ simData <- function(x, n_genes = 500, n_cells = 300, probs = NULL, p_dd = diag(6
                 cs_g1 <- sample(cs_ks, ng1, replace = TRUE)
                 cs_g2 <- sample(cs_ks, ng2, replace = TRUE)
                 
-                m_g1 <- m[gs_kc, cs_g1]
-                m_g2 <- m[gs_kc, cs_g2]
+                m_g1 <- m[gs_kc, cs_g1, drop = FALSE]
+                m_g2 <- m[gs_kc, cs_g2, drop = FALSE]
                 d_kc <- d[gs_kc]
                 lfc_kc <- lfc[[c, k]]
                 
