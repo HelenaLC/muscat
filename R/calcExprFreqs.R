@@ -47,18 +47,14 @@ calcExprFreqs <- function(x, assay = "counts", th = 0) {
     stopifnot(is.character(assay), length(assay) == 1, assay %in% assayNames(x))
     stopifnot(is.numeric(th), length(th) == 1)
     
-    # split cells according to 'by'
-    dt <- data.table(data.frame(colData(x)), cell = colnames(x))
-    dt_split <- split(dt, 
-        by = c("cluster_id", "sample_id"), 
-        sorted = TRUE, flatten = FALSE)
-    cells <- lapply(dt_split, lapply, "[[", "cell")
+    # split cells by cluster-sample
+    cells_by_cluster_sample <- .split_cells(x)
 
     # for each gene, compute fraction of cells 
     # w/ assay value above threshold in each group of cells
     data <- as.matrix(assays(x)[[assay]])
-    fq_by_sample <- lapply(cells, vapply, function(i)
-        rowMeans(data[, i, drop = FALSE] > th),
+    fq_by_sample <- lapply(cells_by_cluster_sample, vapply, 
+        function(i) rowMeans(data[, i, drop = FALSE] > th),
         numeric(nrow(x)))
 
     if (!"group_id" %in% colnames(colData(x))) {
