@@ -78,14 +78,15 @@ plotDiffGenes <- function(x, y, c = NULL, g = NULL, k = NULL,
     
     es <- as.matrix(logcounts(x)[unlist(y$gene), ])
     es0 <- t(CATALYST:::scale_exprs(t(es)))
-    dt <- data.table(data.frame(colData(x)), cell = colnames(x))
-    dt_split <- split(dt, by = c("cluster_id", "sample_id"), sorted = TRUE, flatten = FALSE)
-    cells_by_cluster_sample <- modify_depth(dt_split, 2, "cell")
+    
+    # split cells by cluster-sample
+    cells_by_cluster_sample <- .split_cells(x)
     
     ms <- t(apply(y, 1, function(u) {
         g <- u[["gene"]]
         k <- u[["cluster_id"]]
-        sapply(cells_by_cluster_sample[[k]], function(i) mean(es0[g, i]))
+        vapply(cells_by_cluster_sample[[k]], 
+            function(i) mean(es0[g, i]), numeric(1))
     }))
     rownames(ms) <- sprintf("%s(%s)", y$gene, y$cluster_id)
     colnames(ms) <- levels(colData(x)$sample_id)
