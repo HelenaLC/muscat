@@ -54,18 +54,20 @@ aggregateData <- function(x, assay,
     cells_by_cluster_sample <- .split_cells(x)
     
     # compute pseudo-bulks
-    pb <- lapply(cells_by_cluster_sample, vapply, function(i)
-        get(fun)(assays(x)[[assay]][, i, drop = FALSE]),
-        numeric(nrow(x)))
+    pb <- lapply(cells_by_cluster_sample, vapply, function(i) {
+        if (length(i) == 0) return(numeric(nrow(x)))
+        get(fun)(assays(x)[[assay]][, i, drop = FALSE])
+    }, numeric(nrow(x)))
     
     # scale
     if (scale) {
         if (assay == "counts" & fun == "rowSums") {
             pb_counts <- pb
         } else {
-            pb_counts <- lapply(cells_by_cluster_sample, vapply, function(i)
-                rowSums(assays(x)[[assay]][, i, drop = FALSE]),
-                numeric(nrow(x)))
+            pb_counts <- lapply(cells_by_cluster_sample, vapply, function(i) {
+                if (length(i) == 0) return(numeric(nrow(x)))
+                rowSums(assays(x)[[assay]][, i, drop = FALSE])
+            }, numeric(nrow(x)))
         }
         n_samples <- nlevels(colData(x)$sample_id)
         lib_sizes <- vapply(pb_counts, colSums, numeric(n_samples))
