@@ -59,12 +59,12 @@ plotDiffGenes <- function(x, y, c = NULL, g = NULL, k = NULL,
         }
         y <- y[k]
     }
-    y <- lapply(y, filter, FDR < fdr, abs(logFC) > lfc)
+    y <- lapply(y, filter, p_adj < fdr, abs(logFC) > lfc)
     
     # order & subset top_n results
     y <- switch(sort_by,
         FDR = bind_rows(lapply(y, function(u) {
-            o <- order(u$FDR)
+            o <- order(u$p_adj)
             o <- o[seq_len(top_n)]
             u[o[!is.na(o)], ]
         }))
