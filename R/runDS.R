@@ -54,7 +54,7 @@
 #'     p_dd = c(0.8, 0, 0.2, 0, 0, 0), fc = 4)
 #'     
 #' # compute pseudo-bulk counts
-#' pb <- aggregateData(sim, assay = "counts", fun = "sum")
+#' pb <- aggregateData(sim)
 #' 
 #' # specify design & contrast matrix
 #' ei <- metadata(sim)$experiment_info
@@ -96,7 +96,9 @@ runDS <- function(x, pb,
     # check validty of input arguments
     stopifnot(is(x, "SingleCellExperiment"))
     stopifnot(all(c("sample_id", "cluster_id") %in% colnames(colData(x))))
-    stopifnot(all(names(pb) %in% levels(colData(x)$cluster_id)))
+    stopifnot(all.equal(assayNames(pb), levels(colData(x)$cluster_id)))
+    stopifnot(all.equal(colnames(pb), levels(colData(x)$sample_id)))
+    stopifnot(all.equal(rownames(pb), rownames(x)))
     stopifnot(is.matrix(design))
     stopifnot(!is.null(contrast) | !is.null(coef))
     stopifnot(is.null(contrast) | is.matrix(contrast))
@@ -130,7 +132,7 @@ runDS <- function(x, pb,
     # for ea. cluster, run DEA
     res <- lapply(cluster_ids, function (k) {
         if (verbose) cat(k, "..", sep = "")
-        y <- pb[[k]][, n_cells[k, ] >= min_cells]
+        y <- assays(pb)[[k]][, n_cells[k, ] >= min_cells]
         d <- design[colnames(y), ]
         if (any(colSums(d) < 2)) return(NULL)
         tt <- switch(method,

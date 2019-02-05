@@ -14,7 +14,7 @@ Imports:
 	dplyr, 
 	edgeR, 
 	grid,
-    limma,
+    	limma,
 	magrittr,
 	Matrix,
 	matrixStats,
