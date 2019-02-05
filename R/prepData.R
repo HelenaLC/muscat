@@ -4,15 +4,9 @@
 #' @description ...
 #' 
 #' @param x a \code{[SingleCellExperiment]{SingleCellExperiment}}.
-#' @param cluster_id a character string
-#'   specifying the column in \code{colData(x)}
-#'   that contains cluster assignments.
-#' @param sample_id a character string
-#'   specifying the column in \code{colData(x)}
-#'   that contains unique sample identifies.
-#' @param factors a character string
-#'   specifying columns  in \code{colData(x)}
-#'   that containfactors of interest.
+#' @param cluster_id,sample_id,group_id character strings specifying
+#'   the \code{colData(x)} columns containing cluster assignments,
+#'   unique sample identifiers, and group IDs (e.g., treatment).
 #' 
 #' @examples
 #' # generate random counts
@@ -49,29 +43,29 @@
 #' @importFrom SummarizedExperiment assays colData rowData
 #' @export
 
-prepData <- function(x, cluster_id, sample_id, factors) {
-    
-    # construct column data
-    sample_ids <- factor(colData(x)[[sample_id]])
-    col_data <- data.frame(
-        row.names = colnames(x),
-        sample_id = sample_ids,
-        cluster_id = colData(x)[[cluster_id]],
-        colData(x)[factors])
-    
-    # construct experimental design table
-    m <- match(levels(sample_ids), sample_ids)
-    ei <- data.frame(
-        row.names = NULL,
-        sample_id = sample_ids[m],
-        colData(x)[m, ][factors],
-        n_cells = as.numeric(table(sample_ids)))
-    
-    # construct SingleCellExperiment
-    SingleCellExperiment(
-        assays = assays(x),
-        colData = col_data,
-        rowData = rowData(x),
-        metadata = list(experiment_info = ei),
-        reducedDims = reducedDims(x))
+prepData <- function(x, cluster_id, sample_id, group_id) {
+  
+  # construct colData
+  ids <- as.list(match.call()[-(1:2)])
+  cd <- data.frame(
+    row.names = colnames(x),
+    colData(x)[unlist(ids)])
+  colnames(cd) <- names(ids)
+  
+  # construct experimental design table
+  m <- match(levels(cd$sample_id), cd$sample_id)
+  ei <- data.frame(
+    row.names = NULL,
+    sample_id = levels(cd$sample_id,)
+    group_id = cd$group_id[m],
+    n_cells = as.numeric(table(cd$sample_id)))
+  md <- list(experiment_info = ei)
+  
+  # construct SingleCellExperiment
+  SingleCellExperiment(
+    assays = assays(x),
+    colData = cd,
+    rowData = rowData(x),
+    reducedDims = reducedDims(x),
+    metadata = md)
 }
