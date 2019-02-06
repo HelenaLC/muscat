@@ -41,19 +41,18 @@ cats <- factor(cats, levels = cats)
 # ------------------------------------------------------------------------------
 # compute pseudo-bulks
 # ------------------------------------------------------------------------------
-#' @importFrom magrittr set_rownames
 #' @importFrom purrr map_depth
 #' @importFrom SummarizedExperiment assays
 .pb <- function(x, cs, assay, fun) {
-  fun <- getFromNamespace(fun, "Matrix")
-  pb <- map_depth(cs, -1, function(i) {
-    if (length(i) == 0) return(numeric(nrow(x)))
-    fun(assays(x)[[assay]][, i, drop = FALSE])
-  })
-  map_depth(pb, -2, function(u) 
-    bind_cols(u) %>% data.frame(
-      check.names = FALSE,
-      row.names = rownames(x)))
+    fun <- getFromNamespace(fun, "Matrix")
+    pb <- map_depth(cs, -1, function(i) {
+        if (length(i) == 0) return(numeric(nrow(x)))
+        fun(assays(x)[[assay]][, i, drop = FALSE])
+    })
+    map_depth(pb, -2, function(u) 
+        data.frame(u, 
+            row.names = rownames(x),
+            check.names = FALSE))
 }
 
 # ------------------------------------------------------------------------------
