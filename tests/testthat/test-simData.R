@@ -29,7 +29,7 @@ test_that(".split_cells", {
         row.names = cells,
         cluster_id = sample(k, n_cells, TRUE),
         sample_id = sample(s, n_cells, TRUE))
-
+    
     cs <- .split_cells(cd, "cluster_id")
     expect_identical(names(cs), k)
     expect_identical(
@@ -40,7 +40,7 @@ test_that(".split_cells", {
     expect_identical(names(cs), k)
     nms_lvl2 <- vapply(cs, names, character(length(s)))
     expect_true(all(apply(nms_lvl2, 2, identical, s)))
-        
+    
     cs <- .split_cells(cd, c("sample_id", "cluster_id"))
     expect_identical(names(cs), s)
     nms_lvl2 <- vapply(cs, names, character(length(k)))
@@ -51,10 +51,9 @@ test_that(".sample_cell_md", {
     n <- 1e3
     ids <- list(k, s, g)
     md <- .sample_cell_md(n, ids)
-
+    
     ns <- apply(md, 2, table)
     ms <- vapply(ns, mean, numeric(1))
     expect_true(all(vapply(1:3, function(i) 
         ms[[i]] == n / length(ids[[i]]), logical(1))))
 })
-    

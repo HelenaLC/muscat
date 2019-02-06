@@ -94,10 +94,12 @@ runDS <- function(x, pb,
     min_cells = 10, verbose = TRUE) {
     
     # check validty of input arguments
-    stopifnot(is(x, "SingleCellExperiment"))
-    stopifnot(all(c("sample_id", "cluster_id") %in% colnames(colData(x))))
-    stopifnot(all.equal(assayNames(pb), levels(colData(x)$cluster_id)))
-    stopifnot(all.equal(colnames(pb), levels(colData(x)$sample_id)))
+    .check_sce(x)
+    kids <- colData(x)$cluster_id
+    sids <- colData(x)$sample_id
+    
+    stopifnot(all.equal(assayNames(pb), levels(kids)))
+    stopifnot(all.equal(colnames(pb), levels(sids)))
     stopifnot(all.equal(rownames(pb), rownames(x)))
     stopifnot(is.matrix(design))
     stopifnot(!is.null(contrast) | !is.null(coef))
@@ -106,7 +108,7 @@ runDS <- function(x, pb,
     method <- match.arg(method)
     
     # compute cluster-sample counts
-    n_cells <- table(colData(x)$cluster_id, colData(x)$sample_id)
+    n_cells <- table(kids, sids)
 
     if (!is.null(contrast)) {
         ctype <- "contrast"

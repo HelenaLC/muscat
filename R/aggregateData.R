@@ -80,5 +80,7 @@ aggregateData <- function(x, assay,
     }
 
     # return SCE
-    SingleCellExperiment(assays = pb)
+    SingleCellExperiment(
+        assays = pb,
+        metadata = metadata(x))
 }

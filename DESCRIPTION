@@ -13,8 +13,10 @@ Imports:
 	data.table,
 	dplyr, 
 	edgeR, 
+	ggplot2,
+	grDevices,
 	grid,
-    	limma,
+    limma,
 	magrittr,
 	Matrix,
 	matrixStats,
@@ -36,7 +38,7 @@ Suggests:
     knitr,
     rmarkdown,
     testthat
-biocViews: DifferentialExpression, SingleCell
+biocViews: DifferentialExpression, SingleCell, Software, StatisticalMethod, Visualization
 License: GPL (>=2)
 VignetteBuilder: knitr
 RoxygenNote: 6.1.1

@@ -35,45 +35,46 @@
 #' 
 #' @importFrom Matrix rowMeans
 #' @importFrom methods is
-#' @importFrom SummarizedExperiment assays colData
-#' 
+#' @importFrom SummarizedExperiment assays colData SummarizedExperiment
 #' @export
     
 calcExprFreqs <- function(x, assay = "counts", th = 0) {
     
     # check validity of input arguments
-    stopifnot(is(x, "SingleCellExperiment"))
-    stopifnot(c("cluster_id", "sample_id") %in% colnames(colData(x)))
-    stopifnot(is.numeric(th), length(th) == 1)
+    .check_sce(x)
     .check_arg_assay(x, assay)
+    stopifnot(is.numeric(th), length(th) == 1)
     
     # split cells by cluster-sample
     cells_by_cluster_sample <- .split_cells(x)
 
     # for each gene, compute fraction of cells 
     # w/ assay value above threshold in each sample
-    data <- as.matrix(assays(x)[[assay]])
-    fq <- lapply(cells_by_cluster_sample, vapply, 
-        function(i) rowMeans(data[, i, drop = FALSE] > th),
+    fun <- getFromNamespace("rowMeans", "Matrix")
+    fq <- lapply(cells_by_cluster_sample, vapply, function(i) 
+        fun(assays(x)[[assay]][, i, drop = FALSE] > th),
         numeric(nrow(x)))
 
     if ("group_id" %in% colnames(colData(x))) {
-        cluster_ids <- colData(x)$cluster_id
-        n_cells_by_s <- table(cluster_ids, colData(x)$sample_id)
-        n_cells_by_g <- table(cluster_ids, colData(x)$group_id)
+        kids <- colData(x)$cluster_id
+        sids <- colData(x)$sample_id
+        gids <- colData(x)$group_id
+        
+        n_cells_by_ks <- table(kids, sids)
+        n_cells_by_kg <- table(kids, gids)
         
         ei <- metadata(x)$experiment_info
-        sample_by_g <- split(levels(colData(x)$sample_id), ei$group_id) 
-        groups <- names(sample_by_g)
+        samples_by_g <- split(levels(sids), ei$group_id) 
+        gids <- names(samples_by_g)
         
-        cluster_ids <- levels(cluster_ids)
-        names(cluster_ids) <- cluster_ids
+        kids <- levels(kids)
+        names(kids) <- kids
         
-        fq <- lapply(cluster_ids, function(k) {
-            n_cells_s <- fq[[k]] *  n_cells_by_s[k, ][col(fq[[k]])]
-            fq_by_g <- vapply(groups, function(g) {
-                n_cells_g <- n_cells_s[, sample_by_g[[g]]]
-                rowSums(n_cells_g) / n_cells_by_g[k, g]
+        fq <- lapply(kids, function(k) {
+            n_cells_s <- fq[[k]] * n_cells_by_ks[k, ][col(fq[[k]])]
+            fq_by_g <- vapply(gids, function(g) {
+                n_cells_g <- n_cells_s[, samples_by_g[[g]], drop = FALSE]
+                rowSums(n_cells_g) / n_cells_by_kg[k, g]
             }, numeric(nrow(x)))
             cbind(fq[[k]], fq_by_g)
         })

@@ -8,38 +8,33 @@ suppressPackageStartupMessages({
 # generate toy dataset
 seed <- as.numeric(format(Sys.Date(), "%s"))
 set.seed(seed)
-sce <- toyData()
+sce <- toySCE()
 
-cids <- colData(sce)$cluster_id
+kids <- colData(sce)$cluster_id
 sids <- colData(sce)$sample_id
 
-# compute pseudobulks
-
+pb <- aggregateData(sce, assay = "counts", by = c("cluster_id", "sample_id"), fun = "sum")
 
 test_that("aggregateData", {
-  expect_error(aggregateData(sce, by = "xxx"))
-  expect_error(aggregateData(sce, assay = "xxx"))
-  expect_error(aggregateData(sce, fun = "xxx"))
-  
-  pb <- aggregateData(sce, assay = "counts", by = c("cluster_id", "sample_id"), fun = "sum")
-
-  expect_is(pb, "SingleCellExperiment")
-  expect_true(identical(levels(cids), assayNames(pb)))
-  expect_true(identical(levels(sids), colnames(pb)))
-  expect_true(identical(rownames(sce), rownames(pb)))
+    expect_error(aggregateData(sce, by = "xxx"))
+    expect_error(aggregateData(sce, assay = "xxx"))
+    expect_error(aggregateData(sce, fun = "xxx"))
     
-   
-    expect_equal(length(pb), nlevels(cluster_ids))
-    expect_true(all(sapply(pb, ncol) == nlevels(sample_ids)))
-    expect_true(all(sapply(pb, nrow) == nrow(sce)))
-    expect_equal(sum(sapply(pb, sum)), sum(assay(sce)))
-
+    expect_is(pb, "SingleCellExperiment")
+    expect_identical(assayNames(pb), levels(kids))
+    
+    expect_identical(nrow(pb), nrow(sce))
+    expect_identical(ncol(pb), nlevels(sids))
+    
+    expect_identical(rownames(pb), rownames(sce))
+    expect_identical(colnames(pb), levels(sids))
+    
     # random spot check
-    c <- sample(levels(cluster_ids), 1)
-    s <- sample(levels(sample_ids), 1)
+    k <- sample(levels(kids), 1)
+    s <- sample(levels(sids), 1)
     g <- sample(rownames(sce), 1)
-    cells_keep <- sample_ids == s & cluster_ids == c
-    expect_equal(pb[[c]][g, s], sum(assay(sce)[g, cells_keep]))
+    i <- sids == s & kids == k
+    expect_equal(assays(pb)[[k]][g, s], sum(assay(sce)[g, i]))
 })
 
 

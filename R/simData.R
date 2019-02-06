@@ -28,7 +28,8 @@
 #' @importFrom data.table data.table
 #' @importFrom dplyr mutate_all mutate_at
 #' @importFrom edgeR DGEList estimateDisp glmFit
-#' @importFrom purrr modify_at
+#' @importFrom magrittr set_colnames set_rownames
+#' @importFrom purrr modify_at set_names
 #' @importFrom stats model.matrix rgamma setNames
 #' @importFrom SingleCellExperiment SingleCellExperiment
 #' @importFrom SummarizedExperiment colData

@@ -51,7 +51,7 @@
 #' @importFrom MAST FromMatrix lrTest SceToSingleCellAssay zlm
 #' @importFrom methods is
 #' @importFrom stats p.adjust
-#' @importFrom SummarizedExperiment assays colData rowData
+#' @importFrom SummarizedExperiment assays colData colData<- rowData rowData<- 
 #' @importFrom tibble add_column
 #' 
 #' @export

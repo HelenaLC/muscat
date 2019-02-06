@@ -6,64 +6,52 @@ suppressPackageStartupMessages({
 })
 
 # generate toy dataset
-seed <- as.numeric(format(Sys.time(), "%s"))
+seed <- as.numeric(format(Sys.Date(), "%s"))
 set.seed(seed)
-sce <- toyData()
+sce <- toySCE()
+
+kids <- colData(sce)$cluster_id
+sids <- colData(sce)$sample_id
+gids <- colData(sce)$group_id
 
 # put in 50% of random 0s
 n <- length(assay(sce))
 i <- sample(assay(sce), round(n * 0.5))
 assay(sce)[i] <- 0
 
-# randomly split into 2 groups
-ei <- data.frame(sample_id = levels(colData(sce)$sample_id))
-g2 <- sample(ei$sample_id, round(nlevels(ei$sample_id) / 2))
-ei$group_id <- "A"
-m <- match(g2, ei$sample_id)
-ei$group_id[m] <- "B"
-ei$group_id <- factor(ei$group_id)
-
-metadata(sce)$experiment_info <- ei
-m <- match(colData(sce)$sample_id, ei$sample_id)
-colData(sce)$group_id <- factor(ei$group_id[m])
-
 # calculate expr. freqs.
 x <- calcExprFreqs(sce, assay = "counts", th = 0)
 
+test_that("Output is correctly structured SE", {
+    expect_is(x, "SummarizedExperiment")
+    expect_identical(assayNames(x), levels(kids))
+    
+    expect_identical(nrow(x), nrow(sce))
+    expect_identical(ncol(x), nlevels(sids) + nlevels(gids))
+    
+    expect_identical(rownames(x), rownames(sce))
+    expect_identical(colnames(x), c(levels(sids), levels(gids)))
+})
+
 test_that("Frequencies lie in [0, 1] w/o NAs", {
-    expect_true(all(!sapply(x, function(u) any(is.na(u)))))
-    r <- sapply(x, range)
+    expect_true(all(!vapply(assays(x), function(u) any(is.na(u)), logical(1))))
+    r <- vapply(assays(x), range, numeric(2))
     expect_true(all(r[1, ] >= 0))
     expect_true(all(r[2, ] <= 1))
 })
 
-test_that("Output is list w/ names corresponding to cluster IDs", {
-    expect_is(x, "list")
-    cluster_ids <- levels(colData(sce)$cluster_id)
-    expect_true(all(names(x) %in% cluster_ids))
-})
-
-test_that("Row names = genes & column names = group/sample IDs", {
-    expect_true(all(sapply(x, function(u)
-        all.equal(rownames(u), rownames(sce)))))
-    group_ids <- levels(colData(sce)$group_id)
-    sample_ids <- levels(colData(sce)$sample_id)
-    expect_true(all(sapply(x, function(u)
-        all(colnames(u) %in% c(group_ids, sample_ids)))))
-})
-
 test_that("Spot check", {
     # sample cluster
-    cluster_ids <- colData(sce)$cluster_id
-    k <- sample(levels(cluster_ids), 1)
-    ki <- cluster_ids == k
+    k <- sample(levels(kids), 1)
+    ki <- kids == k
     # sample sample & group
-    s <- sample(levels(ei$sample_id), 1)
-    g <- sample(levels(ei$group_id), 1)
-    si <- colData(sce)$sample_id == s & ki
-    gi <- colData(sce)$group_id == g & ki
+    s <- sample(levels(sids), 1)
+    g <- sample(levels(gids), 1)
+    si <- sids == s & ki
+    gi <- gids == g & ki
     # sample gene & check frequencies vs. truth
     gene <- sample(rownames(sce), 1)
-    expect_identical(sum(counts(sce)[gene, si] > 0) / sum(si), x[[k]][gene, s])
-    expect_identical(sum(counts(sce)[gene, gi] > 0) / sum(gi), x[[k]][gene, g])
+    expect_identical(sum(counts(sce)[gene, si] > 0) / sum(si), assays(x)[[k]][gene, s])
+    expect_identical(sum(counts(sce)[gene, gi] > 0) / sum(gi), assays(x)[[k]][gene, g])
 })
+

@@ -39,6 +39,7 @@
 #' 
 #' @return a \code{[SingleCellExperiment]{SingleCellExperiment}}.
 #' 
+#' @importFrom magrittr set_colnames
 #' @importFrom SingleCellExperiment reducedDims SingleCellExperiment
 #' @importFrom SummarizedExperiment assays colData rowData
 #' @export

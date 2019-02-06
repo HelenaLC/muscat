@@ -76,7 +76,7 @@ plotDiffGenes <- function(x, y, c = NULL, g = NULL, k = NULL,
         }))
     )
     
-    es <- as.matrix(logcounts(x)[unlist(y$gene), ])
+    es <- as.matrix(assays(x)$logcounts[unlist(y$gene), ])
     es0 <- t(CATALYST:::scale_exprs(t(es)))
     
     # split cells by cluster-sample
