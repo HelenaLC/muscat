@@ -44,9 +44,9 @@ cats <- factor(cats, levels = cats)
 #' @importFrom magrittr set_rownames
 #' @importFrom purrr map_depth
 #' @importFrom SummarizedExperiment assays
-.pb <- function(cells, x, assay, fun) {
+.pb <- function(x, cs, assay, fun) {
   fun <- getFromNamespace(fun, "Matrix")
-  pb <- map_depth(cells, -1, function(i) {
+  pb <- map_depth(cs, -1, function(i) {
     if (length(i) == 0) return(numeric(nrow(x)))
     fun(assays(x)[[assay]][, i, drop = FALSE])
   })

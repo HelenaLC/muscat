@@ -65,15 +65,15 @@ aggregateData <- function(x, assay,
         median = "rowMedians")
     
     # split cells & compute pseudo-bulks
-    cells <- .split_cells(x, by)
-    pb <- .pb(cells, x, assay, fun)
+    cs <- .split_cells(x, by)
+    pb <- .pb(x, cs, assay, fun)
     
     # scale
     if (scale) {
         if (assay == "counts" & fun == "rowSums") {
             pb_counts <- pb
         } else {
-            pb_counts <- .pb(cells, x, assay, "rowSums")
+            pb_counts <- .pb(x, cs, assay, "rowSums")
         }
         pb <- map_depth(pb_counts, -1, function(u) 
             u / colSums(u)[col(u)] * 1e6)

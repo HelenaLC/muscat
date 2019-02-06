@@ -4,7 +4,7 @@
 # check input SCE
 .check_sce <- function(x) {
   stopifnot(is(x, "SingleCellExperiment"))
-  stopifnot(identical(colnames(colData(x)), c("cluster_id", "sample_id", "group_id")))
+  stopifnot(c("cluster_id", "sample_id", "group_id") %in% colnames(colData(x)))
 }
 
 # check of 'assay' argument
