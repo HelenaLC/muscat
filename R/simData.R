@@ -142,8 +142,6 @@ simData <- function(x, n_genes = 500, n_cells = 300, probs = NULL, p_dd = diag(6
         gene = unlist(gs_idx),
         cluster_id = rep.int(rep(kids, each = length(cats)), c(n_dd)),
         category = rep.int(rep(cats, nk), c(n_dd)),
-        # mean = ,
-        # disp = ,
         logFC = unlist(lfc)) %>% 
         mutate_at("gene", as.character)
     o <- order(as.numeric(gsub("[a-z]", "", gi$gene)))
@@ -161,7 +159,7 @@ simData <- function(x, n_genes = 500, n_cells = 300, probs = NULL, p_dd = diag(6
     md <- list(
         experiment_info = ei,
         n_cells = table(cd$sample_id),
-        gene_info = gi, sim_genes = gs_in)
+        gene_info = gi)
     
     SingleCellExperiment(
         assays = list(counts = as.matrix(y)),

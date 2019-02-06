@@ -65,7 +65,7 @@ sim <- simData(kang, n_genes = 100, n_cells = 200,
     p_dd = c(0.8, 0, 0.2, 0, 0, 0), fc = 4)
     
 # compute pseudo-bulk counts
-pb <- aggregateData(sim, assay = "counts", fun = "sum")
+pb <- aggregateData(sim)
 
 # specify design & contrast matrix
 ei <- metadata(sim)$experiment_info

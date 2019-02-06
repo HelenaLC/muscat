@@ -15,11 +15,11 @@ calcExprFreqs(x, assay = "counts", th = 0)
 a gene should be considered to be expressed.}
 }
 \value{
-returns a list of length #clusters containing, for each cluster, 
-  a data.frame of dimensions #genes x #samples giving the fraction of cells
-  that express each gene in each sample. 
-  If \code{melt = TRUE}, a data.frame with columns \code{"cluster_id"}, 
-  \code{"sample_id"}, and \code{"freq"} will be returned.
+a \code{\link[SummarizedExperiment]{SummarizedExperiment}}
+  containing, for each cluster, an assay of dimensions #genes x #samples 
+  giving the fraction of cells that express each gene in each sample. 
+  If \code{colData(x)} contains a \code{"group_id"} column, the fraction 
+  of expressing cells in each each group will be included as well.
 }
 \description{
 Calculates gene expression frequencies
@@ -31,16 +31,17 @@ Here, a gene is considered to be expressed when the specified
 measurement value lies above the specified threshold value.
 }
 \examples{
-data(kang)
+library(SummarizedExperiment)
+
 colnames(colData(kang)) # contains sample_id only
 frq <- calcExprFreqs(kang)
-names(frq)     # one table per cluster
-head(frq[[1]]) # expr. freqs. by sample
+assayNames(frq)  # one assay per cluster
+head(assay(frq)) # expr. freqs. by sample
 
-sim <- simData(kang, n_genes = 100, n_cells = 50, p_dd = diag(6)[1, ]) 
-colnames(colData(sim))    # contains group_id!
-frq <- calcExprFreqs(sim) # expr. freqs. by group & sample
-head(frq[[1]]) 
+sim <- simData(kang, n_genes = 5, n_cells = 1e3) 
+frq <- calcExprFreqs(sim)
+colnames(colData(sim)) # contains group_id!
+assay(frq)             # freqs. by group included
 
 }
 \author{

@@ -39,6 +39,24 @@ cats <- factor(cats, levels = cats)
 }
 
 # ------------------------------------------------------------------------------
+# compute pseudo-bulks
+# ------------------------------------------------------------------------------
+#' @importFrom magrittr set_rownames
+#' @importFrom purrr map_depth
+#' @importFrom SummarizedExperiment assays
+.pb <- function(cells, x, assay, fun) {
+  fun <- getFromNamespace(fun, "Matrix")
+  pb <- map_depth(cells, -1, function(i) {
+    if (length(i) == 0) return(numeric(nrow(x)))
+    fun(assays(x)[[assay]][, i, drop = FALSE])
+  })
+  map_depth(pb, -2, function(u) 
+    bind_cols(u) %>% data.frame(
+      check.names = FALSE,
+      row.names = rownames(x)))
+}
+
+# ------------------------------------------------------------------------------
 # split cells by cluster-sample
 # ------------------------------------------------------------------------------
 #   x:  a SingleCellExperiment or colData

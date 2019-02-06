@@ -45,23 +45,28 @@
 
 prepData <- function(x, cluster_id, sample_id, group_id) {
   
-  # construct colData
   ids <- as.list(match.call()[-(1:2)])
+  stopifnot(is(x, "SingleCellExperiment"))
+  stopifnot(unlist(ids) %in% colnames(colData(x)))
+  
+  # construct colData
   cd <- data.frame(
-    row.names = colnames(x),
-    colData(x)[unlist(ids)])
+    colData(x)[unlist(ids)], 
+    row.names = colnames(x)) %>%
+    mutate_all(factor) %>% 
+    set_colnames(names(ids))
   colnames(cd) <- names(ids)
   
-  # construct experimental design table
+  # construct metadata
   m <- match(levels(cd$sample_id), cd$sample_id)
   ei <- data.frame(
     row.names = NULL,
-    sample_id = levels(cd$sample_id,)
+    sample_id = levels(cd$sample_id),
     group_id = cd$group_id[m],
     n_cells = as.numeric(table(cd$sample_id)))
   md <- list(experiment_info = ei)
   
-  # construct SingleCellExperiment
+  # construct SCE
   SingleCellExperiment(
     assays = assays(x),
     colData = cd,

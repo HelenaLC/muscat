@@ -4,45 +4,59 @@
 #' @description ...
 #' 
 #' @param x a \code{[SingleCellExperiment]{SingleCellExperiment}}.
-#' @param assay a character string. 
-#'   Specifies the assay slot to use as input data.
+#' @param assay character string specifying the assay slot to use as 
+#'   input data. Defaults to the 1st available (\code{assayNames(x)[1]}).
+#' @param by character vector specifying which 
+#'   \code{colData(x)} columns to summarize by.
 #' @param fun a character string.
 #'   Specifies the function to use as summary statistic.
-#' @param scale logical.
+#' @param scale logical. Should pseudo-bulks be scaled
+#'   with the effective library size & multiplied by 1M?
 #' 
-#' @return a list of sample-wise pseudo-bulk data for each cluster.
+#' @return a \code{[SingleCellExperiment]{SingleCellExperiment}}.
 #' 
 #' @examples 
-#' data(kang)
+#' library(SummarizedExperiment)
 #' 
-#' pb <- aggregateData(kang, assay = "counts", fun = "sum")
-#' names(pb)
-#' head(pb[[1]])
+#' # pseudo-bulk counts by cluster-sample
+#' pb <- aggregateData(kang)
+#' assayNames(pb)  # one sheet per cluster
+#' head(assay(pb)) # n_genes x n_samples
 #' 
-#' counts <- assay(kang)
-#' assays(kang)$cpm <- edgeR::cpm(counts)
-#' pb <- aggregateData(kang, assay = "cpm", fun = "sum", scale = TRUE)
-#' head(pb[[1]])
+#' # scaled CPM
+#' assays(kang)$cpm <- edgeR::cpm(assay(kang))
+#' pb <- aggregateData(kang, assay = "cpm", scale = TRUE)
+#' head(assay(pb)) 
+#' 
+#' # aggregate by cluster
+#' pb <- aggregateData(kang, by = "cluster_id")
+#' length(assays(pb)) # single assay
+#' head(assay(pb))    # n_genes x n_clusters
 #' 
 #' @author Helena L. Crowel \email{helena.crowell@uzh.ch} and Mark D. Robinson.
 #' 
 #' @importFrom Matrix colSums rowMeans rowSums
 #' @importFrom matrixStats rowMedians
 #' @importFrom methods is
-#' @importFrom SummarizedExperiment assayNames assays colData
+#' @importFrom SingleCellExperiment SingleCellExperiment
+#' @importFrom SummarizedExperiment colData
 #' 
 #' @export
 
-aggregateData <- function(x, assay, 
+aggregateData <- function(x, assay,
+    by = c("cluster_id", "sample_id"),
     fun = c("sum", "mean", "median"), 
     scale = FALSE) {
     
-    # validity checks for input arguments
-    stopifnot(is(x, "SingleCellExperiment"))
-    stopifnot(c("cluster_id", "sample_id") %in% colnames(colData(x)))
-    stopifnot(is.character(assay), length(assay) == 1, assay %in% assayNames(x))
-    stopifnot(is.logical(scale), length(scale) == 1)
+    if (missing("assay"))
+        assay <- assayNames(x)[1]
 
+    # validity checks for input arguments
+    .check_sce(x)
+    .check_arg_assay(x, assay)
+    stopifnot(is.character(by), by %in% colnames(colData(x)))
+    stopifnot(is.logical(scale), length(scale) == 1)
+    
     # get aggregation function
     fun <- match.arg(fun)
     fun <- switch(fun,
@@ -50,31 +64,21 @@ aggregateData <- function(x, assay,
         mean = "rowMeans",
         median = "rowMedians")
     
-    # split cells by cluster-sample
-    cells_by_cluster_sample <- .split_cells(x)
-    
-    # compute pseudo-bulks
-    pb <- lapply(cells_by_cluster_sample, vapply, function(i) {
-        if (length(i) == 0) return(numeric(nrow(x)))
-        get(fun)(assays(x)[[assay]][, i, drop = FALSE])
-    }, numeric(nrow(x)))
+    # split cells & compute pseudo-bulks
+    cells <- .split_cells(x, by)
+    pb <- .pb(cells, x, assay, fun)
     
     # scale
     if (scale) {
         if (assay == "counts" & fun == "rowSums") {
             pb_counts <- pb
         } else {
-            pb_counts <- lapply(cells_by_cluster_sample, vapply, function(i) {
-                if (length(i) == 0) return(numeric(nrow(x)))
-                rowSums(assays(x)[[assay]][, i, drop = FALSE])
-            }, numeric(nrow(x)))
+            pb_counts <- .pb(cells, x, assay, "rowSums")
         }
-        n_samples <- nlevels(colData(x)$sample_id)
-        lib_sizes <- vapply(pb_counts, colSums, numeric(n_samples))
-        cluster_ids <- levels(colData(x)$cluster_id)
-        names(cluster_ids) <- cluster_ids
-        pb <- lapply(cluster_ids, function(k) 
-          pb[[k]] / lib_sizes[, k] * 1e6)
+        pb <- map_depth(pb_counts, -1, function(u) 
+            u / colSums(u)[col(u)] * 1e6)
     }
-    return(pb)
+
+    # return SCE
+    SingleCellExperiment(assays = pb)
 }

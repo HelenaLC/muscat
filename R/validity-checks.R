@@ -1,9 +1,25 @@
 # validity checks for objects & function arguments
+# ==============================================================================
+
+# check input SCE
+.check_sce <- function(x) {
+  stopifnot(is(x, "SingleCellExperiment"))
+  stopifnot(identical(colnames(colData(x)), c("cluster_id", "sample_id", "group_id")))
+}
+
+# check of 'assay' argument
+#' @importFrom SummarizedExperiment assayNames
+.check_arg_assay <- function(x, y) {
+    stopifnot(is.character(y), length(y) == 1, y %in% assayNames(x))
+    if (sum(assayNames(x) == y) > 1)
+        stop("Argument 'assay' was matched to multiple times.\n ", 
+            " Please assure that the input SCE has unique 'assayNames'.")
+}
 
 # check validity of runDS() output
 check_res <- function(sce, res) {
     ei <- metadata(sce)$experiment_info
-    cluster_ids <- levels(factor(colData(sce)$cluster_id))
+    cluster_ids <- levels(factor(colData(sce)$clscster_id))
     n_clusters <- length(cluster_ids)
     nms <- c("table", "data", "design", "contrast", "coef")
     stopifnot(

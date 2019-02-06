@@ -4,22 +4,14 @@
 \alias{prepData}
 \title{Prepare SCE for DS analysis}
 \usage{
-prepData(x, cluster_id, sample_id, factors)
+prepData(x, cluster_id, sample_id, group_id)
 }
 \arguments{
 \item{x}{a \code{[SingleCellExperiment]{SingleCellExperiment}}.}
 
-\item{cluster_id}{a character string
-specifying the column in \code{colData(x)}
-that contains cluster assignments.}
-
-\item{sample_id}{a character string
-specifying the column in \code{colData(x)}
-that contains unique sample identifies.}
-
-\item{factors}{a character string
-specifying columns  in \code{colData(x)}
-that containfactors of interest.}
+\item{cluster_id, sample_id, group_id}{character strings specifying
+the \code{colData(x)} columns containing cluster assignments,
+unique sample identifiers, and group IDs (e.g., treatment).}
 }
 \value{
 a \code{[SingleCellExperiment]{SingleCellExperiment}}.
