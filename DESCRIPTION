@@ -42,5 +42,4 @@ biocViews: DifferentialExpression, SingleCell, Software, StatisticalMethod, Visu
 License: GPL (>=2)
 VignetteBuilder: knitr
 RoxygenNote: 6.1.1
-LazyData: TRUE
 Encoding: UTF-8
