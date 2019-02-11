@@ -75,7 +75,7 @@ aggregateData <- function(x, assay,
         } else {
             pb_counts <- .pb(x, cs, assay, "rowSums")
         }
-        pb <- map_depth(pb_counts, -1, function(u) 
+        pb <- map_depth(pb_counts, -2, function(u)
             u / colSums(u)[col(u)] * 1e6)
     }
 

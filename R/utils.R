@@ -21,7 +21,9 @@
 #' @importFrom purrr map_depth
 #' @importFrom SummarizedExperiment assays
 .pb <- function(x, cs, assay, fun) {
-    fun <- getFromNamespace(fun, "Matrix")
+    fun <- switch(fun,
+        rowMedians = getFromNamespace(fun, "matrixStats"),
+        getFromNamespace(fun, "Matrix"))
     pb <- map_depth(cs, -1, function(i) {
         if (length(i) == 0) return(numeric(nrow(x)))
         fun(assays(x)[[assay]][, i, drop = FALSE])

@@ -9,48 +9,37 @@ suppressPackageStartupMessages({
 # generate toy dataset
 seed <- as.numeric(format(Sys.time(), "%s"))
 set.seed(seed)
-sce <- toyData()
-gs <- rownames(sce)
+sce <- toySCE()
 
-# split into 2 groups
-sample_ids <- colData(sce)$sample_id
-ei <- data.frame(sample_id = levels(sample_ids))
-g2 <- sample(nrow(ei), round(nrow(ei) / 2))
-ei$group_id <- "A"
-ei$group_id[g2] <- "B"
-ei$group_id <- factor(ei$group_id)
-n_cells <- table(sample_ids)
-colData(sce)$group_id <- rep(ei$group_id, n_cells)
-
-# impute 10% DE genes
-de_gs <- sample(gs, round(nrow(sce) / 10))
-g2 <- colData(sce)$group_id == "B"
-assay(sce)[de_gs, g2] <- assay(sce)[de_gs, g2] * 100
+# randomly select 10 DE genes & multiply counts by 1000 for groups 2 & 3
+cs_by_g <- .split_cells(sce, "group_id")
+g23 <- unlist(cs_by_g[c("g2", "g3")])
+gs <- sample(rownames(sce), 10)
+assay(sce[gs, g23]) <- assay(sce[gs, g23]) * 1e3
 
 # compute CPM
 cpm <- edgeR::cpm(assay(sce))
 assays(sce)$logcpm <- log2(cpm + 1)
 
 # run MAST
-contrast <- makeContrasts("B-A", levels = levels(ei$group_id))
+ei <- metadata(sce)$experiment_info
+contrast <- makeContrasts("g1-g2", "g1-g3", levels = levels(ei$group_id))
+cs <- colnames(contrast)
+
 res <- runMAST(sce, ~ 0 + group_id, contrast, assay = "logcpm")
-tbl <- res$table$`B-A`
+tbl <- res$table
 
 # ------------------------------------------------------------------------------
 
-test_that("# & identity of genes is correct.", {
-    # get significant hits
-    p.adj <- lapply(tbl, "[[", "p.adj")
-    de <- lapply(p.adj, "<", 1e-3)
-    
-    # check that nb. of DE genes is right
-    n_de <- vapply(de, sum, numeric(1))
-    expect_true(all(n_de == length(de_gs)))
-
-    # check that DE genes are right
-    expect_true(all(vapply(de, function(u) 
-        identical(sort(gs[u]), sort(de_gs)), 
-        logical(1))))
+test_that("# & identity of DE genes is correct.", {
+    # check that nb. of DE genes is 10 in ea. cluster
+    n_de <- map_depth(tbl, 2, function(u)
+        sum(u$p_adj < 1e-3))
+    expect_true(all(unlist(n_de) == 10))
+    # check that DE genes are correct
+    de_gs <- modify_depth(tbl, 2, function(u)
+        u$gene[order(u$p_adj)][seq_len(10)])
+    expect_true(all(unlist(map_depth(de_gs, 2, setequal, gs))))
 })
 
 
