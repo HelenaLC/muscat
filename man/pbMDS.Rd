@@ -17,7 +17,7 @@ a \code{ggplot} object.
 ...
 }
 \examples{
-sce <- toySCE()
+sce <- toyData()
 pb <- aggregateData(sce)
 pbMDS(pb)
 

@@ -8,7 +8,7 @@ suppressPackageStartupMessages({
 # generate toy dataset
 seed <- as.numeric(format(Sys.Date(), "%s"))
 set.seed(seed)
-sce <- toySCE()
+sce <- toyData()
 
 kids <- colData(sce)$cluster_id
 sids <- colData(sce)$sample_id

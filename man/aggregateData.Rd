@@ -30,6 +30,7 @@ a \code{[SingleCellExperiment]{SingleCellExperiment}}.
 }
 \examples{
 library(SummarizedExperiment)
+data(kang)
 
 # pseudo-bulk counts by cluster-sample
 pb <- aggregateData(kang)
@@ -48,5 +49,5 @@ head(assay(pb))    # n_genes x n_clusters
 
 }
 \author{
-Helena L. Crowel \email{helena.crowell@uzh.ch} and Mark D. Robinson.
+Helena L. Crowell \email{helena.crowell@uzh.ch} and Mark D. Robinson.
 }

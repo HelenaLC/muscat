@@ -9,7 +9,7 @@ suppressPackageStartupMessages({
 # generate toy dataset
 seed <- as.numeric(format(Sys.time(), "%s"))
 set.seed(seed)
-sce <- toySCE()
+sce <- toyData()
 
 # randomly select 10 DE genes & multiply counts by 1000 for groups 2 & 3
 cs_by_g <- .split_cells(sce, "group_id")

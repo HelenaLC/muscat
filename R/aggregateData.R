@@ -17,6 +17,7 @@
 #' 
 #' @examples 
 #' library(SummarizedExperiment)
+#' data(kang)
 #' 
 #' # pseudo-bulk counts by cluster-sample
 #' pb <- aggregateData(kang)
