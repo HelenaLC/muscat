@@ -33,7 +33,7 @@
 #' length(assays(pb)) # single assay
 #' head(assay(pb))    # n_genes x n_clusters
 #' 
-#' @author Helena L. Crowel \email{helena.crowell@uzh.ch} and Mark D. Robinson.
+#' @author Helena L. Crowell \email{helena.crowell@uzh.ch} and Mark D. Robinson.
 #' 
 #' @importFrom Matrix colSums rowMeans rowSums
 #' @importFrom matrixStats rowMedians
