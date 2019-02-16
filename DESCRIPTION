@@ -9,6 +9,7 @@ Authors@R: c(
 	person("Charlotte", "Soneson", role="aut"),
 	person("Mark D.", "Robinson", role=c("aut", "fnd"), email="mark.robinson@imls.uzh.ch"))
 Imports: 
+    CATALYST,
 	ComplexHeatmap,
 	data.table,
 	dplyr, 
@@ -43,6 +44,7 @@ VignetteBuilder: knitr
 RoxygenNote: 6.1.1
 Encoding: UTF-8
 Collate: 
+    'toyData.R'
     'aggregateData.R'
     'calcExprFreqs.R'
     'findMarkerGenes.R'
@@ -55,6 +57,5 @@ Collate:
     'runMAST.R'
     'utils-simData.R'
     'simData.R'
-    'toyData.R'
     'utils.R'
     'validity-checks.R'

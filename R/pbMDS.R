@@ -10,6 +10,7 @@
 #' 
 #' @examples 
 #' sce <- toyData()
+#' sce <- prepData(sce, "cluster_id", "sample_id", "group_id")
 #' pb <- aggregateData(sce)
 #' pbMDS(pb)
 #' 
@@ -24,7 +25,7 @@
 #' @export
 
 pbMDS <- function(x) {
-    y <- do.call("cbind", assays(x))
+    y <- do.call(cbind, as(assays(x), "list"))
     d <- DGEList(y)
     d <- calcNormFactors(d)
     d <- d[rowSums(cpm(d) > 1) >= 10, ]

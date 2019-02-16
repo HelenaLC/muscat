@@ -20,6 +20,7 @@ i <- sample(assay(sce), round(n * 0.5))
 assay(sce)[i] <- 0
 
 # calculate expr. freqs.
+sce <- prepData(sce, "cluster_id", "sample_id", "group_id")
 x <- calcExprFreqs(sce, assay = "counts", th = 0)
 
 test_that("Output is correctly structured SE", {

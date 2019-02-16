@@ -7,15 +7,16 @@ suppressPackageStartupMessages({
 })
 
 # generate toy dataset
-seed <- as.numeric(format(Sys.time(), "%s"))
+seed <- 1
 set.seed(seed)
 sce <- toyData()
+sce <- prepData(sce, "cluster_id", "sample_id", "group_id")
 
 # randomly select 10 DE genes & multiply counts by 1000 for groups 2 & 3
 cs_by_g <- .split_cells(sce, "group_id")
 g23 <- unlist(cs_by_g[c("g2", "g3")])
 gs <- sample(rownames(sce), 10)
-assay(sce[gs, g23]) <- assay(sce[gs, g23]) * 1e3
+assay(sce[gs, g23]) <- assay(sce[gs, g23]) * 10
 
 # compute CPM
 cpm <- edgeR::cpm(assay(sce))

@@ -53,7 +53,7 @@ aggregateData <- function(x, assay,
         assay <- assayNames(x)[1]
 
     # validity checks for input arguments
-    .check_sce(x)
+    .check_sce(x, req_group = FALSE)
     .check_arg_assay(x, assay)
     stopifnot(is.character(by), by %in% colnames(colData(x)))
     stopifnot(is.logical(scale), length(scale) == 1)
@@ -81,6 +81,8 @@ aggregateData <- function(x, assay,
     }
 
     # return SCE
+    if (!is(pb, "list"))
+        pb <- as.matrix(pb)
     SingleCellExperiment(
         assays = pb,
         metadata = metadata(x))

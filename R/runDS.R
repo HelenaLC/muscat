@@ -94,7 +94,7 @@ runDS <- function(x, pb,
     min_cells = 10, verbose = TRUE) {
     
     # check validty of input arguments
-    .check_sce(x)
+    .check_sce(x, req_group = TRUE)
     kids <- colData(x)$cluster_id
     sids <- colData(x)$sample_id
     

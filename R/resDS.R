@@ -41,7 +41,7 @@
 #'   p_dd = c(0.8, 0, 0.2, 0, 0, 0), fc = 4)
 #' 
 #' # compute pseudo-bulk counts
-#' pb <- aggregateData(sim, data = "counts", fun = "sum")
+#' pb <- aggregateData(sim, assay = "counts", fun = "sum")
 #' 
 #' # specify design & contrast matrix
 #' ei <- S4Vectors::metadata(sim)$experiment_info
