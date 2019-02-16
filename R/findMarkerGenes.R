@@ -14,39 +14,41 @@
 #' @importFrom methods is
 #' @importFrom parallel mclapply
 #' @importFrom scran findMarkers
-#' @export
 
-findMarkerGenes <- function(x, cluster_id, mc.cores = 1, assay = "RNA", block = NULL,
-                            logfc.threshold = 1, test.use = "wilcox", min.pct = 0.25) {
-
-  stopifnot(is(x, "Seurat"))
-  stopifnot(is.numeric(mc.cores), length(mc.cores) == 1, mc.cores > 0)
-  stopifnot(is.character(assay), length(assay) == 1, assay %in% names(x@assays))
-  stopifnot(is.null(block) | (is.character(block) & length(block) == 1 & block %in% names(x@meta.data)))
-  stopifnot(is.numeric(logfc.threshold), length(logfc.threshold) == 1, logfc.threshold >= 0)
-  stopifnot(is.character(test.use), length(test.use) == 1,
-            test.use %in% c("wilcox", "bimod", "roc", "t", "negbinom",
-                            "poisson", "LR", "MAST", "DESeq2"))
-  stopifnot(is.numeric(min.pct), length(min.pct) == 1, min.pct > 0, min.pct < 1)
-
-  if (!is.null(block))
-    block <- x@meta.data[[block]]
-  x@active.assay <- assay
-  x@active.ident <- setNames(x@meta.data[[cluster_id]], rownames(x@meta.data))
-  cluster_ids <- levels(x@active.ident)
-
-  do.call(rbind, lapply(cluster_ids, function(c1) {
-    do.call(rbind, parallel::mclapply(cluster_ids, function(c2) {
-      if (c1 != c2) {
-        tryCatch({
-          f <- FindMarkers(x, ident.1 = c1, ident.2 = c2, assay = assay, block = block,
-                           logfc.threshold = logfc.threshold, test.use = test.use, min.pct = min.pct, only.pos = TRUE)
-          f$gene <- rownames(f)
-          f$cluster1 <- c1
-          f$cluster2 <- c2
-          f
-        }, error = function(e) NULL)
-      }
-    }, mc.preschedule = FALSE, mc.cores = mc.cores))
-  }))
-}
+# pairwiseDE <- function(x, assay = "logcounts", 
+#     lfc = 1, block = NULL, n_cores = 1) {
+#     
+#     # check validity of input arguments
+#     # .check_sce(x)
+#     # .check_arg_assay(x, assay)
+#     # stopifnot(
+#     #     is.numeric(n_cores), length(n_cores) == 1, 
+#     #     n_cores > 0, as.integer(n_cores) == n_cores)
+#     
+#     if (!is.null(block))
+#         block <- colData(x)[[block]]
+#     kids <- colData(x)$cluster_id
+#     res <- pairwiseTTests(
+#         assays(x)$logcounts, 
+#         clusters = kids, block = block,
+#         direction = "up", lfc = lfc)
+#     
+#     kids <- levels(kids)
+#     names(kids) <- kids
+#     
+#     tbl <- res$statistics %>% map_depth(1, data.frame)
+#     names(tbl) <- res$pairs$first
+#     
+#     c1 <- res$pairs$first
+#     idx <- split(seq_along(c1), c1)
+#     tbl <- lapply(idx, function(i) 
+#         bind_rows(tbl[i]) %>% add_column(.before = "logFC", 
+#             gene = rep(rownames(x), length(i)),
+#             cluster_id = rep(res$pairs$second[i], each = nrow(x))) %>% 
+#             rename(p_val = "p.value", p_adj = "FDR"))
+#     
+#     tbl <- lapply(tbl, function(i)
+#         data.frame(
+#             cluster_id = res$pairs$second[i], 
+#             res$statistics[[i]]))
+# })

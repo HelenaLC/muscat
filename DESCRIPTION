@@ -31,8 +31,7 @@ Imports:
 	SummarizedExperiment, 
 	S4Vectors, 
 	tibble,
-	viridis,
-	zeallot
+	viridis
 Suggests: 
     BiocStyle,
     knitr,
@@ -43,3 +42,19 @@ License: GPL (>=2)
 VignetteBuilder: knitr
 RoxygenNote: 6.1.1
 Encoding: UTF-8
+Collate: 
+    'aggregateData.R'
+    'calcExprFreqs.R'
+    'findMarkerGenes.R'
+    'pbMDS.R'
+    'plotDiffGenes.R'
+    'plotMarkerGenes.R'
+    'prepData.R'
+    'resDS.R'
+    'runDS.R'
+    'runMAST.R'
+    'utils-simData.R'
+    'simData.R'
+    'toyData.R'
+    'utils.R'
+    'validity-checks.R'

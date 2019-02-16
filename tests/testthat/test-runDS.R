@@ -14,7 +14,7 @@ kids <- colData(sce)$cluster_id
 sids <- colData(sce)$sample_id
 gids <- colData(sce)$group_id
 
-# randomly select 10 DE genes & multiply counts by 100 for half the samples
+# randomly select 10 DE genes & multiply counts by 1000 for group 2
 gs <- sample(rownames(sce), 10)
 g2 <- gids == "g2"
 assay(sce[gs, g2]) <- assay(sce[gs, g2]) * 1e3

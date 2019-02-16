@@ -35,11 +35,11 @@
 #' @importFrom SummarizedExperiment colData
 #' @importFrom S4Vectors split
 #' @importFrom tibble column_to_rownames
-#' @importFrom zeallot %<-%
 #' 
 #' @export
 
-simData <- function(x, n_genes = 500, n_cells = 300, probs = NULL, p_dd = diag(6)[1, ], fc = 2) {
+simData <- function(x, n_genes = 500, n_cells = 300, 
+    probs = NULL, p_dd = diag(6)[1, ], fc = 2) {
     
     # throughout this code...
     # k: cluster ID
@@ -83,6 +83,8 @@ simData <- function(x, n_genes = 500, n_cells = 300, probs = NULL, p_dd = diag(6
     gs_idx <- .sample_gene_inds(gs, n_dd)
     
     # for ea. cluster, sample unique set of genes to simulate from
+    #tmp <- setNames(sample(rownames(x), n_genes, TRUE), gs)
+    #gs_by_k <- replicate(nk, tmp, simplify = FALSE) %>% set_names(kids)
     gs_by_k <- replicate(nk, 
         setNames(sample(rownames(x), n_genes, TRUE), gs),
         simplify = FALSE) %>% set_names(kids)

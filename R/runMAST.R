@@ -62,23 +62,22 @@ runMAST <- function(x, formula, contrast, assay = "logcpm") {
     names(cs) <- cs
     
     # validity checks
-    stopifnot(is(x, "SingleCellExperiment"))
-    stopifnot(is(formula, "formula"))
-    stopifnot(is.character(assay), length(assay) == 1, assay %in% assayNames(x))
+    .check_sce(x)
+    .check_arg_assay(x, assay)
     stopifnot(is(contrast, "matrix"), !is.null(cs), length(cs) == length(unique(cs)))
     
     # split cells by cluster
     cells_by_cluster <- .split_cells(x, by = "cluster_id")
     
-    cluster_ids <- levels(colData(x)$cluster_id)
-    names(cluster_ids) <- cluster_ids
-    n_clusters <- length(cluster_ids)
+    kids <- levels(colData(x)$cluster_id)
+    names(kids) <- kids
+    nk <- length(kids)
     
     # need this for MAST to be happy
     colData(x)$wellKey <- colnames(x)
     rowData(x)$primerid <- rownames(x)
     
-    res <- lapply(cluster_ids, function(k) {
+    res <- lapply(kids, function(k) {
         y <- x[, cells_by_cluster[[k]]]
         sca <- SceToSingleCellAssay(y, check_sanity = FALSE)
         suppressMessages(fit <- zlm(formula, sca))
@@ -92,22 +91,22 @@ runMAST <- function(x, formula, contrast, assay = "logcpm") {
     })
     # re-organize by contrast
     res <- lapply(cs, function(c) lapply(res, "[[", c))
-    p.val <- modify_depth(res, 2, "p.val")
+    p_val <- modify_depth(res, 2, "p.val")
     
     # p-value adjustment (across all test in ea. cluster)
-    p.adj <- vapply(p.val, function(u) 
+    p_adj <- vapply(p_val, function(u) 
         p.adjust(unlist(u), "BH"),
-        numeric(nrow(x) * n_clusters))
+        numeric(nrow(x) * nk))
     
     # re-split by cluster
-    p.adj <- apply(p.adj, 2, split, 
-        rep(cluster_ids, each = nrow(x)))
+    p_adj <- apply(p_adj, 2, split, 
+        rep(kids, each = nrow(x)))
     
     # insert adjusted p-values into results
     res <- lapply(cs, function(c) 
-        lapply(cluster_ids, function(k) 
+        lapply(kids, function(k) 
             res[[c]][[k]] %>% add_column(
-                p.adj = p.adj[[c]][[k]], 
+                p_adj = p_adj[[c]][[k]], 
                 .before = "contrast")))
     
     # return results
