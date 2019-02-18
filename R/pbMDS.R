@@ -18,6 +18,7 @@
 #' 
 #' @import ggplot2
 #' @importFrom edgeR calcNormFactors cpm DGEList plotMDS.DGEList
+#' @importFrom dplyr bind_cols
 #' @importFrom grDevices colorRampPalette
 #' @importFrom Matrix rowSums
 #' @importFrom SummarizedExperiment assays
@@ -25,7 +26,7 @@
 #' @export
 
 pbMDS <- function(x) {
-    y <- do.call(cbind, as(assays(x), "list"))
+    y <- bind_cols(as(assays(x), "list"))
     d <- DGEList(y)
     d <- calcNormFactors(d)
     d <- d[rowSums(cpm(d) > 1) >= 10, ]

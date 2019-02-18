@@ -36,9 +36,9 @@ test_that("Output is correctly structured SE", {
 
 test_that("Frequencies lie in [0, 1] w/o NAs", {
     expect_true(all(!vapply(assays(x), function(u) any(is.na(u)), logical(1))))
-    r <- vapply(assays(x), range, numeric(2))
-    expect_true(all(r[1, ] >= 0))
-    expect_true(all(r[2, ] <= 1))
+    vals <- unlist(assays(x))
+    expect_true(all(vals >= 0))
+    expect_true(all(vals <= 1))
 })
 
 test_that("Spot check", {

@@ -79,10 +79,9 @@ aggregateData <- function(x, assay,
         pb <- map_depth(pb_counts, -2, function(u)
             u / colSums(u)[col(u)] * 1e6)
     }
-
+    pb <- map_depth(pb, -2, as.matrix)
+    
     # return SCE
-    if (!is(pb, "list"))
-        pb <- as.matrix(pb)
     SingleCellExperiment(
         assays = pb,
         metadata = metadata(x))

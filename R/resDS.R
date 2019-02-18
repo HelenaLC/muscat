@@ -82,8 +82,8 @@ resDS <- function(x, y, bind = c("col", "row"),
     ei <- metadata(x)$experiment_info
     
     # check_res(x, y)
-    # if (!is.logical(frq)) 
-    #     check_frq(x, frq)
+    if (!is.logical(frq))
+        .check_frq(x, frq)
     bind <- match.arg(bind)
     stopifnot(is.infinite(digits) || is.numeric(digits) &
         digits > 0 & as.integer(digits) == digits)
