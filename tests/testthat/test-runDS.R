@@ -8,16 +8,17 @@ suppressPackageStartupMessages({
 # generate toy dataset
 seed <- as.numeric(format(Sys.time(), "%s"))
 set.seed(seed)
-sce <- toySCE()
+sce <- toyData()
+sce <- prepData(sce, "cluster_id", "sample_id", "group_id")
 
 kids <- colData(sce)$cluster_id
 sids <- colData(sce)$sample_id
 gids <- colData(sce)$group_id
 
-# randomly select 10 DE genes & multiply counts by 1000 for group 2
+# randomly select 10 DE genes & multiply counts by 10 for group 2
 gs <- sample(rownames(sce), 10)
 g23 <- gids %in% c("g2", "g3")
-assay(sce[gs, g23]) <- assay(sce[gs, g23]) * 1e3
+assay(sce[gs, g23]) <- assay(sce[gs, g23]) * 10
 
 # compute pseudo-bulks
 pb <- aggregateData(sce, assay = "counts", fun = "sum")

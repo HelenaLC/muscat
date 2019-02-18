@@ -41,7 +41,7 @@
 #'   p_dd = c(0.8, 0, 0.2, 0, 0, 0), fc = 4)
 #' 
 #' # compute pseudo-bulk counts
-#' pb <- aggregateData(sim, data = "counts", fun = "sum")
+#' pb <- aggregateData(sim, assay = "counts", fun = "sum")
 #' 
 #' # specify design & contrast matrix
 #' ei <- S4Vectors::metadata(sim)$experiment_info
@@ -82,8 +82,8 @@ resDS <- function(x, y, bind = c("col", "row"),
     ei <- metadata(x)$experiment_info
     
     # check_res(x, y)
-    # if (!is.logical(frq)) 
-    #     check_frq(x, frq)
+    if (!is.logical(frq))
+        .check_frq(x, frq)
     bind <- match.arg(bind)
     stopifnot(is.infinite(digits) || is.numeric(digits) &
         digits > 0 & as.integer(digits) == digits)

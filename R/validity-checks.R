@@ -2,9 +2,11 @@
 # ==============================================================================
 
 # check input SCE
-.check_sce <- function(x) {
+.check_sce <- function(x, req_group = TRUE) {
   stopifnot(is(x, "SingleCellExperiment"))
-  stopifnot(c("cluster_id", "sample_id", "group_id") %in% colnames(colData(x)))
+  stopifnot(c("cluster_id", "sample_id") %in% colnames(colData(x)))
+  if (req_group)
+      stopifnot("group_id" %in% colnames(colData(x)))
 }
 
 # check of 'assay' argument
@@ -17,39 +19,46 @@
 }
 
 # check validity of runDS() output
-check_res <- function(sce, res) {
-    ei <- metadata(sce)$experiment_info
-    cluster_ids <- levels(factor(colData(sce)$clscster_id))
-    n_clusters <- length(cluster_ids)
-    nms <- c("table", "data", "design", "contrast", "coef")
-    stopifnot(
-        is(res, "list"), all.equal(names(res), nms),
-        # table
-        apply(vapply(res$table, names, character(n_clusters)), 
-            2, function(u) all(u %in% cluster_ids)),
-        # data
-        is(res$data, "list"),
-        names(res$data) %in% cluster_ids,
-        vapply(res$data, function(u) is(u, "DGEList"), logical(1)),
-        # design
-        is(res$design, "matrix"), 
-        colnames(res$design) %in% ei$group_id,
-        rownames(res$design) %in% ei$sample_id,
-        # contrast & coef
-        is.null(res$contrast) | is(res$contrast, "matrix"),
-        is.null(res$coef) | is(res$coef, "numeric") | is(res$coef, "list"))
+.check_res <- function(x, y) {
+    ei <- metadata(x)$experiment_info
+    kids <- levels(x$cluster_id)
+    nk <- length(kids)
+
+    stopifnot(is(y, "list"), all.equal(names(y),
+        c("table", "data", "design", "contrast", "coef")))
+    # table
+    stopifnot(is(y$table, "list"))
+    stopifnot(vapply(y$table, function(u) is(u, "list"), logical(1)))
+    stopifnot(identical(names(y$table), colnames(y$contrast))
+        | identical(names(y$table), names(y$coef)))
+    stopifnot(map_depth(y$table, 1, names)
+    #
+    # apply(vapply(y$table, names, character(nk)),
+    #     2, function(u) all(u %in% kids))
+    # data
+    stopifnot(is(y$data, "list"))
+    stopifnot(names(y$data) %in% kids)
+    stopifnot(vapply(y$data, function(u) is(u, "DGEList"), logical(1)))
+    # design
+    stopifnot(is(y$design, "matrix"))
+    stopifnot(colnames(y$design) %in% ei$group_id)
+    stopifnot(rownames(y$design) %in% ei$sample_id)
+    # contrast & coef
+    stopifnot(is.null(y$contrast) | is(y$contrast, "matrix"))
+    stopifnot(is.null(y$coef) | is(y$coef, "numeric") | is(y$coef, "list"))
 }
 
 # check validity of calcExprFreqs() output
-check_frq <- function(sce, frq) {
-    cluster_ids <- levels(factor(colData(sce)$cluster_id))
-    group_ids <- levels(colData(sce)$group_id)
-    sample_ids <- levels(colData(sce)$sample_id)
-    nms <- vapply(frq, function(u) sort(names(u)), 
-        character(length(group_ids) + length(sample_ids)))
-    stopifnot(
-        length(frq) == length(cluster_ids),
-        names(frq) %in% cluster_ids,
-        apply(nms, 1, function(u) length(unique(u)) == 1),
-        apply(nms, 2, function(u) u %in% c(group_ids, sample_ids)))
+.check_frq <- function(x, y) {
+    stopifnot(is(x, "SingleCellExperiment"))
+    stopifnot(is(y, "SummarizedExperiment"))
+    stopifnot(identical(levels(x$cluster_id), assayNames(y)))
+    
+    ids <- levels(x$sample_id)
+    if ("group_id" %in% colnames(colData(x)))
+        ids <- c(ids, levels(x$group_id))
+    stopifnot(identical(ids, colnames(y)))
+    
+    vals <- unlist(assays(y))
+    stopifnot(all(vals <= 1), all(vals >= 0))
 }

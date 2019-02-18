@@ -9,7 +9,8 @@
 #' @return a \code{ggplot} object.
 #' 
 #' @examples 
-#' sce <- toySCE()
+#' sce <- toyData()
+#' sce <- prepData(sce, "cluster_id", "sample_id", "group_id")
 #' pb <- aggregateData(sce)
 #' pbMDS(pb)
 #' 
@@ -17,6 +18,7 @@
 #' 
 #' @import ggplot2
 #' @importFrom edgeR calcNormFactors cpm DGEList plotMDS.DGEList
+#' @importFrom dplyr bind_cols
 #' @importFrom grDevices colorRampPalette
 #' @importFrom Matrix rowSums
 #' @importFrom SummarizedExperiment assays
@@ -24,7 +26,7 @@
 #' @export
 
 pbMDS <- function(x) {
-    y <- do.call("cbind", assays(x))
+    y <- bind_cols(as(assays(x), "list"))
     d <- DGEList(y)
     d <- calcNormFactors(d)
     d <- d[rowSums(cpm(d) > 1) >= 10, ]

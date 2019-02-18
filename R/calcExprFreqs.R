@@ -20,6 +20,7 @@
 #'   
 #' @examples
 #' library(SummarizedExperiment)
+#' data(kang)
 #' 
 #' colnames(colData(kang)) # contains sample_id only
 #' frq <- calcExprFreqs(kang)
@@ -41,7 +42,7 @@
 calcExprFreqs <- function(x, assay = "counts", th = 0) {
     
     # check validity of input arguments
-    .check_sce(x)
+    .check_sce(x, req_group = FALSE)
     .check_arg_assay(x, assay)
     stopifnot(is.numeric(th), length(th) == 1)
     

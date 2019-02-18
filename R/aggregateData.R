@@ -17,6 +17,7 @@
 #' 
 #' @examples 
 #' library(SummarizedExperiment)
+#' data(kang)
 #' 
 #' # pseudo-bulk counts by cluster-sample
 #' pb <- aggregateData(kang)
@@ -33,7 +34,7 @@
 #' length(assays(pb)) # single assay
 #' head(assay(pb))    # n_genes x n_clusters
 #' 
-#' @author Helena L. Crowel \email{helena.crowell@uzh.ch} and Mark D. Robinson.
+#' @author Helena L. Crowell \email{helena.crowell@uzh.ch} and Mark D. Robinson.
 #' 
 #' @importFrom Matrix colSums rowMeans rowSums
 #' @importFrom matrixStats rowMedians
@@ -52,7 +53,7 @@ aggregateData <- function(x, assay,
         assay <- assayNames(x)[1]
 
     # validity checks for input arguments
-    .check_sce(x)
+    .check_sce(x, req_group = FALSE)
     .check_arg_assay(x, assay)
     stopifnot(is.character(by), by %in% colnames(colData(x)))
     stopifnot(is.logical(scale), length(scale) == 1)
@@ -78,7 +79,8 @@ aggregateData <- function(x, assay,
         pb <- map_depth(pb_counts, -2, function(u)
             u / colSums(u)[col(u)] * 1e6)
     }
-
+    pb <- map_depth(pb, -2, as.matrix)
+    
     # return SCE
     md <- metadata(x)
     md$agg_pars <- list(assay = assay, fun = fun)

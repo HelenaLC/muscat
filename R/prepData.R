@@ -32,7 +32,7 @@
 #' sce <- prepData(sce, 
 #'     cluster_id = "cluster", 
 #'     sample_id = "id", 
-#'     factors = c("batch", "condition"))
+#'     group_id = "condition")
 #'     
 #' head(colData(sce))
 #' metadata(sce)$experiment_info

@@ -32,6 +32,7 @@ measurement value lies above the specified threshold value.
 }
 \examples{
 library(SummarizedExperiment)
+data(kang)
 
 colnames(colData(kang)) # contains sample_id only
 frq <- calcExprFreqs(kang)

@@ -1,3 +1,4 @@
+#' @export
 toyData <- function() {
     
     # specify ranges to sample from
@@ -30,8 +31,8 @@ toyData <- function() {
     cells <- paste0("cell", seq_len(sum(n_cells)))
         
     # sample sample and cluster IDs
-    col_data <- matrix(NA, nrow = sum(n_cells), ncol = 2,
-        dimnames = list(cells, c("sample_id", "cluster_id")))
+    col_data <- matrix(NA, nrow = sum(n_cells), ncol = 3,
+        dimnames = list(cells, c("sample_id", "cluster_id", "group_id")))
     cells_tmp <- cells
     for (i in clusters) {
         for (j in samples) {
@@ -42,10 +43,13 @@ toyData <- function() {
         }
     }
     cells_tmp <- cells
+    groups_tmp <- paste0("g", rep(seq_len(n_groups), n_samples))
+    names(groups_tmp) <- samples
     for (i in samples) {
         n <- sum(n_cells[, i])
         idx <- sample(cells_tmp, n)
         col_data[idx, "sample_id"] <- i
+        col_data[idx, "group_id"] <- groups_tmp[i]
         cells_tmp <- setdiff(cells_tmp, idx)
     }
         

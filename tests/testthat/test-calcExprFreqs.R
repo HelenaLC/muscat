@@ -8,7 +8,7 @@ suppressPackageStartupMessages({
 # generate toy dataset
 seed <- as.numeric(format(Sys.Date(), "%s"))
 set.seed(seed)
-sce <- toySCE()
+sce <- toyData()
 
 kids <- colData(sce)$cluster_id
 sids <- colData(sce)$sample_id
@@ -20,6 +20,7 @@ i <- sample(assay(sce), round(n * 0.5))
 assay(sce)[i] <- 0
 
 # calculate expr. freqs.
+sce <- prepData(sce, "cluster_id", "sample_id", "group_id")
 x <- calcExprFreqs(sce, assay = "counts", th = 0)
 
 test_that("Output is correctly structured SE", {
@@ -35,9 +36,9 @@ test_that("Output is correctly structured SE", {
 
 test_that("Frequencies lie in [0, 1] w/o NAs", {
     expect_true(all(!vapply(assays(x), function(u) any(is.na(u)), logical(1))))
-    r <- vapply(assays(x), range, numeric(2))
-    expect_true(all(r[1, ] >= 0))
-    expect_true(all(r[2, ] <= 1))
+    vals <- unlist(assays(x))
+    expect_true(all(vals >= 0))
+    expect_true(all(vals <= 1))
 })
 
 test_that("Spot check", {

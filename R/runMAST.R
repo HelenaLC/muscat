@@ -62,7 +62,7 @@ runMAST <- function(x, formula, contrast, assay = "logcpm") {
     names(cs) <- cs
     
     # validity checks
-    .check_sce(x)
+    .check_sce(x, req_group = TRUE)
     .check_arg_assay(x, assay)
     stopifnot(is(contrast, "matrix"), !is.null(cs), length(cs) == length(unique(cs)))
     
