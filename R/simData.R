@@ -82,12 +82,12 @@ simData <- function(x, n_genes = 500, n_cells = 300,
         set_colnames(kids)
     gs_idx <- .sample_gene_inds(gs, n_dd)
     
-    # for ea. cluster, sample unique set of genes to simulate from
-    #tmp <- setNames(sample(rownames(x), n_genes, TRUE), gs)
-    #gs_by_k <- replicate(nk, tmp, simplify = FALSE) %>% set_names(kids)
-    gs_by_k <- replicate(nk, 
-        setNames(sample(rownames(x), n_genes, TRUE), gs),
-        simplify = FALSE) %>% set_names(kids)
+    # for ea. cluster, sample set of genes to simulate from
+    gs_by_k <- setNames(sample(rownames(x), n_genes, TRUE), gs)
+    gs_by_k <- replicate(nk, gs_by_k, simplify = FALSE) %>% set_names(kids)
+    #gs_by_k <- replicate(nk, 
+    #    setNames(sample(rownames(x), n_genes, TRUE), gs),
+    #    simplify = FALSE) %>% set_names(kids)
     gs_by_kc <- lapply(kids, function(k) 
         lapply(cats, function(c)
             gs_by_k[[k]][gs_idx[[c, k]]]) %>% 

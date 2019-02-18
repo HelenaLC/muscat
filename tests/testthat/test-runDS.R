@@ -16,8 +16,8 @@ gids <- colData(sce)$group_id
 
 # randomly select 10 DE genes & multiply counts by 1000 for group 2
 gs <- sample(rownames(sce), 10)
-g2 <- gids == "g2"
-assay(sce[gs, g2]) <- assay(sce[gs, g2]) * 1e3
+g23 <- gids %in% c("g2", "g3")
+assay(sce[gs, g23]) <- assay(sce[gs, g23]) * 1e3
 
 # compute pseudo-bulks
 pb <- aggregateData(sce, assay = "counts", fun = "sum")
@@ -26,9 +26,9 @@ pb <- aggregateData(sce, assay = "counts", fun = "sum")
 ei <- metadata(sce)$experiment_info
 design <- model.matrix(~ 0 + ei$group)
 dimnames(design) <- list(ei$sample_id, levels(ei$group))
-contrast <- limma::makeContrasts("g1-g2", levels = design)
+contrast <- limma::makeContrasts("g1-g2", "g1-g3", levels = design)
 
-for (method in c("edgeR", "limma")) {
+for (method in c("edgeR", "limma-trend", "limma-voom")) {
     test_that(paste("runDS", method, sep = "_"), {
         # test for cluster-wise differential expression
         res <- runDS(sce, pb, design, contrast, method = method, verbose = FALSE)

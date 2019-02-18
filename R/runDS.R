@@ -83,14 +83,14 @@
 #'
 #' @importFrom edgeR calcNormFactors DGEList estimateDisp glmQLFit glmQLFTest topTags
 #' @importFrom dplyr rename
-#' @importFrom limma contrasts.fit eBayes lmFit topTable
+#' @importFrom limma contrasts.fit eBayes lmFit topTable voom
 #' @importFrom SummarizedExperiment colData
 #'
 #' @export
 
 runDS <- function(x, pb, 
     design, contrast = NULL, coef = NULL, 
-    method = c("edgeR", "limma"),
+    method = c("edgeR", "limma-trend", "limma-voom"),
     min_cells = 10, verbose = TRUE) {
     
     # check validty of input arguments
@@ -121,8 +121,8 @@ runDS <- function(x, pb,
             character(1))
         names(cs) <- names(coef) <- cs
     }
-    cluster_ids <- levels(colData(x)$cluster_id)
-    names(cluster_ids) <- cluster_ids
+    kids <- levels(colData(x)$cluster_id)
+    names(kids) <- kids
     
     # wrapper to create output tables
     res_df <- function(k, tt, ctype, c) {
@@ -132,35 +132,48 @@ runDS <- function(x, pb,
         return(df)
     }
     # for ea. cluster, run DEA
-    res <- lapply(cluster_ids, function (k) {
+    res <- lapply(kids, function (k) {
         if (verbose) cat(k, "..", sep = "")
         y <- assays(pb)[[k]][, n_cells[k, ] >= min_cells]
         d <- design[colnames(y), ]
         if (any(colSums(d) < 2)) return(NULL)
-        tt <- switch(method,
-            limma = {
-                w <- n_cells[k, colnames(y)]
-                fit <- lmFit(y, d, weight = w)
-                lapply(cs, function(c) {
-                    cfit <- contrasts.fit(fit, contrast[, c], coef[[c]])
-                    efit <- eBayes(cfit, trend = TRUE)
-                    tt <- topTable(efit, number = Inf, sort.by = "none")
-                    res_df(k, tt, ctype, c) %>% 
-                        rename(p_val = "P.Value", p_adj = "adj.P.Val")
-                })
-            },
-            edgeR = {
+        if (method == "edgeR") {
+            y <- suppressMessages(DGEList(y, remove.zeros = TRUE))
+            y <- calcNormFactors(y)
+            y <- estimateDisp(y, d)
+            fit <- glmQLFit(y, d)
+            tt <- lapply(cs, function(c) {
+                qlf <- glmQLFTest(fit, coef[[c]], contrast[, c])
+                tt <- topTags(qlf, n = Inf, sort.by = "none")
+                res_df(k, tt, ctype, c) %>% 
+                    rename(p_val = "PValue", p_adj = "FDR")
+            })
+        } else {
+            if (method == "limma-trend") {
+                trend <- robust <- TRUE
+                y <- switch(metadata(pb)$agg_pars$assay,
+                    counts = { # raw counts > compute logCPM
+                        y <- suppressMessages(DGEList(y, remove.zeros = TRUE))
+                        y <- calcNormFactors(y)
+                        cpm(y, log = TRUE, prior.count = 3)
+                    },
+                    logcounts = y, # log-normcounts > do nothing
+                    log2(y + 1))   # CPM, scaledCPM, normcounts > take log
+            } else if (method == "limma-voom") {
                 y <- suppressMessages(DGEList(y, remove.zeros = TRUE))
                 y <- calcNormFactors(y)
-                y <- estimateDisp(y, d)
-                fit <- glmQLFit(y, d)
-                lapply(cs, function(c) {
-                    qlf <- glmQLFTest(fit, coef = coef[[c]], contrast = contrast[, c])
-                    tt <- topTags(qlf, n = Inf, sort.by = "none")
-                    res_df(k, tt, ctype, c) %>% 
-                        rename(p_val = "PValue", p_adj = "FDR")
-                })
+                y <- voom(y, d)
+            }
+            w <- n_cells[k, colnames(y)]
+            fit <- lmFit(y, d, weights = w)
+            tt <- lapply(cs, function(c) {
+                cfit <- contrasts.fit(fit, contrast[, c], coef[[c]])
+                efit <- eBayes(cfit, trend = trend, robust = robust)
+                tt <- topTable(efit, number = Inf, sort.by = "none")  
+                res_df(k, tt, ctype, c) %>% 
+                    rename(p_val = "P.Value", p_adj = "adj.P.Val")
             })
+        }
         return(list(tt = tt, data = y))
     })
     # remove empty clusters
@@ -169,9 +182,9 @@ runDS <- function(x, pb,
     tt <- lapply(res, "[[", "tt")
     
     # re-organize results by comparison
-    cluster_ids <- cluster_ids[names(res)]
+    kids <- kids[names(res)]
     tt <- lapply(cs, function(c) 
-        lapply(cluster_ids, function(k) tt[[k]][[c]]))
+        lapply(kids, function(k) tt[[k]][[c]]))
     
     # return results
     list(table = tt, 

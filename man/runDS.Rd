@@ -5,7 +5,8 @@
 \title{Cluster-specific DE analysis using}
 \usage{
 runDS(x, pb, design, contrast = NULL, coef = NULL,
-  method = c("edgeR", "limma"), min_cells = 10, verbose = TRUE)
+  method = c("edgeR", "limma-trend", "limma-voom"), min_cells = 10,
+  verbose = TRUE)
 }
 \arguments{
 \item{x}{a \code{\link[SingleCellExperiment]{SingleCellExperiment}}.}

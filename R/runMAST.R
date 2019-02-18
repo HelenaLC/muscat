@@ -84,14 +84,14 @@ runMAST <- function(x, formula, contrast, assay = "logcpm") {
         lapply(cs, function(c) {
             cm <- as.matrix(contrast[, c])
             suppressMessages(lrt <- lrTest(fit, cm))
-            p.val <- lrt[, "hurdle", "Pr(>Chisq)"]
-            data.frame(gene = rownames(x), cluster_id = k, p.val,
+            p_val <- lrt[, "hurdle", "Pr(>Chisq)"]
+            data.frame(gene = rownames(x), cluster_id = k, p_val,
                 contrast = c, row.names = NULL, stringsAsFactors = FALSE)
         })
     })
     # re-organize by contrast
     res <- lapply(cs, function(c) lapply(res, "[[", c))
-    p_val <- modify_depth(res, 2, "p.val")
+    p_val <- modify_depth(res, 2, "p_val")
     
     # p-value adjustment (across all test in ea. cluster)
     p_adj <- vapply(p_val, function(u) 

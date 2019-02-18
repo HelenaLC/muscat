@@ -80,7 +80,10 @@ aggregateData <- function(x, assay,
     }
 
     # return SCE
+    md <- metadata(x)
+    md$agg_pars <- list(assay = assay, fun = fun)
+    
     SingleCellExperiment(
         assays = pb,
-        metadata = metadata(x))
+        metadata = md)
 }
