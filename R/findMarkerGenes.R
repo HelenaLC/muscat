@@ -12,7 +12,6 @@
 #' @param block,lfc,test.use,min.pct passed to \code{\link[scran]{findMarkers}}.
 #' 
 #' @importFrom methods is
-#' @importFrom parallel mclapply
 #' @importFrom scran findMarkers
 
 # pairwiseDE <- function(x, assay = "logcounts", 

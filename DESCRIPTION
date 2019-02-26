@@ -8,8 +8,7 @@ Authors@R: c(
 	person("Helena L.", "Crowell", role=c("aut", "cre"), email="helena.crowell@uzh.ch"),
 	person("Charlotte", "Soneson", role="aut"),
 	person("Mark D.", "Robinson", role=c("aut", "fnd"), email="mark.robinson@imls.uzh.ch"))
-Imports: 
-    CATALYST,
+Imports:
 	ComplexHeatmap,
 	data.table,
 	dplyr, 
@@ -23,7 +22,6 @@ Imports:
 	matrixStats,
 	MAST,
 	methods,
-	parallel, 
 	purrr,
 	reshape2,
 	scran,
@@ -32,6 +30,7 @@ Imports:
 	SummarizedExperiment, 
 	S4Vectors, 
 	tibble,
+	utils,
 	viridis
 Suggests: 
     BiocStyle,
@@ -43,19 +42,4 @@ License: GPL (>=2)
 VignetteBuilder: knitr
 RoxygenNote: 6.1.1
 Encoding: UTF-8
-Collate: 
-    'toyData.R'
-    'aggregateData.R'
-    'calcExprFreqs.R'
-    'findMarkerGenes.R'
-    'pbMDS.R'
-    'plotDiffGenes.R'
-    'plotMarkerGenes.R'
-    'prepData.R'
-    'resDS.R'
-    'runDS.R'
-    'runMAST.R'
-    'utils-simData.R'
-    'simData.R'
-    'utils.R'
-    'validity-checks.R'
+LazyData: TRUE

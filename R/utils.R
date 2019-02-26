@@ -1,4 +1,23 @@
+cluster_colors <- c(
+    "#DC050C", "#FB8072", "#1965B0", "#7BAFDE", "#882E72",
+    "#B17BA6", "#FF7F00", "#FDB462", "#E7298A", "#E78AC3",
+    "#33A02C", "#B2DF8A", "#55A1B1", "#8DD3C7", "#A6761D",
+    "#E6AB02", "#7570B3", "#BEAED4", "#666666", "#999999",
+    "#aa8282", "#d4b7b7", "#8600bf", "#ba5ce3", "#808000",
+    "#aeae5c", "#1e90ff", "#00bfff", "#56ff0d", "#ffff00")
 
+# ==============================================================================
+# scale values b/w 0 and 1 using 
+# low (1%) and high (99%) quantiles as boundaries
+# ------------------------------------------------------------------------------
+#' @importFrom matrixStats rowQuantiles
+.scale <- function(x) {
+    qs <- rowQuantiles(as.matrix(x), probs = c(.01, .99))
+    x <- (x - qs[, 1]) / (qs[, 2] - qs[, 1])
+    x[x < 0] <- 0
+    x[x > 1] <- 1
+    return(x)
+}
 
 # ------------------------------------------------------------------------------
 # generate experimental design metadata table 
@@ -20,6 +39,7 @@
 # ------------------------------------------------------------------------------
 #' @importFrom purrr map_depth
 #' @importFrom SummarizedExperiment assays
+#' @importFrom utils getFromNamespace
 .pb <- function(x, cs, assay, fun) {
     fun <- switch(fun,
         rowMedians = getFromNamespace(fun, "matrixStats"),
@@ -53,46 +73,3 @@
         split(by = by, sorted = TRUE, flatten = FALSE)
     map_depth(cd, length(by), "cell")
 }
-
-# ------------------------------------------------------------------------------
-# removes lowest contribution row/column until all entries >= n
-# used by prepSim() to filter clusters & samples to use for simulation
-# ------------------------------------------------------------------------------
-.filter_matrix <- function(m, n = 100) {
-    while (any(m < n)) {
-        s <- sum(m)
-        rows <- rowSums(m) / s
-        cols <- colSums(m) / s
-        x <- c(rows, cols)
-        rmv <- names(which.min(x))
-        y <- TRUE
-        while (y) {
-            if (rmv %in% rownames(m)) {
-                if (all(m[rmv, ] >= n)) {
-                    x <- x[names(x) != rmv]
-                    rmv <- names(which.min(x)) 
-                } else {
-                    m <-  m[rownames(m) != rmv, ]
-                    y <- FALSE
-                }
-            } else {
-                if (all(m[, rmv] >= n)) {
-                    x <- x[names(x) != rmv]
-                    rmv <- names(which.min(x))
-                } else {
-                    m <- m[, colnames(m) != rmv]
-                    y <- FALSE
-                }
-            }
-        }
-    }
-    return(m)
-}
-
-
-
-
-
-
-
-

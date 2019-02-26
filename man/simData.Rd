@@ -15,14 +15,16 @@ simData(x, n_genes = 500, n_cells = 300, probs = NULL,
 \item{n_cells}{# of cells to simulate. 
 Either a single numeric or a range to sample from.}
 
+\item{probs}{a list of length 3 containing probabilities of a cell belonging
+to each cluster, sample, and group, respectively. List elements must be 
+NULL (equal probabilities) or numeric values in [0, 1] that sum to 1.}
+
 \item{p_dd}{numeric vector of length 6.
 Specifies the probability of a gene being
 EE, EP, DE, DP, DM, or DB, respectively.}
 
 \item{fc}{numeric value to use as mean logFC
 for DE, DP, DM, and DB type of genes.}
-
-\item{ns}{nb. of genes common to 1, 2, ..., all clusters.}
 }
 \value{
 a \code{\link[SingleCellExperiment]{SingleCellExperiment}}
@@ -39,6 +41,6 @@ across 2 experimental conditions from a real scRNA-seq data set.
 data(kang)
 simData(kang,
     n_genes = 10, n_cells = 10,
-    p_dd = c(1,0,0,0,0,0))
+    p_dd = diag(6)[1, ])
 
 }

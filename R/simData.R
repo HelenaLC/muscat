@@ -9,7 +9,9 @@
 #' @param n_genes # of genes to simulate. 
 #' @param n_cells # of cells to simulate. 
 #'   Either a single numeric or a range to sample from.
-#' @param ns nb. of genes common to 1, 2, ..., all clusters.
+#' @param probs a list of length 3 containing probabilities of a cell belonging
+#'   to each cluster, sample, and group, respectively. List elements must be 
+#'   NULL (equal probabilities) or numeric values in [0, 1] that sum to 1.
 #' @param p_dd numeric vector of length 6.
 #'   Specifies the probability of a gene being
 #'   EE, EP, DE, DP, DM, or DB, respectively.
@@ -23,7 +25,7 @@
 #' data(kang)
 #' simData(kang,
 #'     n_genes = 10, n_cells = 10,
-#'     p_dd = c(1,0,0,0,0,0))
+#'     p_dd = diag(6)[1, ])
 #' 
 #' @importFrom data.table data.table
 #' @importFrom dplyr mutate_all mutate_at

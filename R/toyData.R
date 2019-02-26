@@ -2,7 +2,7 @@
 toyData <- function() {
     
     # specify ranges to sample from
-    n_groups   <- 2:4
+    n_groups   <- 3:4
     n_samples  <- 2:5
     n_clusters <- 5:10
     n_cells    <- 100:500

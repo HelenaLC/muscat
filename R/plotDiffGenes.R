@@ -9,11 +9,10 @@
 #' @param c a character string specifying the comparison 
 #'   (contrast of coefficient) for which results should be plotted.
 #'   Defaults to the first one available.
+#' @param g,k character strings specifying the gene and cluster, 
+#'   respectively, to include. Defaults to NULL (all genes/clusters).
 #' @param top_n single numeric specifying the number of genes to include.
 #' @param sort_by a character string specifying a \code{y} column to sort by.
-#' @param clusters a character string specifying which cluster(s) results
-#'   should be included for. If NULL (the default), the \code{top_n} hits
-#'   for each cluster will be included.
 #' @param fdr single numeric specifying the threshold on adjusted p-values
 #'   below which results should be considered significant.
 #' @param lfc single numeric specifying the threshold on absolute logFCs
@@ -21,24 +20,43 @@
 #' 
 #' @return a \code{\link{HeatmapList-class}} object.
 #' 
+#' @examples 
+#' data(sce)
+#' 
+#' # compute pseudo-bulk counts
+#' pb <- aggregateData(sce)
+#' 
+#' # specify design & contrast matrix
+#' ei <- metadata(sce)$experiment_info
+#' design <- model.matrix(~ 0 + ei$group_id)
+#' dimnames(design) <- list(ei$sample_id, levels(ei$group_id))
+#' contrast <- limma::makeContrasts("stim-ctrl", levels = design)
+#' 
+#' # test for cluster-specific DE 
+#' res <- runDS(sce, pb, design, contrast, method = "edgeR")
+#' 
 #' @author Helena L. Crowell \email{helena@crowells.eu}
 #' 
 #' @import ComplexHeatmap
-#' @importFrom dplyr %>% bind_rows filter
+#' @importFrom dplyr %>% bind_rows filter_
 #' @importFrom grid gpar
 #' @importFrom methods is
 #' @importFrom purrr modify_depth
+#' @importFrom scales hue_pal
 #' @importFrom SummarizedExperiment assayNames assays colData
 #' @importFrom viridis viridis
 #' @export
 
 plotDiffGenes <- function(x, y, c = NULL, g = NULL, k = NULL, 
-    top_n = 20, sort_by = c("FDR", "logFC"), fdr = 0.05, lfc = 1) {
+    top_n = 20, sort_by = c("p_adj", "logFC"), fdr = 0.05, lfc = 1) {
     
     # validity checks of input arguments
-    stopifnot(is(x, "SingleCellExperiment"))
-    stopifnot("logcounts" %in% assayNames(x))
+    .check_sce(x)
+    .check_res(x, y)
+    .check_arg_assay(x, "logcounts")
     stopifnot(is.null(c) || c %in% names(y$table))
+    stopifnot(is.null(g) || is.character(g) & all(g %in% rownames(x)))
+    stopifnot(is.null(k) || is.character(k) & all(k %in% levels(x$cluster_id)))
     stopifnot(is.numeric(top_n), length(top_n) == 1, top_n > 0)
     sort_by <- match.arg(sort_by)
     
@@ -46,11 +64,11 @@ plotDiffGenes <- function(x, y, c = NULL, g = NULL, k = NULL,
     y <- y$table
     if (is.null(c)) c <- names(y)[1]
     y <- y[[c]]
-    y <- y[!sapply(y, is.null)]
+    y <- y[!vapply(y, is.null, logical(1))]
     
     # filter results
     if (!is.null(g)) {
-        y <- lapply(y, filter, gene %in% g)
+        y <- lapply(y, filter_, ~gene %in% g)
     }
     if (!is.null(k)) {
         if (k == "all") {
@@ -59,11 +77,11 @@ plotDiffGenes <- function(x, y, c = NULL, g = NULL, k = NULL,
         }
         y <- y[k]
     }
-    y <- lapply(y, filter, p_adj < fdr, abs(logFC) > lfc)
+    y <- lapply(y, filter_, ~p_adj < fdr, ~abs(logFC) > lfc)
     
     # order & subset top_n results
     y <- switch(sort_by,
-        FDR = bind_rows(lapply(y, function(u) {
+        p_adj = bind_rows(lapply(y, function(u) {
             o <- order(u$p_adj)
             o <- o[seq_len(top_n)]
             u[o[!is.na(o)], ]
@@ -76,20 +94,30 @@ plotDiffGenes <- function(x, y, c = NULL, g = NULL, k = NULL,
         }))
     )
     
-    es <- as.matrix(assays(x)$logcounts[unlist(y$gene), ])
-    es0 <- t(CATALYST:::scale_exprs(t(es)))
+    es <- assays(x)$logcounts
+    es <- es[unlist(y$gene), ]
     
     # split cells by cluster-sample
-    cells_by_cluster_sample <- .split_cells(x)
+    cells_by_ks <- .split_cells(x)
     
-    ms <- t(apply(y, 1, function(u) {
-        g <- u[["gene"]]
-        k <- u[["cluster_id"]]
-        vapply(cells_by_cluster_sample[[k]], 
-            function(i) mean(es0[g, i]), numeric(1))
-    }))
+    # compute cluster-sample means
+    ms <- t(vapply(seq_len(nrow(y)), function(i) {
+        g <- y$gene[i]
+        k <- y$cluster_id[i]
+        vapply(cells_by_ks[[k]], function(j)
+            mean(es[g, j]), numeric(1))
+    }, numeric(nlevels(x$sample_id))))
+    ms <- .scale(ms)
     rownames(ms) <- sprintf("%s(%s)", y$gene, y$cluster_id)
-    colnames(ms) <- levels(colData(x)$sample_id)
+    
+    # column annoation
+    ei <- metadata(x)$experiment_info
+    m <- match(levels(x$sample_id), ei$sample_id)
+    cols <- setNames(hue_pal()(nlevels(x$group_id)), levels(x$group_id))
+    col_anno <- data.frame(group_id = ei$group_id[m])
+    col_anno <- columnAnnotation(col_anno,
+        col = list(group_id = cols),
+        gp = gpar(col = "white"))
     
     Heatmap(ms,
         col = viridis(10),
@@ -97,5 +125,6 @@ plotDiffGenes <- function(x, y, c = NULL, g = NULL, k = NULL,
         column_title = sprintf("%s (top %s %s)", c, top_n, sort_by),
         cluster_rows = FALSE,
         cluster_columns = FALSE,
-        row_names_gp = gpar(fontsize = 6))
+        row_names_gp = gpar(fontsize = 6),
+        top_annotation = col_anno)
 }

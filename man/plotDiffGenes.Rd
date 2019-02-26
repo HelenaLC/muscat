@@ -17,6 +17,9 @@ as returned by \code{\link{runDS}}.}
 (contrast of coefficient) for which results should be plotted.
 Defaults to the first one available.}
 
+\item{g, k}{character strings specifying the gene and cluster, 
+respectively, to include. Defaults to NULL (all genes/clusters).}
+
 \item{top_n}{single numeric specifying the number of genes to include.}
 
 \item{sort_by}{a character string specifying a \code{y} column to sort by.}
@@ -26,10 +29,6 @@ below which results should be considered significant.}
 
 \item{lfc}{single numeric specifying the threshold on absolute logFCs
 above which results should be included.}
-
-\item{clusters}{a character string specifying which cluster(s) results
-should be included for. If NULL (the default), the \code{top_n} hits
-for each cluster will be included.}
 }
 \value{
 a \code{\link{HeatmapList-class}} object.

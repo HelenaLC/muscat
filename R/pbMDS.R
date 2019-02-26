@@ -21,29 +21,31 @@
 #' @importFrom dplyr bind_cols
 #' @importFrom grDevices colorRampPalette
 #' @importFrom Matrix rowSums
+#' @importFrom methods as
 #' @importFrom SummarizedExperiment assays
 #' @importFrom S4Vectors metadata
 #' @export
 
 pbMDS <- function(x) {
-    y <- bind_cols(as(assays(x), "list"))
-    d <- DGEList(y)
+    y <- as(assays(x), "list")
+    y <- do.call("cbind", y)
+    d <- suppressMessages(DGEList(y))
     d <- calcNormFactors(d)
     d <- d[rowSums(cpm(d) > 1) >= 10, ]
     
     mds <- plotMDS.DGEList(d, plot = FALSE)
     ei <- metadata(x)$experiment_info
     m <- match(colnames(x), ei$sample_id)
-    n <- length(assays(x))
+    nk <- length(assays(x))
     df <- data.frame(
         MDS1 = mds$x, 
         MDS2 = mds$y, 
-        cluster_id = rep(colnames(x), each = n),
-        group_id = rep(ei$group_id[m], n))
+        cluster_id = rep(assayNames(x), each = ncol(x)),
+        group_id = rep(ei$group_id[m], nk))
     
-    cols <- CATALYST:::cluster_cols
-    if (n > length(cols)) 
-        cols <- colorRampPalette(cols)(n)
+    cols <- cluster_colors
+    if (nk > length(cols)) 
+        cols <- colorRampPalette(cols)(nk)
     
     ggplot(df, aes_string(x = "MDS1", y = "MDS2", 
         col = "cluster_id", shape = "group_id")) +

@@ -13,7 +13,7 @@
 #'   a design matrix with row and column names
 #'   created with \code{\link[stats]{model.matrix}}.
 #' @param contrast 
-#'   a matrix of contrasts created with \code{\link[edgeR]{makeContrasts}}.
+#'   a matrix of contrasts created with \code{\link[limma]{makeContrasts}}.
 #' @param coef 
 #'   passed to \code{\link[edgeR]{glmQLFTest}}.
 #'   Ignored if \code{contrast} is not NULL.
@@ -49,35 +49,34 @@
 #'
 #' @examples
 #' # simulate 5 clusters, 20% of DE genes
-#' data(kang)
-#' sim <- simData(kang, n_genes = 100, n_cells = 200, 
-#'     p_dd = c(0.8, 0, 0.2, 0, 0, 0), fc = 4)
+#' data(sce)
 #'     
 #' # compute pseudo-bulk counts
-#' pb <- aggregateData(sim)
+#' pb <- aggregateData(sce)
 #' 
 #' # specify design & contrast matrix
-#' ei <- metadata(sim)$experiment_info
+#' ei <- metadata(sce)$experiment_info
 #' design <- model.matrix(~ 0 + ei$group)
 #' dimnames(design) <- list(ei$sample_id, levels(ei$group))
-#' contrast <- limma::makeContrasts("B-A", levels = design)
+#' contrast <- limma::makeContrasts("stim-ctrl", levels = design)
 #' 
 #' # test for cluster-specific DE 
-#' res <- runDS(sim, pb, design, contrast, method = "edgeR")
+#' res <- runDS(sce, pb, design, contrast, method = "edgeR")
 #'
 #' names(res)
 #' names(res[[1]])
-#' lapply(res[[1]]$`B-A`, head)
+#' lapply(res[[1]]$`stim-ctrl`, head)
 #' 
 #' # count nb. of DE genes by cluster
-#' n_de <- sapply(res[[1]]$`B-A`, function(x) sum(x$FDR < 0.05))
+#' vapply(res[[1]]$`stim-ctrl`, function(x) 
+#'   sum(x$p_adj < 0.05), numeric(1))
 #' 
-#' # get top_n hits for ea. cluster w/ abs(logFC) > 1
-#' top_n <- 5
-#' lapply(res[[1]]$`B-A`, function(x) {
-#'   x <- x[abs(x$logFC) > 1, ]
-#'   x[order(x$FDR)[seq_len(top_n)], ]
-#' })
+#' # get top 5 hits for ea. cluster w/ abs(logFC) > 1
+#' library(dplyr)
+#' lapply(res[[1]]$`stim-ctrl`, function(u)
+#'   filter(u, abs(logFC) > 1) %>% 
+#'     arrange(p_adj) %>% 
+#'     slice(seq_len(5)))
 #'
 #' @author Helena L. Crowell \email{helena.crowell@uzh.ch} and Mark D. Robinson.
 #'
@@ -121,7 +120,7 @@ runDS <- function(x, pb,
             character(1))
         names(cs) <- names(coef) <- cs
     }
-    kids <- levels(colData(x)$cluster_id)
+    kids <- levels(x$cluster_id)
     names(kids) <- kids
     
     # wrapper to create output tables
@@ -160,6 +159,7 @@ runDS <- function(x, pb,
                     logcounts = y, # log-normcounts > do nothing
                     log2(y + 1))   # CPM, scaledCPM, normcounts > take log
             } else if (method == "limma-voom") {
+                trend <- robust <- FALSE
                 y <- suppressMessages(DGEList(y, remove.zeros = TRUE))
                 y <- calcNormFactors(y)
                 y <- voom(y, d)

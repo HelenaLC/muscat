@@ -17,7 +17,7 @@ as returned by \code{\link{runDS}}.}
 \item{bind}{character string specifying the output format (see details).}
 
 \item{frq}{logical or a pre-computed list of expression frequencies 
-as returned by \code{\link{clacExprFreqs}}.}
+as returned by \code{\link{calcExprFreqs}}.}
 
 \item{cpm}{logical specifying whether CPM by cluster-sample 
 should be appendeded to the output result table(s).}
@@ -26,7 +26,7 @@ should be appendeded to the output result table(s).}
 number of significant digits to maintain.}
 
 \item{...}{optional arguments passed to 
-\code{\link{clacExprFreqs}} if \code{frq = TRUE}.}
+\code{\link{calcExprFreqs}} if \code{frq = TRUE}.}
 }
 \value{
 returns a data.frame.
@@ -54,7 +54,7 @@ When \code{bind = "col"}, the list of DS testing results at
 \examples{
 # simulate 5 clusters, 20\% of DE genes
 data(kang)
-sim <- simData(kang, n_genes = 100, n_cells = 200, 
+sim <- simData(kang, n_genes = 100, n_cells = 800, 
   p_dd = c(0.8, 0, 0.2, 0, 0, 0), fc = 4)
 
 # compute pseudo-bulk counts

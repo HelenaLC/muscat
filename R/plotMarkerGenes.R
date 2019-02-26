@@ -31,8 +31,7 @@ plotMarkerGenes <- function(x, marker_genes,
     cluster_ids <- colData(x)$cluster_id
     es <- assays(x)$logcounts[unlist(marker_genes), ]
     es <- t(as.matrix(es))
-    if (scale)
-        es <- CATALYST:::scale_exprs(es)
+    if (scale) es <- .scale(es)
     df <- data.frame(es, cluster_id = cluster_ids)
     means_by_cluster <- df %>% 
         group_by(.data$cluster_id) %>% 
@@ -52,8 +51,8 @@ plotMarkerGenes <- function(x, marker_genes,
         row_anno <- row_anno[row_o]
     }
     row_anno <- Heatmap(
-        mat = row_anno,
-        col = setNames(CATALYST:::cluster_cols, levels(cluster_ids)),
+        matrix = row_anno,
+        col = setNames(cluster_colors, levels(cluster_ids)),
         name = "cluster_id",
         cluster_rows = FALSE,
         rect_gp = gpar(col = "white"))

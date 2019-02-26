@@ -17,7 +17,7 @@ computed with \code{aggregateData}.}
 \item{design}{a design matrix with row and column names
 created with \code{\link[stats]{model.matrix}}.}
 
-\item{contrast}{a matrix of contrasts created with \code{\link[edgeR]{makeContrasts}}.}
+\item{contrast}{a matrix of contrasts created with \code{\link[limma]{makeContrasts}}.}
 
 \item{coef}{passed to \code{\link[edgeR]{glmQLFTest}}.
 Ignored if \code{contrast} is not NULL.}
@@ -62,7 +62,7 @@ a list containing
 \examples{
 # simulate 5 clusters, 20\% of DE genes
 data(kang)
-sim <- simData(kang, n_genes = 100, n_cells = 200, 
+sim <- simData(kang, n_genes = 100, n_cells = 800, 
     p_dd = c(0.8, 0, 0.2, 0, 0, 0), fc = 4)
     
 # compute pseudo-bulk counts
@@ -88,7 +88,7 @@ n_de <- sapply(res[[1]]$`B-A`, function(x) sum(x$FDR < 0.05))
 top_n <- 5
 lapply(res[[1]]$`B-A`, function(x) {
   x <- x[abs(x$logFC) > 1, ]
-  x[order(x$FDR)[seq_len(top_n)], ]
+  x[order(x$p_adj)[seq_len(top_n)], ]
 })
 
 }

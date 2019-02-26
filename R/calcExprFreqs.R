@@ -37,6 +37,7 @@
 #' @importFrom Matrix rowMeans
 #' @importFrom methods is
 #' @importFrom SummarizedExperiment assays colData SummarizedExperiment
+#' @importFrom utils getFromNamespace
 #' @export
     
 calcExprFreqs <- function(x, assay = "counts", th = 0) {

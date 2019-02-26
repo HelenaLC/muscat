@@ -31,10 +31,7 @@
     stopifnot(vapply(y$table, function(u) is(u, "list"), logical(1)))
     stopifnot(identical(names(y$table), colnames(y$contrast))
         | identical(names(y$table), names(y$coef)))
-    stopifnot(map_depth(y$table, 1, names)
-    #
-    # apply(vapply(y$table, names, character(nk)),
-    #     2, function(u) all(u %in% kids))
+    stopifnot(apply(vapply(y$table, names, character(nk)), 2, identical, kids))
     # data
     stopifnot(is(y$data, "list"))
     stopifnot(names(y$data) %in% kids)

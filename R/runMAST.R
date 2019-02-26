@@ -64,12 +64,14 @@ runMAST <- function(x, formula, contrast, assay = "logcpm") {
     # validity checks
     .check_sce(x, req_group = TRUE)
     .check_arg_assay(x, assay)
-    stopifnot(is(contrast, "matrix"), !is.null(cs), length(cs) == length(unique(cs)))
+    stopifnot(
+        is(contrast, "matrix"), !is.null(cs), 
+        length(cs) == length(unique(cs)))
     
     # split cells by cluster
     cells_by_cluster <- .split_cells(x, by = "cluster_id")
     
-    kids <- levels(colData(x)$cluster_id)
+    kids <- levels(x$cluster_id)
     names(kids) <- kids
     nk <- length(kids)
     
@@ -83,7 +85,7 @@ runMAST <- function(x, formula, contrast, assay = "logcpm") {
         suppressMessages(fit <- zlm(formula, sca))
         lapply(cs, function(c) {
             cm <- as.matrix(contrast[, c])
-            suppressMessages(lrt <- lrTest(fit, cm))
+            suppressMessages(lrt <- lrTest(fit, "group_id"))
             p_val <- lrt[, "hurdle", "Pr(>Chisq)"]
             data.frame(gene = rownames(x), cluster_id = k, p_val,
                 contrast = c, row.names = NULL, stringsAsFactors = FALSE)
@@ -93,7 +95,7 @@ runMAST <- function(x, formula, contrast, assay = "logcpm") {
     res <- lapply(cs, function(c) lapply(res, "[[", c))
     p_val <- modify_depth(res, 2, "p_val")
     
-    # p-value adjustment (across all test in ea. cluster)
+    # p-value adjustment (across all tests in ea. cluster)
     p_adj <- vapply(p_val, function(u) 
         p.adjust(unlist(u), "BH"),
         numeric(nrow(x) * nk))

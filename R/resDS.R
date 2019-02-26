@@ -11,13 +11,13 @@
 #'   as returned by \code{\link{runDS}}.
 #' @param bind character string specifying the output format (see details).
 #' @param frq logical or a pre-computed list of expression frequencies 
-#'   as returned by \code{\link{clacExprFreqs}}.
+#'   as returned by \code{\link{calcExprFreqs}}.
 #' @param cpm logical specifying whether CPM by cluster-sample 
 #'   should be appendeded to the output result table(s).
 #' @param digits integer value specifying the 
 #'   number of significant digits to maintain.
 #' @param ... optional arguments passed to 
-#'   \code{\link{clacExprFreqs}} if \code{frq = TRUE}.
+#'   \code{\link{calcExprFreqs}} if \code{frq = TRUE}.
 #' 
 #' @details When \code{bind = "col"}, the list of DS testing results at 
 #'   \code{y$table} will be merge vertically (by column) into a single table
@@ -37,7 +37,7 @@
 #' @examples
 #' # simulate 5 clusters, 20% of DE genes
 #' data(kang)
-#' sim <- simData(kang, n_genes = 100, n_cells = 200, 
+#' sim <- simData(kang, n_genes = 100, n_cells = 800, 
 #'   p_dd = c(0.8, 0, 0.2, 0, 0, 0), fc = 4)
 #' 
 #' # compute pseudo-bulk counts
@@ -78,11 +78,11 @@ resDS <- function(x, y, bind = c("col", "row"),
     frq = FALSE, cpm = FALSE, digits = 3, ...) {
     
     stopifnot(is(x, "SingleCellExperiment"))
-    cluster_ids <- levels(colData(x)$cluster_id)
+    cluster_ids <- levels(x$cluster_id)
     ei <- metadata(x)$experiment_info
     
-    # check_res(x, y)
-    if (!is.logical(frq))
+    .check_res(x, y)
+    if (!is.logical(frq)) 
         .check_frq(x, frq)
     bind <- match.arg(bind)
     stopifnot(is.infinite(digits) || is.numeric(digits) &
@@ -120,8 +120,10 @@ resDS <- function(x, y, bind = c("col", "row"),
     if (is.logical(frq))
         if (frq) frq <- calcExprFreqs(x, ...) else frq <- NULL
     if (!is.null(frq)) {
-        frq <- data.frame(gene = rep(rownames(x), length(frq)),
-            cluster_id = rep(names(frq), each = nrow(x)), bind_rows(frq), 
+        frq <- data.frame(
+            gene = rep(rownames(x), length(assays(frq))),
+            cluster_id = rep(assayNames(frq), each = nrow(x)), 
+            do.call("rbind", as(assays(frq), "list")), 
             row.names = NULL, check.names = FALSE, stringsAsFactors = FALSE)
         frq <- reorder_summary(frq, ei, append = ".frq")
         res <- inner_join(frq, res, by = c("gene", "cluster_id"))
@@ -132,12 +134,12 @@ resDS <- function(x, y, bind = c("col", "row"),
         cpm <- lapply(cluster_ids, function(k) {
             if (is.null(y$data[[k]])) return(NULL)
             cpm <- cpm(y$data[[k]])
-            data.frame(gene = rownames(cpm), cluster_id = k,
-                cpm, row.names = NULL, stringsAsFactors = FALSE)
+            data.frame(gene = rownames(cpm), cluster_id = k, cpm, 
+                row.names = NULL, check.names = FALSE, stringsAsFactors = FALSE)
         })
         cpm <- bind_rows(cpm)
         cpm <- reorder_summary(cpm, ei, append = ".cpm")
-        res <- inner_join(frq, res, by = c("gene", "cluster_id"))
+        res <- inner_join(cpm, res, by = c("gene", "cluster_id"))
     }
     res %>% mutate_if(is.numeric, signif, digits)
 }
