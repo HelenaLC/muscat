@@ -45,33 +45,33 @@
 #' @export
 
 prepData <- function(x, cluster_id, sample_id, group_id) {
-  
-  ids <- as.list(match.call()[-(1:2)])
-  stopifnot(is(x, "SingleCellExperiment"))
-  stopifnot(unlist(ids) %in% colnames(colData(x)))
-  
-  # construct colData
-  cd <- data.frame(
-    colData(x)[unlist(ids)], 
-    row.names = colnames(x)) %>%
-    mutate_all(factor) %>% 
-    set_colnames(names(ids))
-  colnames(cd) <- names(ids)
-  
-  # construct metadata
-  m <- match(levels(cd$sample_id), cd$sample_id)
-  ei <- data.frame(
-    row.names = NULL,
-    sample_id = levels(cd$sample_id),
-    group_id = cd$group_id[m],
-    n_cells = as.numeric(table(cd$sample_id)))
-  md <- list(experiment_info = ei)
-  
-  # construct SCE
-  SingleCellExperiment(
-    assays = assays(x),
-    colData = cd,
-    rowData = rowData(x),
-    reducedDims = reducedDims(x),
-    metadata = md)
+    
+    ids <- as.list(match.call()[-(1:2)])
+    stopifnot(is(x, "SingleCellExperiment"))
+    stopifnot(unlist(ids) %in% colnames(colData(x)))
+    
+    # construct colData
+    cd <- data.frame(
+        colData(x)[unlist(ids)], 
+        row.names = colnames(x)) %>%
+        mutate_all(factor) %>% 
+        set_colnames(names(ids))
+    colnames(cd) <- names(ids)
+    
+    # construct metadata
+    m <- match(levels(cd$sample_id), cd$sample_id)
+    ei <- data.frame(
+        row.names = NULL,
+        sample_id = levels(cd$sample_id),
+        group_id = cd$group_id[m],
+        n_cells = as.numeric(table(cd$sample_id)))
+    md <- list(experiment_info = ei)
+    
+    # construct SCE
+    SingleCellExperiment(
+        assays = assays(x),
+        colData = cd,
+        rowData = rowData(x),
+        reducedDims = reducedDims(x),
+        metadata = md)
 }

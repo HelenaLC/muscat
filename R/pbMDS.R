@@ -31,7 +31,6 @@ pbMDS <- function(x) {
     y <- do.call("cbind", y)
     d <- suppressMessages(DGEList(y))
     d <- calcNormFactors(d)
-    d <- d[rowSums(cpm(d) > 1) >= 10, ]
     
     mds <- plotMDS.DGEList(d, plot = FALSE)
     ei <- metadata(x)$experiment_info
