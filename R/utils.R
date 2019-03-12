@@ -73,3 +73,29 @@ cluster_colors <- c(
         split(by = by, sorted = TRUE, flatten = FALSE)
     map_depth(cd, length(by), "cell")
 }
+
+# ------------------------------------------------------------------------------
+# global p-value adjustment
+# ------------------------------------------------------------------------------
+#   x: results table; a nested list w/ 
+#      1st level = comparisons and 2nd level = clusters
+# > adds 'p_adj.glb' column to the result table of ea. comparison & cluster
+# ------------------------------------------------------------------------------
+.p_adj_global <- function(x) {
+    cs <- names(x)
+    ks <- names(x[[1]])
+    names(cs) <- cs
+    names(ks) <- ks
+    lapply(cs, function(c) {
+        # get p-values
+        p_val <- map(x[[c]], "p_val")
+        # adjust for each comparison
+        p_adj <- p.adjust(unlist(p_val))
+        # re-split by cluster
+        ns <- vapply(p_val, length, numeric(1))
+        p_adj <- split(p_adj, rep.int(ks, ns))
+        # insert into results tables
+        lapply(ks, function(k) x[[c]][[k]] %>% add_column(
+            p_adj.glb = p_adj[[k]], .after = "p_adj.loc"))
+    })
+}

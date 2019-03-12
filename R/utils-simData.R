@@ -133,7 +133,7 @@ cats <- factor(cats, levels = cats)
         dp = {
             g1_hi <- sample(ng1, round(ng1 * 0.3))
             g2_hi <- sample(ng2, round(ng2 * 0.7))
-            cbind(                            # g %  >0 <0
+            cbind(                                 # g %  >0 <0
                 .nb(cs_g1[-g1_hi], d, m_g1, -lfc), # 1 70 -- up
                 .nb(cs_g1[ g1_hi], d, m_g1,  lfc), # 1 30 up --
                 .nb(cs_g2[-g2_hi], d, m_g2, -lfc), # 2 30 -- up

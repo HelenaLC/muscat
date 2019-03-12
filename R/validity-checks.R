@@ -18,6 +18,20 @@
             " Please assure that the input SCE has unique 'assayNames'.")
 }
 
+# check pseudo-bulks for DS analysis
+# (must have be aggregated by cluster-sample)
+#   x = SCE used for aggregation
+#   y = SCE containing pseudo-bulks as returned by 
+#`      aggregateData(x, by = c("cluster_id", "sample_id"))
+#' @importFrom methods is
+#' @importFrom SummarizedExperiment assayNames 
+.check_pb <- function(x, y) {
+    stopifnot(is(y, "SingleCellExperiment"))
+    stopifnot(all.equal(assayNames(y), levels(x$cluster_id)))
+    stopifnot(all.equal(colnames(y), levels(x$sample_id)))
+    stopifnot(all.equal(rownames(y), rownames(x)))
+}
+
 # check validity of runDS() output
 .check_res <- function(x, y) {
     ei <- metadata(x)$experiment_info
