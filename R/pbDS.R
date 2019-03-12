@@ -1,4 +1,4 @@
-#' @rdname runDS
+#' @rdname pbDS
 #' @title Cluster-specific DE analysis using
 #'
 #' @description \code{run_edgeR} tests for cluster-specific 
@@ -61,7 +61,7 @@
 #' contrast <- limma::makeContrasts("stim-ctrl", levels = design)
 #' 
 #' # test for cluster-specific DE 
-#' res <- runDS(sce, pb, design, contrast, method = "edgeR")
+#' res <- pbDS(sce, pb, design, contrast, method = "edgeR")
 #'
 #' names(res)
 #' names(res[[1]])
@@ -80,35 +80,29 @@
 #'
 #' @author Helena L. Crowell \email{helena.crowell@uzh.ch} and Mark D. Robinson.
 #'
-#' @importFrom edgeR calcNormFactors DGEList estimateDisp glmQLFit glmQLFTest topTags
+#' @importFrom edgeR calcNormFactors DGEList 
+#'   estimateDisp glmQLFit glmQLFTest topTags
 #' @importFrom dplyr rename
 #' @importFrom limma contrasts.fit eBayes lmFit topTable voom
 #' @importFrom SummarizedExperiment colData
-#'
+#' @importFrom tibble add_column
 #' @export
 
-runDS <- function(x, pb, 
+pbDS <- function(x, pb, 
     design, contrast = NULL, coef = NULL, 
     method = c("edgeR", "limma-trend", "limma-voom"),
     min_cells = 10, verbose = TRUE) {
     
     # check validty of input arguments
     .check_sce(x, req_group = TRUE)
-    kids <- colData(x)$cluster_id
-    sids <- colData(x)$sample_id
-    
-    stopifnot(all.equal(assayNames(pb), levels(kids)))
-    stopifnot(all.equal(colnames(pb), levels(sids)))
-    stopifnot(all.equal(rownames(pb), rownames(x)))
-    stopifnot(is.matrix(design))
-    stopifnot(!is.null(contrast) | !is.null(coef))
+    .check_pb(x, pb)
+    stopifnot(is.null(design) | is.matrix(design))
     stopifnot(is.null(contrast) | is.matrix(contrast))
     stopifnot(is.null(coef) | is.numeric(coef))
+    stopifnot(is.numeric(min_cells), length(min_cells) == 1)
+    stopifnot(is.logical(verbose), length(verbose) == 1)
     method <- match.arg(method)
     
-    # compute cluster-sample counts
-    n_cells <- table(kids, sids)
-
     if (!is.null(contrast)) {
         ctype <- "contrast"
         cs <- colnames(contrast)
@@ -116,26 +110,24 @@ runDS <- function(x, pb,
     } else {
         ctype <- "coef"
         cs <- vapply(coef, function(i) 
-            paste(colnames(design)[i], collapse = "--"),
+            paste(colnames(design)[i], collapse = "-"),
             character(1))
         names(cs) <- names(coef) <- cs
     }
+    
+    # compute cluster-sample counts
+    n_cells <- table(x$cluster_id, x$sample_id)
     kids <- levels(x$cluster_id)
     names(kids) <- kids
     
-    # wrapper to create output tables
-    res_df <- function(k, tt, ctype, c) {
-        df <- data.frame(gene = rownames(tt), cluster_id = k,
-            tt, row.names = NULL, stringsAsFactors = FALSE)
-        df[[ctype]] <- c
-        return(df)
-    }
     # for ea. cluster, run DEA
     res <- lapply(kids, function (k) {
         if (verbose) cat(k, "..", sep = "")
-        y <- assays(pb)[[k]][, n_cells[k, ] >= min_cells]
+        y <- assays(pb)[[k]]
+        y <- y[, n_cells[k, ] >= min_cells]
         d <- design[colnames(y), ]
-        if (any(colSums(d) < 2)) return(NULL)
+        if (any(colSums(d) < 2)) 
+            return(NULL)
         if (method == "edgeR") {
             y <- suppressMessages(DGEList(y, remove.zeros = TRUE))
             y <- calcNormFactors(y)
@@ -145,7 +137,7 @@ runDS <- function(x, pb,
                 qlf <- glmQLFTest(fit, coef[[c]], contrast[, c])
                 tt <- topTags(qlf, n = Inf, sort.by = "none")
                 res_df(k, tt, ctype, c) %>% 
-                    rename(p_val = "PValue", p_adj = "FDR")
+                    rename(p_val = "PValue", p_adj.loc = "FDR")
             })
         } else {
             if (method == "limma-trend") {
@@ -171,27 +163,30 @@ runDS <- function(x, pb,
                 efit <- eBayes(cfit, trend = trend, robust = robust)
                 tt <- topTable(efit, number = Inf, sort.by = "none")  
                 res_df(k, tt, ctype, c) %>% 
-                    rename(p_val = "P.Value", p_adj = "adj.P.Val")
+                    rename(p_val = "P.Value", p_adj.loc = "adj.P.Val")
             })
         }
         return(list(tt = tt, data = y))
     })
     # remove empty clusters
-    res <- res[!vapply(res, is.null, logical(1))]
-    data <- lapply(res, "[[", "data")
-    tt <- lapply(res, "[[", "tt")
-    
-    # re-organize results by comparison
+    skipped <- vapply(res, is.null, logical(1))
+    if (any(skipped))
+        message(paste("Cluster(s)", dQuote(k), "skipped due to an",
+            "insufficient number of cells in at least 2 samples per group."))
+    res <- res[!skipped]
     kids <- kids[names(res)]
-    tt <- lapply(cs, function(c) 
-        lapply(kids, function(k) tt[[k]][[c]]))
-    
+
+    # re-organize by contrast & 
+    # do global p-value adjustment
+    tt <- lapply(res, "[[", "tt")
+    tt <- lapply(cs, function(c) map(tt, c))
+    tt <- .p_adj_global(tt)
+
     # return results
+    data <- lapply(res, "[[", "data")
     list(table = tt, 
         data = data, 
         design = design, 
         contrast = contrast, 
         coef = coef)
 }
-
-    
