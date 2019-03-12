@@ -22,8 +22,8 @@
 #'   containing multiple clusters & samples across 2 groups.
 #' 
 #' @examples
-#' data(kang)
-#' simData(kang,
+#' data(sce)
+#' simData(sce,
 #'     n_genes = 10, n_cells = 10,
 #'     p_dd = diag(6)[1, ])
 #' 
@@ -49,14 +49,14 @@ simData <- function(x, n_genes = 500, n_cells = 300,
     # c: gene category
     
     # check validity of input arguments
-    stopifnot(is(x, "SingleCellExperiment"))
+    .check_sce(x, req_group = FALSE)
     stopifnot(is.numeric(n_genes), length(n_genes) == 1)
     stopifnot(is.numeric(n_cells), length(n_cells) == 1 | length(n_cells) == 2)
     stopifnot(is.numeric(p_dd), length(p_dd) == 6, sum(p_dd) == 1)
     stopifnot(is.numeric(fc), is.numeric(fc), fc > 1)
     
-    kids <- levels(colData(x)$cluster_id)
-    sids <- levels(colData(x)$sample_id)
+    kids <- levels(x$cluster_id)
+    sids <- levels(x$sample_id)
     gids <- c("A", "B")
     names(kids) <- kids
     names(sids) <- sids
@@ -70,7 +70,7 @@ simData <- function(x, n_genes = 500, n_cells = 300,
     
     # sample cell metadata
     cd <- .sample_cell_md(
-        n = n_cells, probs = NULL,
+        n = n_cells, probs = probs,
         ids = list(kids, sids, gids)) %>% set_rownames(cs)
     cs_idx <- .split_cells(cd, by = colnames(cd))
     n_cs <- modify_depth(cs_idx, -1, length)
@@ -115,6 +115,9 @@ simData <- function(x, n_genes = 500, n_cells = 300,
     d <- rowData(x)$dispersion
     names(d) <- rownames(x)
     
+    sim_mean <- lapply(kids, function(k) 
+        lapply(gids, function(g)
+            setNames(numeric(n_genes), rownames(y))))
     for (k in kids) {
         for (s in sids) {
             for (c in cats[n_dd[, k] != 0]) {
@@ -135,8 +138,13 @@ simData <- function(x, n_genes = 500, n_cells = 300,
                 d_kc <- d[gs_kc]
                 lfc_kc <- lfc[[c, k]]
                 
+                gidx <- gs_idx[[c, k]]
+                cidx <- c(g1, g2)
+                
                 counts <- .sim(c, cs_g1, cs_g2, m_g1, m_g2, d = d_kc, lfc = lfc_kc)
-                y[gs_idx[[c, k]], c(g1, g2)] <- counts
+                y[gidx, cidx] <- counts
+                sim_mean[[k]]$A[gidx] <- rowMeans(m_g1) # ... * lfc ??
+                sim_mean[[k]]$B[gidx] <- rowMeans(m_g2)
             }
         }
     }
@@ -147,10 +155,18 @@ simData <- function(x, n_genes = 500, n_cells = 300,
         gene = unlist(gs_idx),
         cluster_id = rep.int(rep(kids, each = length(cats)), c(n_dd)),
         category = rep.int(rep(cats, nk), c(n_dd)),
-        logFC = unlist(lfc)) %>% 
+        logFC = unlist(lfc),
+        sim_gene = unlist(gs_by_kc),
+        sim_disp = d[unlist(gs_by_kc)]) %>% 
         mutate_at("gene", as.character)
     o <- order(as.numeric(gsub("[a-z]", "", gi$gene)))
     gi <- gi[o, ] %>% set_rownames(NULL)
+    
+    a <- unlist(map_depth(sim_mean, 1, "A"))
+    b <- unlist(map_depth(sim_mean, 1, "B"))
+    o <- order(as.numeric(gsub(".*\\.[a-z]+", "", names(a))))
+    gi$sim_mean.A <- a[o]
+    gi$sim_mean.B <- b[o]
     
     # construct SCE
     cd$sample_id <- factor(paste(cd$sample_id, cd$group_id, sep = "."))
