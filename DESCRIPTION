@@ -1,42 +1,16 @@
-Package: ddSingleCell
-Title: Toolkit for differential discovery in single-cell data
+Package: muscat
+Title: Multi-sample multi-group scRNA-seq data analysis tools
 Description: ...
 Type: Package
-Version: 0.99.7
+Version: 0.99.8
 Depends: R (>= 3.5)
 Authors@R: c(
 	person("Helena L.", "Crowell", role=c("aut", "cre"), email="helena.crowell@uzh.ch"),
 	person("Charlotte", "Soneson", role="aut"),
+	person("Pierre-Luc", "Germain", role="aut"),
 	person("Mark D.", "Robinson", role=c("aut", "fnd"), email="mark.robinson@imls.uzh.ch"))
-Imports:
-	ComplexHeatmap,
-	data.table,
-	dplyr, 
-	edgeR, 
-	ggplot2,
-	grDevices,
-	grid,
-    limma,
-	magrittr,
-	Matrix,
-	matrixStats,
-	MAST,
-	methods,
-	purrr,
-	reshape2,
-	scran,
-	stats, 
-	SingleCellExperiment, 
-	SummarizedExperiment, 
-	S4Vectors, 
-	tibble,
-	utils,
-	viridis
-Suggests: 
-    BiocStyle,
-    knitr,
-    rmarkdown,
-    testthat
+Imports: ComplexHeatmap, data.table, DESeq2, doParallel, dplyr, edgeR, ggplot2, grDevices, grid, limma, lmerTest, lme4, magrittr, Matrix, matrixStats, MAST, methods, parallel, progress, purrr, reshape2, scales, scran, stats, SingleCellExperiment, SummarizedExperiment, S4Vectors, tibble, utils, variancePartition, viridis
+Suggests: BiocStyle, knitr, rmarkdown, testthat
 biocViews: DifferentialExpression, SingleCell, Software, StatisticalMethod, Visualization
 License: GPL (>=2)
 VignetteBuilder: knitr
