@@ -27,34 +27,6 @@ for each contrast and cluster, and
 ...
 }
 \examples{
-data(kang)
-sce <- simData(kang, n_genes = 200, n_cells = 100, 
-    p_dd = c(0.8, 0, 0.2, 0, 0, 0), fc = 4)
-    
-library(edgeR)
-library(SingleCellExperiment)
-
-dge <- DGEList(counts = assay(sce))
-dge <- calcNormFactors(dge)
-cpm <- cpm(dge)
-assays(sce)$logcpm <- log2(cpm+1)
-
-formula <- ~ 0 + group_id
-contrast <- limma::makeContrasts("B-A", levels = c("A", "B"))
-
-res <- runMAST(sce, formula, contrast)
-names(res)
-names(res$table)       # one list per contrast
-names(res$table$`B-A`) # one table per cluster
-
-# access results for a specific contrast & cluster
-head(res$table$`B-A`[[1]])
-
-# filter results
-tbl_fil <- purrr::modify_depth(res$table, 
-    depth = 2, dplyr::filter, p.adj < 0.05)
-max(res$table$`B-A`[[1]]$p.adj) # before
-max(tbl$`B-A`[[1]]$p.adj)       # after
 
 }
 \author{

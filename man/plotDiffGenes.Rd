@@ -5,7 +5,7 @@
 \title{Heatmap of mean-marker expression by cluster-sample}
 \usage{
 plotDiffGenes(x, y, c = NULL, g = NULL, k = NULL, top_n = 20,
-  sort_by = c("FDR", "logFC"), fdr = 0.05, lfc = 1)
+  sort_by = c("p_adj", "logFC"), fdr = 0.05, lfc = 1)
 }
 \arguments{
 \item{x}{a \code{\link[SingleCellExperiment]{SingleCellExperiment}}.}
@@ -35,6 +35,22 @@ a \code{\link{HeatmapList-class}} object.
 }
 \description{
 ...
+}
+\examples{
+data(sce)
+
+# compute pseudo-bulk counts
+pb <- aggregateData(sce)
+
+# specify design & contrast matrix
+ei <- metadata(sce)$experiment_info
+design <- model.matrix(~ 0 + ei$group_id)
+dimnames(design) <- list(ei$sample_id, levels(ei$group_id))
+contrast <- limma::makeContrasts("stim-ctrl", levels = design)
+
+# test for cluster-specific DE 
+res <- runDS(sce, pb, design, contrast, method = "edgeR")
+
 }
 \author{
 Helena L. Crowell \email{helena@crowells.eu}
