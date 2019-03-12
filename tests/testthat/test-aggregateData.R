@@ -16,9 +16,9 @@ sids <- colData(sce)$sample_id
 pb <- aggregateData(sce, assay = "counts", by = c("cluster_id", "sample_id"), fun = "sum")
 
 test_that("aggregateData", {
-    expect_error(aggregateData(sce, by = "xxx"))
-    expect_error(aggregateData(sce, assay = "xxx"))
-    expect_error(aggregateData(sce, fun = "xxx"))
+    expect_error(aggregateData(sce, assay = "x"))
+    expect_error(aggregateData(sce, fun = "x"))
+    expect_error(aggregateData(sce, by = "x"))
     
     expect_is(pb, "SingleCellExperiment")
     expect_identical(assayNames(pb), levels(kids))
