@@ -9,6 +9,11 @@
 #' 
 #' @param dup_corr logical; whether to use 
 #'   \code{\link[limma]{duplicateCorrelation}}.
+#' @param trended logical; whether to use expression-dependent variance priors
+#'  in \code{\link[limma]{eBayes}}.
+#' @param ddf logical; methods for estimating degrees of freedom; either
+#'  'Kenward-Roger' (default, more accurate) or 'Satterthwaite' (faster). See 
+#'  \code{\link[variancePartition]{dream}}.
 #'   
 #' @importFrom edgeR DGEList
 #' @importFrom doParallel registerDoParallel
@@ -22,7 +27,7 @@
 #' @importFrom stats as.formula model.matrix
 #' @importFrom variancePartition dream getContrast
 .mm_dream <- function(x, coef, covs, n_threads, verbose, 
-    dup_corr = FALSE) {
+                      dup_corr = FALSE, trended = TRUE, ddf="Kenward-Roger") {
     if (is.null(sizeFactors(x)))
         x <- computeSumFactors(x)
     
@@ -52,12 +57,12 @@
         coef <- last(colnames(mm))
         if (verbose) 
             message("Argument 'coef' not specified; ", 
-                sprintf("testing for %s.", dQuote(coef)))
+                    sprintf("testing for %s.", dQuote(coef)))
     }
     
     contrast <- getContrast(v, as.formula(formula), cd, coef)
-    fit <- dream(v, formula, cd, contrast, ddf = "Satterthwaite")
-    fit <- eBayes(fit)
+    fit <- dream(v, formula, cd, contrast, ddf = ddf)
+    fit <- eBayes(fit, trend=trended, robust=TRUE)
     if (n_threads > 1) stopCluster(cl)
     
     topTable(fit, number = Inf, sort.by = "none") %>% 
