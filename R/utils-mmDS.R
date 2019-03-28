@@ -94,16 +94,16 @@
     cd <- .prep_cd(x, covs)
     formula <- paste0("~", paste(c(covs, "sample_id"), collapse="+"))
     formula <- as.formula(formula)
-    y <- DESeqDataSetFromMatrix(as.matrix(counts(x)), cd, formula)
+    y <- suppressMessages(DESeqDataSetFromMatrix(
+        as.matrix(counts(x)), cd, formula))
     
     sizeFactors(y) <- sizeFactors(x)
     if (!blind) y <- estimateDispersions(y)
     vst <- varianceStabilizingTransformation(y, blind)
     
-    formula <- paste0("~(1|sample_id)+", 
-        paste(c(covs, "group_id"), collapse="+"))
+    formula <- paste(c("~(1|sample_id)", covs, "group_id"), collapse="+")
     if (verbose) print(formula)
-    formula <- as.formula(paste0("u", formula))
+    formula <- as.formula(paste("u", formula))
     
     if (is.null(coef)) {
         gids <- levels(x$group_id)
@@ -113,17 +113,16 @@
                 sprintf("testing for %s.", dQuote(coef)))
     }
     
-    res <- apply(assay(vst), 1, function(u) {
+    apply(assay(vst), 1, function(u) {
         df <- data.frame(u, cd)
-        fit <- lmer(formula, df, REML)
+        fit <- suppressMessages(lmer(formula, df, REML))
         sum <- summary(fit)$coef
         cvec <- as.numeric(rownames(sum) == coef)
         res <- contest(fit, cvec)[, c("F value", "Pr(>F)")]
         data.frame(sum[coef, 1], res)
-    })
-    res <- bind_rows(res) %>% set_colnames(c(coef, "F", "p_val"))
-    res$p_adj.loc <- p.adjust(res$p_val, method = "BH")
-    return(res)
+    }) %>% bind_rows %>% 
+        set_colnames(c(coef, "F", "p_val")) %>% 
+        dplyr::mutate(p_adj.loc = p.adjust(p_val))
 } 
 
 # helper to prepare colData for .mm_dream/vst

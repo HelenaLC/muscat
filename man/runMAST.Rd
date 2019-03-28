@@ -4,7 +4,7 @@
 \alias{runMAST}
 \title{Run DS analysis using MAST}
 \usage{
-runMAST(x, formula, contrast, assay = "logcpm")
+runMAST(x, formula, contrast, assay = "logcpm", covs = NULL)
 }
 \arguments{
 \item{x}{a \code{\link[SingleCellExperiment]{SingleCellExperiment}}.}
@@ -16,6 +16,9 @@ created with \code{\link[limma]{makeContrasts}}.}
 
 \item{assay}{character string specifying 
 which assay to use as input data.}
+
+\item{covs}{character vector of \code{colData(x)} 
+column names to use as covariates.}
 }
 \value{
 a list containing \itemize{

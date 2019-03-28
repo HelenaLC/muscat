@@ -9,6 +9,8 @@
 #'   created with \code{\link[limma]{makeContrasts}}.
 #' @param assay character string specifying 
 #'   which assay to use as input data.
+#' @param covs character vector of \code{colData(x)} 
+#'   column names to use as covariates.
 #' 
 #' @return a list containing \itemize{
 #' \item \code{table}: a list of differential testing results 
@@ -28,11 +30,15 @@
 #' @importFrom tibble add_column
 #' @export
 
-runMAST <- function(x, formula, contrast, assay = "logcpm") {
+runMAST <- function(x, formula, contrast, assay = "logcpm", covs = NULL) {
     
     # validity checks
     .check_sce(x, req_group = TRUE)
     .check_arg_assay(x, assay)
+    
+    if (!is.null(covs) && !all(covs %in% names(colData(x))))
+        stop(paste("Some of the specified covariates couldn't be found:",
+            paste(setdiff(covs, names(colData(x))), collapse=", ")))
     
     cs <- colnames(contrast)
     names(cs) <- cs
@@ -49,8 +55,14 @@ runMAST <- function(x, formula, contrast, assay = "logcpm") {
     colData(x)$wellKey <- colnames(x)
     rowData(x)$primerid <- rownames(x)
     
+    # add covariates to formula
+    if (!is.null(covs)) {
+        formula <- paste(as.character(formula), collapse = "")
+        formula <- paste(formula, covs, sep = "+")
+        formula <- as.formula(formula)
+    }
+    
     tt <- lapply(kids, function(k) {
-        if (verbose) cat(k, "..", sep = "")
         y <- x[, cells_by_cluster[[k]]]
         sca <- SceToSingleCellAssay(y, check_sanity = FALSE)
         suppressMessages(fit <- zlm(formula, sca))

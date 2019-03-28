@@ -72,6 +72,41 @@ cats <- factor(cats, levels = cats)
 }
 
 # ------------------------------------------------------------------------------
+# for ea. cluster, sample marker classes
+#   x       = input SingleCellExperiment
+#   gs_by_k = n_genes x n_clusters matrix of 'x' genes to use for sim.
+#   gs_idx  =  n_category x n_clusters matrix of output gene indices
+#   p_type  = prob. of EE/EP gene being of class "type"
+#   > type-genes may only be of categroy EE & EP type of genes,
+#     and use a cluster-specific mean in the NB count simulation
+# ------------------------------------------------------------------------------
+#' @importFrom data.table data.table
+#' @importFrom dplyr %>%
+#' @importFrom purrr map
+.impute_type_genes <- function(x, gs_by_k, gs_idx, p_type) {
+    kids <- colnames(gs_idx)
+    names(kids) <- kids
+    # sample gene-classes for genes of categroy EE & EP
+    non_de <- c("ee", "ep")
+    class <- lapply(kids, function(k) {
+        gs <- unlist(gs_idx[non_de, k])
+        n <- length(gs)
+        data.table(
+            stringsAsFactors = FALSE,
+            gene = gs, cluster_id = k,
+            class = sample(factor(c("state", "type")), n,
+                prob = c(1 - p_type, p_type), replace = TRUE))
+    }) %>% map(split, by = "class", flatten = FALSE)
+    # sample cluster-specific genes for ea. cluster & type-gene
+    for (k in kids) {
+        type_gs <- class[[k]]$type$gene
+        gs_by_k[type_gs, k] <- apply(gs_by_k[type_gs, kids != k], 
+            1, function(ex) sample(setdiff(rownames(x), ex), 1))
+    }
+    return(gs_by_k)
+}
+
+# ------------------------------------------------------------------------------
 # helper to sample from a NB across a grid 
 # of dispersions ('size') and means ('mu')
 # ------------------------------------------------------------------------------
@@ -84,12 +119,13 @@ cats <- factor(cats, levels = cats)
     lfc[lfc < 0] <- 0
     fc <- 2 ^ lfc
     fc <- rep(fc, each = n_cs)
-    nb <- rnbinom(n_gs * n_cs, 
-        size = rep(1/d, each = n_cs), 
-        mu = c(t(m[, cs])) * fc)
-    matrix(nb, byrow = TRUE,
+    ds <- rep(1/d, each = n_cs)
+    ms <- c(t(m[, cs])) * fc 
+    rnbinom(n_gs * n_cs, size = ds, mu = ms) %>% 
+        matrix(byrow = TRUE,
         nrow = n_gs, ncol = n_cs, 
-        dimnames = list(names(d), cs))
+        dimnames = list(names(d), cs)) %>% 
+        list(counts = ., means = split(ms, rep(seq_len(nrow(m)), each = n_cs)))
 }
 
 # ------------------------------------------------------------------------------
@@ -107,33 +143,34 @@ cats <- factor(cats, levels = cats)
     cat = c("ee", "ep", "de", "dp", "dm", "db"),
     cs_g1, cs_g2, m_g1, m_g2, d, lfc) {
     
+    cat <- match.arg(cat)
     ng1 <- length(cs_g1)
     ng2 <- length(cs_g2)
     
-    switch(match.arg(cat),
+    re <- switch(cat,
         ee = {
-            cbind(
+            list(
                 .nb(cs_g1, d, m_g1),
                 .nb(cs_g2, d, m_g2))
         },
         ep = {
             g1_hi <- sample(ng1, round(ng1 * 0.5))
             g2_hi <- sample(ng2, round(ng2 * 0.5))
-            cbind(
+            list(
                 .nb(cs_g1[-g1_hi], d, m_g1),
                 .nb(cs_g2[-g2_hi], d, m_g2),
                 .nb(cs_g1[ g1_hi], d, m_g1, -lfc), # lfc < 0 => 50% g2 hi
                 .nb(cs_g2[ g2_hi], d, m_g2,  lfc)) # lfc > 0 => 50% g2 hi
         },
         de = {
-            cbind(
+            list(
                 .nb(cs_g1, d, m_g1, -lfc), # lfc < 0 => all g1 hi
                 .nb(cs_g2, d, m_g2,  lfc)) # lfc > 0 => all g2 hi
         },
         dp = {
             g1_hi <- sample(ng1, round(ng1 * 0.3))
             g2_hi <- sample(ng2, round(ng2 * 0.7))
-            cbind(                                 # g %  >0 <0
+            list(                                  # g %  >0 <0
                 .nb(cs_g1[-g1_hi], d, m_g1, -lfc), # 1 70 -- up
                 .nb(cs_g1[ g1_hi], d, m_g1,  lfc), # 1 30 up --
                 .nb(cs_g2[-g2_hi], d, m_g2, -lfc), # 2 30 -- up
@@ -142,7 +179,7 @@ cats <- factor(cats, levels = cats)
         dm = {
             g1_hi <- sample(ng1, round(ng1 * 0.5))
             g2_hi <- sample(ng2, round(ng2 * 0.5))
-            cbind(
+            list(
                 .nb(cs_g1[-g1_hi], d, m_g1),
                 .nb(cs_g2[-g2_hi], d, m_g2),
                 .nb(cs_g1[ g1_hi], d, m_g1, -lfc), # lfc < 0 => 50% g1 hi
@@ -150,10 +187,34 @@ cats <- factor(cats, levels = cats)
         }, 
         db = {
             g2_hi <- sample(ng2, round(ng2 * 0.5))
-            cbind(
+            list(
                 .nb(cs_g1, d, m_g1, lfc/2),       # all g1 mi
                 .nb(cs_g2[-g2_hi], d, m_g2),      # 50% g2 lo
                 .nb(cs_g2[ g2_hi], d, m_g2, lfc)) # 50% g2 hi
         }
     )
+    cs <- map(re, "counts")
+    cs <- do.call("cbind", cs)
+    ms <- map(re, "means") %>%
+        map_depth(2, mean) %>% 
+        map_depth(1, unlist) %>% 
+        bind_cols %>% as.matrix
+    ms <- switch(cat, 
+        ee = ms,
+        ep = cbind(
+            rowMeans(ms[, c(1, 3)]),
+            rowMeans(ms[, c(2, 4)])),
+        de = ms,
+        dp = cbind(
+            rowMeans(ms[, c(1, 2)]),
+            rowMeans(ms[, c(3, 4)])),
+        dm = cbind(
+            rowMeans(ms[, c(1, 3)]),
+            rowMeans(ms[, c(2, 4)])),
+        db =  cbind(
+            ms[, 1],
+            rowMeans(ms[, c(2, 3)]))) %>% 
+        split(col(.)) %>% 
+        set_names(c("A", "B"))
+    list(cs = cs, ms = ms)
 }

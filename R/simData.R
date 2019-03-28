@@ -17,6 +17,9 @@
 #'   EE, EP, DE, DP, DM, or DB, respectively.
 #' @param fc numeric value to use as mean logFC
 #'   for DE, DP, DM, and DB type of genes.
+#' @param p_type numeric. Probaility of EE/EP gene being a type-gene.
+#'   If a gene is of class "type" in a given cluster, a unique mean 
+#'   will be used for that gene in the respective cluster.
 #' 
 #' @return a \code{\link[SingleCellExperiment]{SingleCellExperiment}}
 #'   containing multiple clusters & samples across 2 groups.
@@ -41,7 +44,8 @@
 #' @export
 
 simData <- function(x, n_genes = 500, n_cells = 300, 
-    probs = NULL, p_dd = diag(6)[1, ], fc = 2) {
+    probs = NULL, p_dd = diag(6)[1, ], p_type = 0,
+    fc = 2, rel_fc = NULL) {
     
     # throughout this code...
     # k: cluster ID
@@ -53,6 +57,7 @@ simData <- function(x, n_genes = 500, n_cells = 300,
     stopifnot(is.numeric(n_genes), length(n_genes) == 1)
     stopifnot(is.numeric(n_cells), length(n_cells) == 1 | length(n_cells) == 2)
     stopifnot(is.numeric(p_dd), length(p_dd) == 6, sum(p_dd) == 1)
+    stopifnot(is.numeric(p_type), length(p_type) == 1, p_type >= 0)
     stopifnot(is.numeric(fc), is.numeric(fc), fc > 1)
     
     kids <- levels(x$cluster_id)
@@ -62,6 +67,11 @@ simData <- function(x, n_genes = 500, n_cells = 300,
     names(sids) <- sids
     names(gids) <- gids
     nk <- length(kids)
+    if (is.null(rel_fc)) {
+        rel_fc <- rep(1, nk)
+    } else {
+        stopifnot(is.numeric(rel_fc), length(rel_fc) == nk, rel_fc >= 0)
+    }
     
     # initialize count matrix
     gs <- paste0("gene", seq_len(n_genes))
@@ -86,10 +96,15 @@ simData <- function(x, n_genes = 500, n_cells = 300,
     
     # for ea. cluster, sample set of genes to simulate from
     gs_by_k <- setNames(sample(rownames(x), n_genes, TRUE), gs)
-    gs_by_k <- replicate(nk, gs_by_k, simplify = FALSE) %>% set_names(kids)
-    #gs_by_k <- replicate(nk, 
-    #    setNames(sample(rownames(x), n_genes, TRUE), gs),
-    #    simplify = FALSE) %>% set_names(kids)
+    gs_by_k <- replicate(nk, gs_by_k) %>% set_colnames(kids)
+
+    # impute type-genes
+    if (p_type != 0)
+        gs_by_k <- .impute_type_genes(x, gs_by_k, gs_idx, p_type)
+
+    # split by cluster & categroy
+    gs_by_k <- gs_by_k %>% split(col(.)) %>% 
+        set_names(kids) %>% map(set_names, gs)
     gs_by_kc <- lapply(kids, function(k) 
         lapply(cats, function(c)
             gs_by_k[[k]][gs_idx[[c, k]]]) %>% 
@@ -108,12 +123,17 @@ simData <- function(x, n_genes = 500, n_cells = 300,
         set_rownames(cats)
     
     # compute NB parameters
-    b <- exp(rowData(x)$beta)
     o <- exp(colData(x)$offset)
-    m <- vapply(o, function(l) b*l, numeric(nrow(x)))
-    dimnames(m) <- dimnames(x)
-    d <- rowData(x)$dispersion
-    names(d) <- rownames(x)
+    m <- lapply(sids, function(s) {
+        cn <- paste("beta", s, sep = ".")
+        k <- grep(cn, names(rowData(x)))
+        b <- exp(rowData(x)[[k]])
+        vapply(o, "*", b, FUN.VALUE = numeric(nrow(x))) %>% 
+            set_rownames(rownames(x)) %>% 
+            set_colnames(colnames(x))
+    })
+    d <- rowData(x)$dispersion %>% 
+        set_names(rownames(x))
     
     sim_mean <- lapply(kids, function(k) 
         lapply(gids, function(g)
@@ -133,24 +153,30 @@ simData <- function(x, n_genes = 500, n_cells = 300,
                 cs_g1 <- sample(cs_ks, ng1, replace = TRUE)
                 cs_g2 <- sample(cs_ks, ng2, replace = TRUE)
                 
-                m_g1 <- m[gs_kc, cs_g1, drop = FALSE]
-                m_g2 <- m[gs_kc, cs_g2, drop = FALSE]
+                m_g1 <- m[[s]][gs_kc, cs_g1, drop = FALSE]
+                m_g2 <- m[[s]][gs_kc, cs_g2, drop = FALSE]
                 d_kc <- d[gs_kc]
                 lfc_kc <- lfc[[c, k]]
                 
                 gidx <- gs_idx[[c, k]]
                 cidx <- c(g1, g2)
                 
-                counts <- .sim(c, cs_g1, cs_g2, m_g1, m_g2, d = d_kc, lfc = lfc_kc)
-                y[gidx, cidx] <- counts
-                sim_mean[[k]]$A[gidx] <- rowMeans(m_g1) # ... * lfc ??
-                sim_mean[[k]]$B[gidx] <- rowMeans(m_g2)
+                re <- .sim(c, cs_g1, cs_g2, m_g1, m_g2, d_kc, lfc_kc)
+                y[gidx, cidx] <- re$cs
+                sim_mean[[k]]$A[gidx] <- re$ms$A
+                sim_mean[[k]]$B[gidx] <- re$ms$B
             }
         }
     }
     
-    # construct gene metadata table storing
-    # gene | cluster_id | category | logFC
+    sim_mean <- sim_mean %>%
+        map(bind_cols) %>% 
+        bind_rows(.id = "cluster_id") %>% 
+        mutate_at("cluster_id", factor) %>% 
+        mutate(gene = rep(gs, nk))
+    
+    # construct gene metadata table storing ------------------------------------
+    # gene | cluster_id | category | logFC, gene, disp, mean used for sim.
     gi <- data.frame(
         gene = unlist(gs_idx),
         cluster_id = rep.int(rep(kids, each = length(cats)), c(n_dd)),
@@ -159,14 +185,12 @@ simData <- function(x, n_genes = 500, n_cells = 300,
         sim_gene = unlist(gs_by_kc),
         sim_disp = d[unlist(gs_by_kc)]) %>% 
         mutate_at("gene", as.character)
+    # add true simulation means
+    gi <- full_join(gi, sim_mean, by = c("gene", "cluster_id")) %>% 
+        rename("sim_mean.A" = "A", "sim_mean.B" = "B")
+    # reorder
     o <- order(as.numeric(gsub("[a-z]", "", gi$gene)))
     gi <- gi[o, ] %>% set_rownames(NULL)
-    
-    a <- unlist(map_depth(sim_mean, 1, "A"))
-    b <- unlist(map_depth(sim_mean, 1, "B"))
-    o <- order(as.numeric(gsub(".*\\.[a-z]+", "", names(a))))
-    gi$sim_mean.A <- a[o]
-    gi$sim_mean.B <- b[o]
     
     # construct SCE
     cd$sample_id <- factor(paste(cd$sample_id, cd$group_id, sep = "."))
@@ -187,21 +211,3 @@ simData <- function(x, n_genes = 500, n_cells = 300,
         colData = cd, 
         metadata = md)
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
