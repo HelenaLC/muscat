@@ -91,13 +91,11 @@ mmDS <- function(x, coef = NULL, covs = NULL, method = c("dream", "vst"),
         fun(y, coef, covs, n_threads, verbose, ...) %>% 
             add_column(gene = rownames(y), cluster_id = k, .before = 1) %>% 
             set_rownames(NULL)
-    })
+    }) 
     if (verbose) pb$terminate()
     
     # global p-value adjustment
-    p_adj <- p.adjust(unlist(map_depth(res, 1, "p_adj.loc")))
-    p_adj <- split(p_adj, rep.int(kids, vapply(res, nrow, numeric(1))))
-    res <- lapply(kids, function(k) res[[k]] %>% 
-        add_column(p_adj.glb = p_adj[[k]], .after = "p_adj.loc"))
-    return(res)
+    res %>% bind_rows %>% 
+        mutate(p_adj.glb = p.adjust(p_val)) %>% 
+        split(.$cluster_id)
 }

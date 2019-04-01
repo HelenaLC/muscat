@@ -133,7 +133,7 @@
         data.frame(sum[coef, 1], res)
     }) %>% bind_rows %>% 
         set_colnames(c(coef, "F", "p_val")) %>% 
-        dplyr::mutate(p_adj.loc = p.adjust(p_val))
+        mutate(p_adj.loc = p.adjust(p_val))
 } 
 
 # helper to prepare colData for .mm_dream/vst
