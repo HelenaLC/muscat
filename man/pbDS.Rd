@@ -66,10 +66,10 @@ data(sce)
 pb <- aggregateData(sce)
 
 # specify design & contrast matrix
-ei <- metadata(sce)$experiment_info
-design <- model.matrix(~ 0 + ei$group)
-dimnames(design) <- list(ei$sample_id, levels(ei$group))
-contrast <- limma::makeContrasts("stim-ctrl", levels = design)
+ei <- metadata(x)$experiment_info
+design <- model.matrix(~ 0 + ei$group_id)
+dimnames(design) <- list(ei$sample_id, levels(ei$group_id))
+contrast <- limma::makeContrasts("B-A", levels = design)
 
 # test for cluster-specific DE 
 res <- pbDS(sce, pb, design, contrast, method = "edgeR")
