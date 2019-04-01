@@ -10,7 +10,8 @@ mmDS(x, coef = NULL, covs = NULL, method = c("dream", "vst"),
   n_cells = 10, n_samples = 2, min_count = 1, min_cells = 20,
   n_threads = 8, verbose = TRUE, ...)
 
-.mm_dream(x, coef, covs, n_threads, verbose, dup_corr = FALSE)
+.mm_dream(x, coef, covs, n_threads, verbose, dup_corr = FALSE,
+  trended = TRUE, ddf = c("Satterthwaite", "Kenward-Roger"))
 
 .mm_vst(x, coef, covs, n_threads, verbose, blind = TRUE, REML = TRUE)
 }
@@ -49,6 +50,14 @@ on progress and a progress bar should be displayed.}
 
 \item{dup_corr}{logical; whether to use 
 \code{\link[limma]{duplicateCorrelation}}.}
+
+\item{trended}{logical; whether to use expression-dependent variance priors
+in \code{\link[limma]{eBayes}}.}
+
+\item{ddf}{character string specifying the method for estimating 
+the effective degrees of freedom. Either \code{"Satterthwaite"}
+(faster) or \code{"Kenward-Roger"} (more accurate) or . 
+See \code{\link[variancePartition]{dream}} for details.}
 
 \item{blind}{logical; whether to ignore experimental design for the vst.}
 
