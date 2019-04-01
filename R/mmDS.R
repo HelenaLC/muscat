@@ -29,6 +29,8 @@
 #' 
 #' @author Pierre-Luc Germain and Helena L. Crowell.
 #' 
+#' @importFrom dplyr %>% mutate bind_rows
+#' @importFrom magrittr add_column
 #' @importFrom progress progress_bar
 #' @importFrom purrr map_depth
 #' @importFrom tibble add_column
