@@ -15,11 +15,17 @@
 #' @param p_dd numeric vector of length 6.
 #'   Specifies the probability of a gene being
 #'   EE, EP, DE, DP, DM, or DB, respectively.
-#' @param fc numeric value to use as mean logFC
-#'   for DE, DP, DM, and DB type of genes.
 #' @param p_type numeric. Probaility of EE/EP gene being a type-gene.
 #'   If a gene is of class "type" in a given cluster, a unique mean 
 #'   will be used for that gene in the respective cluster.
+#' @param lfc numeric value to use as mean logFC
+#'   for DE, DP, DM, and DB type of genes.
+#' @param rel_lfc numeric vector of relative logFCs for each cluster. 
+#'   Should be of length \code{nlevels(x$cluster_id)} with 
+#'   \code{levels(x$cluster_id)} as names. 
+#'   Defaults to factor of 1 for all clusters.
+#'   
+#'   
 #' 
 #' @return a \code{\link[SingleCellExperiment]{SingleCellExperiment}}
 #'   containing multiple clusters & samples across 2 groups.
@@ -45,7 +51,7 @@
 
 simData <- function(x, n_genes = 500, n_cells = 300, 
     probs = NULL, p_dd = diag(6)[1, ], p_type = 0,
-    fc = 2, rel_fc = NULL) {
+    lfc = 2, rel_lfc = NULL) {
     
     # throughout this code...
     # k: cluster ID
@@ -58,7 +64,7 @@ simData <- function(x, n_genes = 500, n_cells = 300,
     stopifnot(is.numeric(n_cells), length(n_cells) == 1 | length(n_cells) == 2)
     stopifnot(is.numeric(p_dd), length(p_dd) == 6, sum(p_dd) == 1)
     stopifnot(is.numeric(p_type), length(p_type) == 1, p_type >= 0)
-    stopifnot(is.numeric(fc), is.numeric(fc), fc > 1)
+    stopifnot(is.numeric(lfc), is.numeric(lfc), lfc > 1)
     
     kids <- levels(x$cluster_id)
     sids <- levels(x$sample_id)
@@ -67,10 +73,17 @@ simData <- function(x, n_genes = 500, n_cells = 300,
     names(sids) <- sids
     names(gids) <- gids
     nk <- length(kids)
-    if (is.null(rel_fc)) {
-        rel_fc <- rep(1, nk)
+    
+    if (is.null(rel_lfc)) {
+        rel_lfc <- rep(1, nk)
+        names(rel_lfc) <- kids
     } else {
-        stopifnot(is.numeric(rel_fc), length(rel_fc) == nk, rel_fc >= 0)
+        stopifnot(is.numeric(rel_lfc), length(rel_lfc) == nk, rel_lfc >= 0)
+        if (is.null(names(rel_lfc))) {
+            names(rel_lfc) <- kids
+        } else {
+            stopifnot(setequal(names(rel_lfc), kids))
+        }
     }
     
     # initialize count matrix
@@ -116,9 +129,9 @@ simData <- function(x, n_genes = 500, n_cells = 300,
             n <- n_dd[c, k]
             if (c == "ee") return(rep(NA, n))
             signs <- sample(c(-1, 1), n, TRUE)
-            lfc <- rgamma(n, 4, 4/fc) * signs
-            names(lfc) <- gs_by_kc[[k]][[c]]
-            return(lfc)
+            lfcs <- rgamma(n, 4, 4/lfc) * signs
+            names(lfcs) <- gs_by_kc[[k]][[c]]
+            lfcs * rel_lfc[k]
         }), vector("list", length(cats))) %>% 
         set_rownames(cats)
     
