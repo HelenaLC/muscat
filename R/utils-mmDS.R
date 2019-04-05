@@ -11,9 +11,10 @@
 #'   \code{\link[limma]{duplicateCorrelation}}.
 #' @param trended logical; whether to use expression-dependent variance priors
 #'  in \code{\link[limma]{eBayes}}.
-#' @param ddf logical; methods for estimating degrees of freedom; either
-#'  'Kenward-Roger' (default, more accurate) or 'Satterthwaite' (faster). See 
-#'  \code{\link[variancePartition]{dream}}.
+#' @param ddf character string specifying the method for estimating 
+#'  the effective degrees of freedom. Either \code{"Satterthwaite"}
+#'  (faster) or \code{"Kenward-Roger"} (more accurate) or . 
+#'  See \code{\link[variancePartition]{dream}} for details.
 #'   
 #' @importFrom edgeR DGEList
 #' @importFrom doParallel registerDoParallel
@@ -26,11 +27,15 @@
 #' @importFrom SingleCellExperiment counts sizeFactors
 #' @importFrom stats as.formula model.matrix
 #' @importFrom variancePartition dream getContrast
-.mm_dream <- function(x, coef, covs, n_threads, verbose, 
-                      dup_corr = FALSE, trended = TRUE, ddf="Kenward-Roger") {
+.mm_dream <- function(x, 
+    coef, covs, n_threads, verbose, 
+    dup_corr = FALSE, trended = TRUE, 
+    ddf = c("Satterthwaite", "Kenward-Roger")) {
+    
     if (is.null(sizeFactors(x)))
         x <- computeSumFactors(x)
     
+    ddf <- match.arg(ddf)
     x <- x[rowSds(as.matrix(counts(x))) > 0, ]
     y <- DGEList(counts(x), norm.factors = 1 / sizeFactors(x))
     
@@ -57,7 +62,7 @@
         coef <- last(colnames(mm))
         if (verbose) 
             message("Argument 'coef' not specified; ", 
-                    sprintf("testing for %s.", dQuote(coef)))
+                sprintf("testing for %s.", dQuote(coef)))
     }
     
     contrast <- getContrast(v, as.formula(formula), cd, coef)
@@ -174,11 +179,9 @@
 
     if(verbose) message("Applying empirical Bayes moderation")
     res <- .mmEBayesWrapper(fits, coef, trended)
-    
     res$p_adj.loc <- p.adjust(res$p_val, method = "BH")
     return(res)
 }
-
 
 # helper to prepare colData for .mm_dream/vst
 #' @importFrom dplyr %>% mutate_at

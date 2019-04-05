@@ -55,10 +55,10 @@
 #' pb <- aggregateData(sce)
 #' 
 #' # specify design & contrast matrix
-#' ei <- metadata(sce)$experiment_info
-#' design <- model.matrix(~ 0 + ei$group)
-#' dimnames(design) <- list(ei$sample_id, levels(ei$group))
-#' contrast <- limma::makeContrasts("stim-ctrl", levels = design)
+#' ei <- metadata(x)$experiment_info
+#' design <- model.matrix(~ 0 + ei$group_id)
+#' dimnames(design) <- list(ei$sample_id, levels(ei$group_id))
+#' contrast <- limma::makeContrasts("B-A", levels = design)
 #' 
 #' # test for cluster-specific DE 
 #' res <- pbDS(sce, pb, design, contrast, method = "edgeR")
@@ -171,7 +171,7 @@ pbDS <- function(x, pb,
     # remove empty clusters
     skipped <- vapply(res, is.null, logical(1))
     if (any(skipped))
-        message(paste("Cluster(s)", dQuote(k), "skipped due to an",
+        message(paste("Cluster(s)", dQuote(kids[skipped]), "skipped due to an",
             "insufficient number of cells in at least 2 samples per group."))
     res <- res[!skipped]
     kids <- kids[names(res)]

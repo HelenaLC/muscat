@@ -5,7 +5,7 @@
 \title{simData}
 \usage{
 simData(x, n_genes = 500, n_cells = 300, probs = NULL,
-  p_dd = diag(6)[1, ], fc = 2)
+  p_dd = diag(6)[1, ], p_type = 0, lfc = 2, rel_lfc = NULL)
 }
 \arguments{
 \item{x}{a \code{\link[SingleCellExperiment]{SingleCellExperiment}}.}
@@ -23,8 +23,17 @@ NULL (equal probabilities) or numeric values in [0, 1] that sum to 1.}
 Specifies the probability of a gene being
 EE, EP, DE, DP, DM, or DB, respectively.}
 
-\item{fc}{numeric value to use as mean logFC
+\item{p_type}{numeric. Probaility of EE/EP gene being a type-gene.
+If a gene is of class "type" in a given cluster, a unique mean 
+will be used for that gene in the respective cluster.}
+
+\item{lfc}{numeric value to use as mean logFC
 for DE, DP, DM, and DB type of genes.}
+
+\item{rel_lfc}{numeric vector of relative logFCs for each cluster. 
+Should be of length \code{nlevels(x$cluster_id)} with 
+\code{levels(x$cluster_id)} as names. 
+Defaults to factor of 1 for all clusters.}
 }
 \value{
 a \code{\link[SingleCellExperiment]{SingleCellExperiment}}
@@ -38,8 +47,8 @@ Simulation of complex scRNA-seq data
 across 2 experimental conditions from a real scRNA-seq data set.
 }
 \examples{
-data(kang)
-simData(kang,
+data(sce)
+simData(sce,
     n_genes = 10, n_cells = 10,
     p_dd = diag(6)[1, ])
 

@@ -29,6 +29,7 @@
 #' 
 #' @author Pierre-Luc Germain and Helena L. Crowell.
 #' 
+#' @importFrom dplyr %>% mutate bind_rows
 #' @importFrom progress progress_bar
 #' @importFrom purrr map_depth
 #' @importFrom tibble add_column
@@ -41,7 +42,7 @@ mmDS <- function(x, coef = NULL, covs = NULL, method = c("dream", "vst"),
     .check_sce(x, req_group = TRUE)
     .check_arg_assay(x, "counts")
     
-    if (!is.null(covs) && !any(covs %in% names(colData(x))))
+    if (!is.null(covs) && !all(covs %in% names(colData(x))))
         stop(paste("Some of the specified covariates couldn't be found:",
             paste(setdiff(covs, names(colData(x))), collapse=", ")))
     
@@ -57,7 +58,7 @@ mmDS <- function(x, coef = NULL, covs = NULL, method = c("dream", "vst"),
     
     # filter clusters w/ >= n_cells in >= n_samples
     ei <- metadata(x)$experiment_info
-    m <- match(colnames(n_cells_by_ks), ei$sample_id)
+    m <- match(levels(x$sample_id), ei$sample_id)
     gids <- ei$group_id[m]
     ks_keep <- apply(n_cells_by_ks > n_cells, 1, 
         function(u) all(table(gids[u]) >= n_samples))
@@ -88,17 +89,14 @@ mmDS <- function(x, coef = NULL, covs = NULL, method = c("dream", "vst"),
             message(sprintf(
                 "Testing %s genes across %s cells in cluster %s...", 
                 nrow(y), ncol(y), dQuote(k)))
-        res <- fun(y, coef, covs, n_threads, verbose, ...) %>% 
-            add_column(gene = rownames(y), cluster_id = k, .before = 1)
-        rownames(res) <- NULL
-        return(res)
-    })
+        fun(y, coef, covs, n_threads, verbose, ...) %>% 
+            add_column(gene = rownames(y), cluster_id = k, .before = 1) %>% 
+            set_rownames(NULL)
+    }) 
     if (verbose) pb$terminate()
     
     # global p-value adjustment
-    p_adj <- p.adjust(unlist(map_depth(res, 1, "p_adj.loc")))
-    p_adj <- split(p_adj, rep.int(kids, vapply(res, nrow, numeric(1))))
-    res <- lapply(kids, function(k) res[[k]] %>% 
-        add_column(p_adj.glb = p_adj[[k]], .after = "p_adj.loc"))
-    return(res)
+    res %>% bind_rows %>% 
+        mutate(p_adj.glb = p.adjust(p_val)) %>% 
+        split(.$cluster_id)
 }
