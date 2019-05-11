@@ -13,7 +13,9 @@ mmDS(x, coef = NULL, covs = NULL, method = c("dream", "vst"),
 .mm_dream(x, coef, covs, n_threads, verbose, dup_corr = FALSE,
   trended = TRUE, ddf = c("Satterthwaite", "Kenward-Roger"))
 
-.mm_vst(x, coef, covs, n_threads, verbose, blind = TRUE, REML = TRUE)
+.mm_vst(x, coef, covs, n_threads, verbose, vst = c("sctransform",
+  "DESeq2"), bayesian = FALSE, blind = TRUE, REML = TRUE,
+  ddf = c("Satterthwaite", "Kenward-Roger", "lme4"))
 }
 \arguments{
 \item{x}{a \code{\link[SingleCellExperiment]{SingleCellExperiment}}.}
@@ -26,7 +28,7 @@ column names to use as covariates.}
 
 \item{method}{a character string. 
 Either \code{"dream"} (default, lme4 with voom-weights), 
-\code{"vst"} (lme4 with variance-stabilizing transformation), 
+\code{"vst"} (variance-stabilizing transformation), 
 or a function accepting the same arguments.}
 
 \item{n_cells}{number of cells per cluster-sample 
@@ -55,9 +57,17 @@ on progress and a progress bar should be displayed.}
 in \code{\link[limma]{eBayes}}.}
 
 \item{ddf}{character string specifying the method for estimating 
-the effective degrees of freedom. Either \code{"Satterthwaite"}
-(faster) or \code{"Kenward-Roger"} (more accurate) or . 
-See \code{\link[variancePartition]{dream}} for details.}
+the effective degrees of freedom. For \code{method = "dream"}, 
+either \code{"Satterthwaite"} (faster) or \code{"Kenward-Roger"} 
+(more accurate); see \code{\link[variancePartition]{dream}}.
+For \code{method = "vst"}, method \code{"lme4"} is also valid;
+see \code{\link[lmerTest]{contest.lmerModLmerTest}}.}
+
+\item{vst}{method to use as variance-stabilizing transformations. 
+\code{"sctransform"} for \code{\link[sctransform]{vst}};
+\code{"DESeq2"} for \code{\link[DESeq2]{varianceStabilizingTransformation}}.}
+
+\item{bayesian}{logical; whether to use bayesian mixed models.}
 
 \item{blind}{logical; whether to ignore experimental design for the vst.}
 
@@ -69,21 +79,29 @@ a data.frame
 \description{
 Performs cluster-wise DE analysis by fitting cell-level models.
 }
+\details{
+\code{.mm_dream} and \code{.mm_vst} expect cells from a single cluster, 
+and do not perform filtering or handle incorrect parameters well. 
+Meant to be called by \code{mmDS} with \code{method = c("dream", "vst")} and
+\code{vst = c("sctransform", "DESeq2")} to be applied across all clusters.
+\describe{
+\item{\code{method = "dream"}}{
+  voom-lme4-implementation \code{\link[variancePartition]{dream}} 
+  of mixed models for RNAseq data.}
+\item{\code{method = "vst"}}{
+  \describe{
+  \item{\code{vst = "sctransform"}}{
+    \code{lmer} or \code{blmer} mixed models on 
+    \code{\link[sctransform]{vst}} transformed counts.}
+  \item{\code{vst = "DESeq2"}}{
+    \code{\link[DESeq2]{varianceStabilizingTransformation}} 
+    followed by \code{lme4} mixed models.}}}}
+}
 \section{Functions}{
 \itemize{
-\item \code{.mm_dream}: A SCE wrapper around the voom-lme4-implementation 
-\code{\link[variancePartition]{dream}} of mixed models for RNAseq data. 
-\code{.mm_dream} expects cells from a single cluster, and
-does not perform filtering or handle incorrect parameters well.
-Meant to be called by \code{mmDS} with \code{method = "dream"}
-to be applied across all clusters.
+\item \code{.mm_dream}: see details.
 
-\item \code{.mm_vst}: A SCE wrapper around \code{\link[DESeq2]{varianceStabilizingTransformation}} 
-followed by \code{lme4} mixed models. 
-\code{.mm_vst} expects cells from a single cluster, and 
-does not perform filtering or handle incorrect parameters well. 
-Meant to be called by \code{mmDS} with \code{method = "vst"}
-to be applied across all clusters.
+\item \code{.mm_vst}: see details.
 }}
 
 \author{

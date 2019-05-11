@@ -53,6 +53,20 @@ for (method in c("edgeR", "limma-trend", "limma-voom")) {
 }
 
 # mmDS() -----------------------------------------------------------------------
+# test_that("mmDS;method='dream'", {
+#     res <- mmDS(sce, method = "dream", verbose = TRUE)
+# 
+#     expect_is(res, "list")
+#     expect_identical(names(res), levels(kids))
+# 
+#     p_adj <- map(res, pull, "p_adj.loc")
+#     n_de_res <- unlist(map(p_adj, function(u) sum(u < 1e-6)))
+#     expect_true(all(n_de_res == n_de))
+# 
+#     os <- map(p_adj, order)
+#     de_gs_res <- map(os, function(o) rownames(sce)[o][seq_len(n_de)])
+#     expect_true(all(unlist(map(de_gs_res, setequal, de_gs))))
+# })
 
 # global p-value adjustment ----------------------------------------------------
 test_that(".p_adj_global", {

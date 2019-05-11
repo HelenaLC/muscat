@@ -148,7 +148,8 @@ pbDS <- function(x, pb,
                         y <- calcNormFactors(y)
                         cpm(y, log = TRUE, prior.count = 3)
                     },
-                    logcounts = y, # log-normcounts > do nothing
+                    logcounts = y, # log-normcounts,
+                    vstcounts = y, # vst-counts > do nothing
                     log2(y + 1))   # CPM, scaledCPM, normcounts > take log
             } else if (method == "limma-voom") {
                 trend <- robust <- FALSE
@@ -175,13 +176,13 @@ pbDS <- function(x, pb,
             "insufficient number of cells in at least 2 samples per group."))
     res <- res[!skipped]
     kids <- kids[names(res)]
-
+    
     # re-organize by contrast & 
     # do global p-value adjustment
     tt <- lapply(res, "[[", "tt")
     tt <- lapply(cs, function(c) map(tt, c))
     tt <- .p_adj_global(tt)
-
+    
     # return results
     data <- lapply(res, "[[", "data")
     list(table = tt, 

@@ -1,4 +1,4 @@
 library(testthat)
-library(ddSingleCell)
+library(muscat)
 
-test_check("ddSingleCell")
+test_check("muscat")

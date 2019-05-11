@@ -158,9 +158,9 @@ cats <- factor(cats, levels = cats)
             g2_hi <- sample(ng2, round(ng2 * 0.5))
             list(
                 .nb(cs_g1[-g1_hi], d, m_g1),
+                .nb(cs_g1[ g1_hi], d, m_g1, lfc), # 50% g1 hi
                 .nb(cs_g2[-g2_hi], d, m_g2),
-                .nb(cs_g1[ g1_hi], d, m_g1, -lfc), # lfc < 0 => 50% g2 hi
-                .nb(cs_g2[ g2_hi], d, m_g2,  lfc)) # lfc > 0 => 50% g2 hi
+                .nb(cs_g2[ g2_hi], d, m_g2, lfc)) # 50% g2 hi
         },
         de = {
             list(
@@ -168,21 +168,22 @@ cats <- factor(cats, levels = cats)
                 .nb(cs_g2, d, m_g2,  lfc)) # lfc > 0 => all g2 hi
         },
         dp = {
-            g1_hi <- sample(ng1, round(ng1 * 0.3))
-            g2_hi <- sample(ng2, round(ng2 * 0.7))
-            list(                                  # g %  >0 <0
-                .nb(cs_g1[-g1_hi], d, m_g1, -lfc), # 1 70 -- up
-                .nb(cs_g1[ g1_hi], d, m_g1,  lfc), # 1 30 up --
-                .nb(cs_g2[-g2_hi], d, m_g2, -lfc), # 2 30 -- up
-                .nb(cs_g2[ g2_hi], d, m_g2,  lfc)) # 2 70 up --
+            props <- sample(c(0.3, 0.7), 2)
+            g1_hi <- sample(ng1, round(ng1 * props[1]))
+            g2_hi <- sample(ng2, round(ng2 * props[2]))
+            list(                           
+                .nb(cs_g1[-g1_hi], d, m_g1), 
+                .nb(cs_g1[ g1_hi], d, m_g1,  lfc), # lfc > 0 => 30/70% up
+                .nb(cs_g2[-g2_hi], d, m_g2), 
+                .nb(cs_g2[ g2_hi], d, m_g2, -lfc)) # lfc < 0 => 70/30% up
         },
         dm = {
             g1_hi <- sample(ng1, round(ng1 * 0.5))
             g2_hi <- sample(ng2, round(ng2 * 0.5))
             list(
                 .nb(cs_g1[-g1_hi], d, m_g1),
-                .nb(cs_g2[-g2_hi], d, m_g2),
                 .nb(cs_g1[ g1_hi], d, m_g1, -lfc), # lfc < 0 => 50% g1 hi
+                .nb(cs_g2[-g2_hi], d, m_g2),
                 .nb(cs_g2[ g2_hi], d, m_g2,  lfc)) # lfc > 0 => 50% g2 hi
         }, 
         db = {
@@ -201,19 +202,13 @@ cats <- factor(cats, levels = cats)
         bind_cols %>% as.matrix
     ms <- switch(cat, 
         ee = ms,
-        ep = cbind(
-            rowMeans(ms[, c(1, 3)]),
-            rowMeans(ms[, c(2, 4)])),
         de = ms,
-        dp = cbind(
-            rowMeans(ms[, c(1, 2)]),
-            rowMeans(ms[, c(3, 4)])),
-        dm = cbind(
-            rowMeans(ms[, c(1, 3)]),
-            rowMeans(ms[, c(2, 4)])),
-        db =  cbind(
+        db = cbind(
             ms[, 1],
-            rowMeans(ms[, c(2, 3)]))) %>% 
+            rowMeans(ms[, 2:3])),
+        cbind(
+            rowMeans(ms[, 1:2]),
+            rowMeans(ms[, 3:4]))) %>% 
         split(col(.)) %>% 
         set_names(c("A", "B"))
     list(cs = cs, ms = ms)

@@ -10,7 +10,7 @@
 #'   column names to use as covariates.
 #' @param method a character string. 
 #'   Either \code{"dream"} (default, lme4 with voom-weights), 
-#'   \code{"vst"} (lme4 with variance-stabilizing transformation), 
+#'   \code{"vst"} (variance-stabilizing transformation), 
 #'   or a function accepting the same arguments.
 #' @param n_cells number of cells per cluster-sample 
 #'   required to consider a sample for testing.
@@ -35,23 +35,21 @@
 #' @importFrom tibble add_column
 #' @importFrom SingleCellExperiment colData counts
 #' @export
-mmDS <- function(x, coef = NULL, covs = NULL, method = c("dream", "vst"),
+mmDS <- function(x, 
+    coef = NULL, covs = NULL, method = c("dream", "vst"),
     n_cells = 10, n_samples = 2, min_count = 1, min_cells = 20,
     n_threads = 8, verbose = TRUE, ...) {
     
     .check_sce(x, req_group = TRUE)
     .check_arg_assay(x, "counts")
-    
+
     if (!is.null(covs) && !all(covs %in% names(colData(x))))
         stop(paste("Some of the specified covariates couldn't be found:",
             paste(setdiff(covs, names(colData(x))), collapse=", ")))
     
-    if (is.function(method)) {
-        fun <- method
-    } else {
-        fun <- switch(match.arg(method), 
-            dream = .mm_dream, vst = .mm_vst)
-    }
+    # get method function
+    method <- match.arg(method)
+    fun <- ifelse(is.function(method), method, get(paste0(".mm_", method)))
     
     # counts cells per cluster-sample
     n_cells_by_ks <- table(x$cluster_id, x$sample_id)
@@ -76,11 +74,11 @@ mmDS <- function(x, coef = NULL, covs = NULL, method = c("dream", "vst"),
     names(kids) <- kids
     
     # split cells by cluster
-    cells_by_k <- .split_cells(x, "cluster_id")
+    cells_by_k <- split(colnames(x), x$cluster_id)
     
     if (verbose) 
         pb <- progress_bar$new(total = length(kids))
-    res <- lapply(kids, function(k, ...) {
+    res <- lapply(kids, function(k) {
         y <- x[, cells_by_k[[k]]]
         if (min_count < 1) 
             min_count <- floor(min_count * min(n_cells_by_ks[k, ]))
@@ -89,6 +87,7 @@ mmDS <- function(x, coef = NULL, covs = NULL, method = c("dream", "vst"),
             message(sprintf(
                 "Testing %s genes across %s cells in cluster %s...", 
                 nrow(y), ncol(y), dQuote(k)))
+
         fun(y, coef, covs, n_threads, verbose, ...) %>% 
             add_column(gene = rownames(y), cluster_id = k, .before = 1) %>% 
             set_rownames(NULL)
