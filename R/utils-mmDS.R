@@ -29,7 +29,7 @@
 #' @importFrom variancePartition dream getContrast
 .mm_dream <- function(x, 
     coef, covs, n_threads, verbose, 
-    dup_corr = FALSE, trended = TRUE, 
+    dup_corr = FALSE, trended = FALSE, 
     ddf = c("Satterthwaite", "Kenward-Roger")) {
     
     if (is.null(sizeFactors(x)))
@@ -113,11 +113,11 @@
     }
     
     # we fit mixed models on each gene
-    fits <- bplapply( y, form=formula, df=cd, testcoef=coef, REML=REML, ddf=ddf, 
-                      BPPARAM=MulticoreParam(n_threads), bayesian=bayesian, FUN=.fitlmer)
-    
+    fits <- bplapply( 1:nrow(y), BPPARAM=MulticoreParam(n_threads), FUN=function(x){
+        .fitlmer( y[x,], form=formula, df=cd, testcoef=coef, REML=REML, ddf=ddf, bayesian=bayesian)
+    })
     if(verbose) message("Applying empirical Bayes moderation")
-    res <- .mmEBayesWrapper(fits, coef, trended)
+    res <- .mmEBayesWrapper(fits, coef)
     
     res$p_adj.loc <- p.adjust(res$p_val, method = "BH")
     return(res)
@@ -174,11 +174,12 @@
     }
 
     # we fit mixed models on each gene
-    fits <- bplapply( y, 1, form=formula, df=cd, testcoef=coef, REML=REML, ddf=ddf, 
-                      BPPARAM=MulticoreParam(n_threads), bayesian=bayesian, FUN=.fitlmer)
+    fits <- bplapply( 1:nrow(y), BPPARAM=MulticoreParam(n_threads), FUN=function(x){
+        .fitlmer(y[x,], form=formula, df=cd, testcoef=coef, REML=REML, ddf=ddf, bayesian=bayesian)
+    })
 
     if(verbose) message("Applying empirical Bayes moderation")
-    res <- .mmEBayesWrapper(fits, coef, trended)
+    res <- .mmEBayesWrapper(fits, coef)
     res$p_adj.loc <- p.adjust(res$p_val, method = "BH")
     return(res)
 }
@@ -232,7 +233,7 @@
 
 # formats a list of .fitlmer results into an eBayes compatible list and performs moderation
 #' @importFrom limma eBayes
-.mmEBayesWrapper <- function( fit.res, testcoef, trended=TRUE ){
+.mmEBayesWrapper <- function( fit.res, testcoef, trended=FALSE ){
     rl <- fit.res[!sapply(fit.res,is.null)]
     res <- list( coefficients=t(sapply(rl,FUN=function(x) x$beta )),
                  stdev.unscaled=t(sapply(rl,FUN=function(x) x$SE) ),
