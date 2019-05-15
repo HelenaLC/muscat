@@ -27,11 +27,17 @@ cluster_colors <- c(
 .make_ei <- function(x) {
     if (is(x, "SingleCellExperiment"))
         x <- colData(x)
-    m <- match(levels(x$sample_id), x$sample_id)
-    data.frame(
-        sample_id = levels(x$sample_id),
+    sids <- unique(x$sample_id)
+    m <- match(sids, x$sample_id)
+    df <- data.frame(
+        stringsAsFactors = FALSE,
+        sample_id = sids,
         group_id = x$group_id[m],
-        n_cells = as.numeric(table(x$sample_id)))
+        n_cells = as.numeric(table(x$sample_id)[sids]))
+    for (i in c("sample_id", "group_id"))
+        if (is.factor(x[[i]]))
+            df <- mutate_at(df, i, factor, levels = levels(x[[i]]))
+    return(df)
 }
 
 # ------------------------------------------------------------------------------
