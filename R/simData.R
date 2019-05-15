@@ -94,7 +94,8 @@ simData <- function(x, n_genes = 500, n_cells = 300,
     # sample cell metadata
     cd <- .sample_cell_md(
         n = n_cells, probs = probs,
-        ids = list(kids, sids, gids)) %>% set_rownames(cs)
+        ids = list(kids, sids, gids)) %>% 
+        set_rownames(cs)
     cs_idx <- .split_cells(cd, by = colnames(cd))
     n_cs <- modify_depth(cs_idx, -1, length)
     
