@@ -12,7 +12,12 @@ export(resDS)
 export(simData)
 export(toyData)
 import(ComplexHeatmap)
+import(Matrix)
 import(ggplot2)
+<<<<<<< HEAD
+=======
+import(lmerTest)
+>>>>>>> mmvst
 importFrom(BiocParallel,MulticoreParam)
 importFrom(BiocParallel,bplapply)
 importFrom(DESeq2,DESeqDataSetFromMatrix)
@@ -73,9 +78,12 @@ importFrom(limma,eBayes)
 importFrom(limma,lmFit)
 importFrom(limma,topTable)
 importFrom(limma,voom)
+<<<<<<< HEAD
 importFrom(lme4,lmer)
 importFrom(lme4,lmerControl)
 importFrom(lmerTest,contest)
+=======
+>>>>>>> mmvst
 importFrom(magrittr,set_colnames)
 importFrom(magrittr,set_rownames)
 importFrom(matrixStats,rowMedians)
