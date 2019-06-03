@@ -19,6 +19,20 @@ cluster_colors <- c(
     return(x)
 }
 
+# ==============================================================================
+# wrapper for z-normalization
+# ------------------------------------------------------------------------------
+.z_norm <- function(x, th = 2.5) {
+    x <- as.matrix(x)
+    sds <- rowSds(x, na.rm = TRUE)
+    sds[sds == 0] <- 1
+    x <- t(t(x - rowMeans(x, na.rm = TRUE)) / sds)
+    #x <- (x - rowMeans(x, na.rm = TRUE)) / sds
+    x[x >  th] <-  th
+    x[x < -th] <- -th
+    return(x)
+}
+
 # ------------------------------------------------------------------------------
 # generate experimental design metadata table 
 # for an input SCE or colData data.frame

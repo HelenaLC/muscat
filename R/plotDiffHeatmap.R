@@ -1,4 +1,4 @@
-#' @rdname plotDiffGenes
+#' @rdname plotDiffHeatmap
 #' @title Heatmap of mean-marker expression by cluster-sample
 #' 
 #' @description ...
@@ -17,6 +17,11 @@
 #'   below which results should be considered significant.
 #' @param lfc single numeric specifying the threshold on absolute logFCs
 #'   above which results should be included.
+#' @param assay a character string specifying which assay 
+#'   in \code{assays(x)}to obtain expression values from.
+#' @param normalize logical specifying whether
+#'   mean-expression values be z-normazlied.
+#' @param colors character vector of colors to use for plotting.
 #' 
 #' @return a \code{\link{HeatmapList-class}} object.
 #' 
@@ -39,7 +44,9 @@
 #' 
 #' @import ComplexHeatmap
 #' @importFrom dplyr %>% bind_rows filter_
+#' @importFrom grDevices colorRampPalette
 #' @importFrom grid gpar
+#' @importFrom magrittr set_rownames
 #' @importFrom methods is
 #' @importFrom purrr modify_depth
 #' @importFrom scales hue_pal
@@ -47,55 +54,59 @@
 #' @importFrom viridis viridis
 #' @export
 
-plotDiffGenes <- function(x, y, c = NULL, g = NULL, k = NULL, 
-    top_n = 20, sort_by = c("p_adj", "logFC"), fdr = 0.05, lfc = 1) {
+plotDiffHeatmap <- function(x, y, c = NULL, g = NULL, k = NULL, 
+    top_n = 20, sort_by = "p_adj.loc", decreasing = FALSE, fdr = 0.05, lfc = 1,
+    assay = "logcounts", normalize = TRUE, colors = viridis(10)) {
     
     # validity checks of input arguments
     .check_sce(x)
     .check_res(x, y)
-    .check_arg_assay(x, "logcounts")
+    .check_arg_assay(x, assay)
     stopifnot(is.null(c) || c %in% names(y$table))
     stopifnot(is.null(g) || is.character(g) & all(g %in% rownames(x)))
     stopifnot(is.null(k) || is.character(k) & all(k %in% levels(x$cluster_id)))
     stopifnot(is.numeric(top_n), length(top_n) == 1, top_n > 0)
-    sort_by <- match.arg(sort_by)
     
     # default to 1st contrast/coef
     y <- y$table
-    if (is.null(c)) c <- names(y)[1]
+    if (is.null(c)) 
+        c <- names(y)[1]
     y <- y[[c]]
     y <- y[!vapply(y, is.null, logical(1))]
     
+    stopifnot(is.character(sort_by), 
+        sort_by %in% names(y[[1]]),
+        is.numeric(y[[1]][[sort_by]]))
+
     # filter results
-    if (!is.null(g)) {
+    if (!is.null(g))
         y <- lapply(y, filter_, ~gene %in% g)
-    }
-    if (!is.null(k)) {
-        if (k == "all") {
-            cluster_ids <- colData(x)$cluster_id
-            k <- levels(cluster_ids)
-        }
-        y <- y[k]
-    }
-    y <- lapply(y, filter_, ~p_adj < fdr, ~abs(logFC) > lfc)
+    if (is.null(k))
+        k <- levels(sce$cluster_id)
+    y <- y[k]
+    y <- lapply(y, filter_, ~p_adj.loc < fdr, ~abs(logFC) > lfc)
+    
+    # get cluster IDs & nb. of clusters
+    kids <- names(y)
+    names(kids) <- kids
+    nk <- length(kids)
     
     # order & subset top_n results
-    y <- switch(sort_by,
-        p_adj = bind_rows(lapply(y, function(u) {
-            o <- order(u$p_adj)
-            o <- o[seq_len(top_n)]
-            u[o[!is.na(o)], ]
-        }))
-        ,
-        logFC = bind_rows(lapply(y, function(u) {
-            o <- order(u$logFC, decreasing = TRUE)
-            o <- o[seq_len(top_n)]
-            u[o[!is.na(o)], ]
-        }))
-    )
+    if (is.null(top_n)) {
+        ns <- vapply(y, nrow, numeric(1))
+    } else {
+        ns <- rep(top_n, length(y))
+    }
+    names(ns) <- kids
+    y <- lapply(kids, function(k) {
+        u <- y[[k]]
+        o <- order(u[[sort_by]], decreasing = decreasing)
+        o <- o[seq_len(ns[k])]
+        u[o[!is.na(o)], ]
+    }) %>% bind_rows
     
-    es <- assays(x)$logcounts
-    es <- es[unlist(y$gene), ]
+    es <- assays(x)[[assay]]
+    es <- es[unlist(y$gene), , drop = FALSE]
     
     # split cells by cluster-sample
     cells_by_ks <- .split_cells(x)
@@ -106,9 +117,22 @@ plotDiffGenes <- function(x, y, c = NULL, g = NULL, k = NULL,
         k <- y$cluster_id[i]
         vapply(cells_by_ks[[k]], function(j)
             mean(es[g, j]), numeric(1))
-    }, numeric(nlevels(x$sample_id))))
-    ms <- .scale(ms)
-    rownames(ms) <- sprintf("%s(%s)", y$gene, y$cluster_id)
+    }, numeric(nlevels(x$sample_id)))) %>% 
+        set_rownames(y$gene)
+    if (normalize) ms <- .z_norm(ms)
+    
+    # row annotation
+    if (length(kids) > 1) {
+        if (nk > length(cluster_colors))
+            cluster_colors <- colorRampPalette(cluster_colors)(nk)
+        cols <- setNames(cluster_colors[seq_len(nk)], kids)
+        row_anno <- data.frame(cluster_id = y$cluster_id)
+        row_anno <- rowAnnotation(row_anno,
+            col = list(cluster_id = cols),
+            gp = gpar(col = "white"))
+    } else {
+        row_anno <- NULL
+    }
     
     # column annoation
     ei <- metadata(x)$experiment_info
@@ -119,12 +143,19 @@ plotDiffGenes <- function(x, y, c = NULL, g = NULL, k = NULL,
         col = list(group_id = cols),
         gp = gpar(col = "white"))
     
-    Heatmap(ms,
-        col = viridis(10),
-        name = "avg. scaled\nexpression",
-        column_title = sprintf("%s (top %s %s)", c, top_n, sort_by),
+    main <- sprintf("%s %s [%s%s]", c, 
+        ifelse(length(k) == 1, sprintf("(%s)", k), ""), 
+        ifelse(is.null(top_n), "", sprintf("top_n = %s, ", top_n)), 
+        paste("sort_by =", dQuote(sort_by)))
+    
+    row_anno + Heatmap(ms,
+        col = colors,
+        name = paste0("z-normalized\n"[normalize], "mean expr."),
+        column_title = main,
         cluster_rows = FALSE,
         cluster_columns = FALSE,
         row_names_gp = gpar(fontsize = 6),
-        top_annotation = col_anno)
+        top_annotation = col_anno,
+        split = y$cluster_id,
+        combined_name_fun = NULL)
 }
