@@ -67,7 +67,7 @@
     
     contrast <- getContrast(v, as.formula(formula), cd, coef)
     fit <- dream(v, formula, cd, contrast, ddf = ddf)
-    fit <- eBayes(fit, trend=trended, robust=TRUE)
+    fit <- eBayes(fit, trend = trended, robust = TRUE)
     if (n_threads > 1) stopCluster(cl)
     
     topTable(fit, number = Inf, sort.by = "none") %>% 
@@ -95,13 +95,13 @@
 #' @importFrom SummarizedExperiment assay
 #' @importFrom stats p.adjust
 .mm_vst <- function(x, coef, covs, n_threads, verbose, 
-                    ddf = "Kenward-Roger", REML = TRUE, bayesian=FALSE ) {
-    y <- vst(assay(x), show_progress=verbose)$y
+    ddf = "Kenward-Roger", REML = TRUE, bayesian = FALSE ) {
+    y <- vst(assay(x), show_progress = verbose)$y
     
     cd <- .prep_cd(x, covs)
     
     formula <- paste0("~(1|sample_id)+", 
-                      paste(c(covs, "group_id"), collapse="+"))
+        paste(c(covs, "group_id"), collapse="+"))
     if (verbose) print(formula)
     formula <- as.formula(paste0("x", formula))
     
@@ -109,14 +109,14 @@
         coef <- paste0("group_id", last(levels(x$group_id)))
         if (verbose) 
             message("Argument 'coef' not specified; ", 
-                    sprintf("testing for %s.", dQuote(coef)))
+                sprintf("testing for %s.", dQuote(coef)))
     }
     
     # we fit mixed models on each gene
-    fits <- bplapply( 1:nrow(y), BPPARAM=MulticoreParam(n_threads), FUN=function(x){
-        .fitlmer( y[x,], form=formula, df=cd, testcoef=coef, REML=REML, ddf=ddf, bayesian=bayesian)
-    })
-    if(verbose) message("Applying empirical Bayes moderation")
+    fits <- bplapply(seq_len(nrow(y)), function(i)
+        .fit_lmer(y[i, ], formula, cd, coef, bayesian, ddf, REML),
+        BPPARAM = MulticoreParam(n_threads))
+    if (verbose) message("Applying empirical Bayes moderation..")
     res <- .mmEBayesWrapper(fits, coef)
     
     res$p_adj.loc <- p.adjust(res$p_val, method = "BH")
@@ -145,8 +145,8 @@
 #' @importFrom SingleCellExperiment counts sizeFactors sizeFactors<-
 #' @importFrom SummarizedExperiment assay
 #' @importFrom stats p.adjust
-.mm_deseq <- function(x, coef, covs, n_threads, verbose, ddf="Satterthwaite", 
-                      bayesian=FALSE, blind = TRUE, REML = TRUE) {
+.mm_deseq <- function(x, coef, covs, n_threads, verbose, 
+    ddf="Satterthwaite", bayesian = FALSE, blind = TRUE, REML = TRUE) {
     
     if (is.null(sizeFactors(x)))
         x <- computeSumFactors(x)
@@ -170,15 +170,15 @@
         coef <- paste0("group_id", last(gids))
         if (verbose) 
             message("Argument 'coef' not specified; ", 
-                    sprintf("testing for %s.", dQuote(coef)))
+                sprintf("testing for %s.", dQuote(coef)))
     }
-
+    
     # we fit mixed models on each gene
-    fits <- bplapply( 1:nrow(y), BPPARAM=MulticoreParam(n_threads), FUN=function(x){
-        .fitlmer(y[x,], form=formula, df=cd, testcoef=coef, REML=REML, ddf=ddf, bayesian=bayesian)
-    })
-
-    if(verbose) message("Applying empirical Bayes moderation")
+    fits <- bplapply(seq_len(nrow(y)), function(i)
+        .fit_lmer(y[i, ], formula, cd, coef, bayesian, ddf, REML),
+        BPPARAM = MulticoreParam(n_threads))
+    
+    if (verbose) message("Applying empirical Bayes moderation..")
     res <- .mmEBayesWrapper(fits, coef)
     res$p_adj.loc <- p.adjust(res$p_val, method = "BH")
     return(res)
@@ -197,55 +197,54 @@
 }
 
 # fits mixed models and returns fit information required for eBayes
-#' @import lmerTest Matrix
+#' @import lmerTest contest Matrix
 #' @importFrom blme blmer
 #' @importFrom dplyr last
-.fitlmer <- function(x, form, df, testcoef, bayesian=FALSE, ddf="Kenward-Roger", REML=TRUE){
+#' @importFrom lme4 lmer
+#' @importFrom stats sd
+.fit_lmer <- function(x, form, df, testcoef, bayesian = FALSE, ddf="Kenward-Roger", REML = TRUE){
     df$x <- x
-    mod <- tryCatch({
-        # here we should do some handling of convergence/singularity
-        if(bayesian){
-            blmer(form, df, REML=REML)
-        }else{
-            lmer(form, df, REML=REML)
-        }
-    }, error=function(e){ message(e); NULL })
-    if(is.null(mod)) return(mod)
+    # here we should do some handling of convergence/singularity
+    fun <- ifelse(bayesian, "blmer", "lmer")
+    mod <- tryCatch(get(fun)(form, df, REML),
+        error = function(e) { message(e); NULL })
+    if (is.null(mod)) return(mod)
     tryCatch({
-        cvec <- as.numeric(colnames(coef(mod)[[1]])==testcoef)
-        d <- cbind(coef(summary(mod)), p=NA_real_)
-        if("Pr(>|t|)" %in% colnames(d)){
-            d[,"p"] <- d[,"Pr(>|t|)"]
-        }else{
-            d[,"p"] <- NA_real_
+        cvec <- as.numeric(colnames(coef(mod)[[1]]) == testcoef)
+        d <- cbind(coef(summary(mod)), p = NA_real_)
+        if ("Pr(>|t|)" %in% colnames(d)) {
+            d[, "p"] <- d[, "Pr(>|t|)"]
+        } else {
+            d[, "p"] <- NA_real_
         }
-        d[which(cvec==1),"p"] <- last(contest(mod, cvec, ddf=ddf))
+        d[which(cvec == 1), "p"] <- last(contest(mod, cvec, ddf = ddf))
         co <- d
-        list( sigma=sd(residuals(mod)),
-              beta=co[,1],
-              df.residual=df.residual(mod),
-              SE=co[,2],
-              stat=co[,3],
-              pval=co[,"p"]
-        )
-    }, error=function(e){ message(e); NULL })
+        list(sigma = sd(residuals(mod)),
+            beta = co[, 1],
+            df.residual = df.residual(mod),
+            SE = co[, 2],
+            stat = co[, 3],
+            pval = co[, "p"])
+    }, error = function(e){ message(e); NULL })
 }
 
-# formats a list of .fitlmer results into an eBayes compatible list and performs moderation
+# formats a list of .fit_lmer results into an eBayes compatible list and performs moderation
 #' @importFrom limma eBayes
-.mmEBayesWrapper <- function( fit.res, testcoef, trended=FALSE ){
+.mmEBayesWrapper <- function( fit.res, testcoef, trended = FALSE ){
     rl <- fit.res[!sapply(fit.res,is.null)]
-    res <- list( coefficients=t(sapply(rl,FUN=function(x) x$beta )),
-                 stdev.unscaled=t(sapply(rl,FUN=function(x) x$SE) ),
-                 df.residual=rep(rl[[1]]$df.residual, length(rl)),
-                 sigma=sapply(rl, FUN=function(x) x$sigma),
-                 z=t(sapply(rl, FUN=function(x) x$stat)),
-                 Amean=rowMeans(assay(sce)[names(rl),]),
-                 PValue=t(sapply(rl, FUN=function(x) x$pval)) )
-    res <- limma::eBayes(res, trend=trended, robust=TRUE)
-    data.frame( row.names=names(rl), 
-                beta=res$coefficients[,testcoef], 
-                p_val.orig=res$PValue[,testcoef], 
-                stat=res$z[,testcoef],
-                p_val=res$p.value[,testcoef] )
+    res <- list( 
+        coefficients = t(sapply(rl,FUN = function(x) x$beta )),
+        stdev.unscaled = t(sapply(rl,FUN = function(x) x$SE) ),
+        df.residual = rep(rl[[1]]$df.residual, length(rl)),
+        sigma = sapply(rl, FUN = function(x) x$sigma),
+        z = t(sapply(rl, FUN = function(x) x$stat)),
+        Amean = rowMeans(assay(sce)[names(rl),]),
+        PValue = t(sapply(rl, FUN = function(x) x$pval)) )
+    res <- limma::eBayes(res, trend = trended, robust=TRUE)
+    data.frame( 
+        row.names = names(rl), 
+        beta = res$coefficients[,testcoef], 
+        p_val.orig = res$PValue[,testcoef], 
+        stat = res$z[,testcoef],
+        p_val = res$p.value[,testcoef] )
 }
