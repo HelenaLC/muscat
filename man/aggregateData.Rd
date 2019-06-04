@@ -14,7 +14,7 @@ aggregateData(x, assay, by = c("cluster_id", "sample_id"),
 input data. Defaults to the 1st available (\code{assayNames(x)[1]}).}
 
 \item{by}{character vector specifying which 
-\code{colData(x)} columns to summarize by.}
+\code{colData(x)} columns to summarize by (at most 2!).}
 
 \item{fun}{a character string.
 Specifies the function to use as summary statistic.}

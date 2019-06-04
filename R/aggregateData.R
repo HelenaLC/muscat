@@ -7,7 +7,7 @@
 #' @param assay character string specifying the assay slot to use as 
 #'   input data. Defaults to the 1st available (\code{assayNames(x)[1]}).
 #' @param by character vector specifying which 
-#'   \code{colData(x)} columns to summarize by.
+#'   \code{colData(x)} columns to summarize by (at most 2!).
 #' @param fun a character string.
 #'   Specifies the function to use as summary statistic.
 #' @param scale logical. Should pseudo-bulks be scaled
@@ -36,9 +36,9 @@
 #' 
 #' @author Helena L. Crowell \email{helena.crowell@uzh.ch} and Mark D. Robinson.
 #' 
-#' @importFrom Matrix colSums rowMeans rowSums
-#' @importFrom matrixStats rowMedians
-#' @importFrom methods is
+#' @importFrom Matrix colSums
+#' @importFrom purrr map_depth
+#' @importFrom S4Vectors metadata
 #' @importFrom SingleCellExperiment SingleCellExperiment
 #' @importFrom SummarizedExperiment colData
 #' 
@@ -55,32 +55,25 @@ aggregateData <- function(x, assay,
     # validity checks for input arguments
     .check_sce(x, req_group = FALSE)
     .check_arg_assay(x, assay)
-    stopifnot(is.character(by), by %in% colnames(colData(x)))
-    stopifnot(is.logical(scale), length(scale) == 1)
-    
-    # get aggregation function
     fun <- match.arg(fun)
-    fun <- switch(fun,
-        sum = "rowSums",
-        mean = "rowMeans",
-        median = "rowMedians")
-    
-    # split cells & compute pseudo-bulks
-    cs <- .split_cells(x, by)
-    pb <- .pb(x, cs, assay, fun)
+    stopifnot(is.character(by), by %in% colnames(colData(x)), length(by) <= 2)
+    stopifnot(is.logical(scale), length(scale) == 1)
+
+    # compute pseudo-bulks
+    pb <- .pb(x, assay, by, fun)
     
     # scale
     if (scale) {
         if (assay == "counts" & fun == "rowSums") {
-            pb_counts <- pb
+            pb_sumcounts <- pb
         } else {
-            pb_counts <- .pb(x, cs, assay, "rowSums")
+            #pb_counts <- .pb(x, cs, assay, "rowSums")
+            pb_sumcounts <- .pb(x, "counts", by, "sum")
         }
-        pb <- map_depth(pb_counts, -2, function(u)
-            u / colSums(u)[col(u)] * 1e6)
+        pb <- map_depth(pb_sumcounts, -2, 
+            function(u) u / colSums(u)[col(u)] * 1e6)
     }
-    pb <- map_depth(pb, -2, as.matrix)
-    
+
     # return SCE
     md <- metadata(x)
     md$agg_pars <- list(assay = assay, fun = fun)
