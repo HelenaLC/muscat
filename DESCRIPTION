@@ -9,7 +9,7 @@ Authors@R: c(
 	person("Charlotte", "Soneson", role="aut"),
 	person("Pierre-Luc", "Germain", role="aut"),
 	person("Mark D.", "Robinson", role=c("aut", "fnd"), email="mark.robinson@imls.uzh.ch"))
-Imports: ComplexHeatmap, data.table, DESeq2, doParallel, dplyr, edgeR, ggplot2, grDevices, grid, limma, lmerTest, lme4, magrittr, Matrix, matrixStats, MAST, methods, parallel, progress, purrr, reshape2, scales, scran, stats, SingleCellExperiment, SummarizedExperiment, S4Vectors, tibble, utils, variancePartition, viridis
+Imports: ComplexHeatmap, data.table, DESeq2, doParallel, dplyr, edgeR, ggplot2, grDevices, grid, limma, lmerTest, lme4, magrittr, Matrix, matrixStats, Matrix.utils, MAST, methods, parallel, progress, purrr, reshape2, scales, scran, stats, SingleCellExperiment, SummarizedExperiment, S4Vectors, tibble, utils, variancePartition, viridis
 Suggests: BiocStyle, knitr, rmarkdown, testthat
 biocViews: DifferentialExpression, SingleCell, Software, StatisticalMethod, Visualization
 License: GPL (>=2)
