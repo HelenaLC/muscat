@@ -55,23 +55,31 @@ aggregateData <- function(x, assay,
     # validity checks for input arguments
     .check_sce(x, req_group = FALSE)
     .check_arg_assay(x, assay)
-    fun <- match.arg(fun)
     stopifnot(is.character(by), by %in% colnames(colData(x)), length(by) <= 2)
     stopifnot(is.logical(scale), length(scale) == 1)
 
+    # get aggregation function
+    fun <- match.arg(fun)
+    fun <- switch(fun,
+        sum = "rowSums",
+        mean = "rowMeans", 
+        median = "rowMedians")
+    
+    # split cells by cluster-sample
+    cs <- .split_cells(x, by)
+    
     # compute pseudo-bulks
-    pb <- .pb(x, assay, by, fun)
+    pb <- .pb(x, cs, assay, fun)
     
     # scale
     if (scale) {
-        if (assay == "counts" & fun == "rowSums") {
-            pb_sumcounts <- pb
+        if (fun == "rowSums") {
+            pb_sum <- pb
         } else {
-            #pb_counts <- .pb(x, cs, assay, "rowSums")
-            pb_sumcounts <- .pb(x, "counts", by, "sum")
+            pb_sum <- .pb(x, cs, assay, "rowSums")
         }
-        pb <- map_depth(pb_sumcounts, -2, 
-            function(u) u / colSums(u)[col(u)] * 1e6)
+        pb <- map_depth(pb_sum, -2, function(u) 
+            u / colSums(u)[col(u)] * 1e6)
     }
 
     # return SCE

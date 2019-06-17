@@ -60,7 +60,7 @@ cluster_colors <- c(
 #' @importFrom purrr map_depth
 #' @importFrom SummarizedExperiment assays
 #' @importFrom utils getFromNamespace
-.pb0 <- function(x, cs, assay, fun) {
+.pb <- function(x, cs, assay, fun) {
     fun <- switch(fun,
         rowMedians = getFromNamespace(fun, "matrixStats"),
         getFromNamespace(fun, "Matrix"))
@@ -76,7 +76,7 @@ cluster_colors <- c(
 #' @importFrom Matrix t
 #' @importFrom Matrix.utils aggregate.Matrix
 #' @importFrom SummarizedExperiment assays colData
-.pb <- function(sce, assay, by, fun) {
+.pb0 <- function(sce, assay, by, fun) {
     pb <- aggregate.Matrix(
         t(assays(sce)[[assay]]), 
         colData(sce)[, by], 

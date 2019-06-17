@@ -64,10 +64,16 @@ cats <- factor(cats, levels = cats)
 # ------------------------------------------------------------------------------
 # for ea. gene category, sample a non-intersecting set of gene indices
 # ------------------------------------------------------------------------------
-.sample_gene_inds <- function(gs, ns) {
+.sample_gene_inds2 <- function(gs, ns) {
     cluster_ids <- colnames(ns)
     vapply(cluster_ids, function(k)
         split(sample(gs), rep.int(cats, ns[, k])),
+        vector("list", length(cats)))
+}
+.sample_gene_inds <- function(gs, ns) {
+    cluster_ids <- colnames(ns)
+    vapply(cluster_ids, function(k)
+        split(gs, rep.int(cats, ns[, k])),
         vector("list", length(cats)))
 }
 
@@ -197,6 +203,7 @@ cats <- factor(cats, levels = cats)
     cs <- map(re, "counts")
     cs <- do.call("cbind", cs)
     ms <- map(re, "means") %>%
+        `[`(!vapply(., is.null, logical(1))) %>% 
         map_depth(2, mean) %>% 
         map_depth(1, unlist) %>% 
         bind_cols %>% as.matrix
@@ -210,6 +217,6 @@ cats <- factor(cats, levels = cats)
             rowMeans(ms[, 1:2]),
             rowMeans(ms[, 3:4]))) %>% 
         split(col(.)) %>% 
-        set_names(c("A", "B"))
+        set_names(c("A", "B")[c(ng1, ng2) != 0])
     list(cs = cs, ms = ms)
 }
