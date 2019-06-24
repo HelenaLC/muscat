@@ -211,6 +211,84 @@
     }, error = function(e) e)
 }
 
+
+#' @importFrom BiocParallel bplapply MulticoreParam
+#' @importFrom dplyr %>% bind_rows last
+#' @importFrom purrr set_names
+#' @importFrom SingleCellExperiment counts
+#' @importFrom SummarizedExperiment assay
+#' @importFrom tibble add_column
+.mm_poisson <- function(x, coef, covs, n_threads, verbose=TRUE, moderate=FALSE){
+    cd <- .prep_cd(x, covs)
+    y <- counts(x)
+    if(is.null(sizeFactors(x))){
+        cd$ls <- log(colSums(y))
+    }else{
+        cd$ls <- sizeFactors(x)
+    }
+    
+    # get formula
+    formula <- paste(c("~(1|sample_id)+offset(ls)", covs, "group_id"), collapse = "+")
+    if (verbose) print(formula)
+    formula <- as.formula(paste("u", formula))
+    
+    # get coefficient to test
+    if (is.null(coef)) {
+        coef <- paste0("group_id", last(levels(x$group_id)))
+        if (verbose) 
+            message("Argument 'coef' not specified; ", 
+                    sprintf("testing for %s.", dQuote(coef)))
+    }
+    
+    # fit mixed model for ea. gene
+    fits <- bplapply(seq_len(nrow(y)), function(i) {
+        if(moderate){
+            return(.fit_bglmer(df=data.frame(u=y[i, ], cd), formula, coef))
+        }
+        tryCatch({
+                mod <- bglmer(formula, family="poisson", data=data.frame(u=y[i, ], cd))
+                coef(summary(mod))[coef,]
+            }, error=function(e) rep(NA_real_, 4))
+    }, BPPARAM = MulticoreParam(n_threads, progressbar=verbose)) %>% 
+        set_names(rownames(y))
+    
+    if(moderate){
+        if (verbose) message("Applying empirical Bayes moderation..")
+        fits <- .mm_eBayes(fits, coef)
+    }else{
+        fits <- as.data.frame(t(bind_rows(fits)))
+        colnames(fits) <- c("beta", "SE", "stat", "p_val")
+    }
+    fits %>% add_column(.after = "p_val", p_adj.loc = p.adjust(.$p_val))
+}
+
+
+# fits mixed models and returns fit information required for eBayes
+#' @import blme
+#' @importFrom purrr map set_names
+#' @importFrom stats residuals
+.fit_bglmer <- function(df, formula, coef){
+    mod <- tryCatch({
+        bglmer(formula, family="poisson", data=df)
+    }, error=function(e){ print(e); return(NULL)})
+    if (is.null(mod)) return(mod)
+    
+    tryCatch({
+        coefs <- colnames(coef(mod)[[1]])
+        cs <- as.numeric(coefs == coef)
+        re <- coef(summary(mod))
+        re <- split(re, col(re)) %>% 
+            map(set_names, coefs) %>% 
+            set_names(c("beta", "SE", "stat", "p_val"))
+        c(re, list(
+            Amean = mean(df$u),
+            sigma = sd(residuals(mod)), 
+            df.residual = df.residual(mod)))
+    }, error=function(e) NULL)
+}
+
+
+
 # formats a list of .fit_lmer results into
 # an eBayes compatible list & performs moderation
 #' @importFrom dplyr %>% bind_cols pull
@@ -242,3 +320,4 @@
     }
     res[names(fits), ]
 }
+
