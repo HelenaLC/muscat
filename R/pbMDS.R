@@ -29,6 +29,8 @@
 pbMDS <- function(x) {
     y <- as(assays(x), "list")
     y <- do.call("cbind", y)
+    idx0 <- Matrix::colSums(y)==0
+    y <- y[, !idx0]
     d <- suppressMessages(DGEList(y))
     d <- calcNormFactors(d)
     
@@ -39,8 +41,9 @@ pbMDS <- function(x) {
     df <- data.frame(
         MDS1 = mds$x, 
         MDS2 = mds$y, 
-        cluster_id = rep(assayNames(x), each = ncol(x)),
-        group_id = rep(ei$group_id[m], nk))
+        cluster_id = factor(rep(assayNames(x), each = ncol(x))[!idx0], levels=assayNames(x)),
+        group_id = rep(ei$group_id[m], nk)[!idx0]
+        )
     
     cols <- cluster_colors
     if (nk > length(cols)) 
