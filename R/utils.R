@@ -19,6 +19,20 @@ cluster_colors <- c(
     return(x)
 }
 
+# ==============================================================================
+# wrapper for z-normalization
+# ------------------------------------------------------------------------------
+.z_norm <- function(x, th = 2.5) {
+    x <- as.matrix(x)
+    sds <- rowSds(x, na.rm = TRUE)
+    sds[sds == 0] <- 1
+    x <- t(t(x - rowMeans(x, na.rm = TRUE)) / sds)
+    #x <- (x - rowMeans(x, na.rm = TRUE)) / sds
+    x[x >  th] <-  th
+    x[x < -th] <- -th
+    return(x)
+}
+
 # ------------------------------------------------------------------------------
 # generate experimental design metadata table 
 # for an input SCE or colData data.frame
@@ -58,6 +72,25 @@ cluster_colors <- c(
         data.frame(u, 
             row.names = rownames(x),
             check.names = FALSE))
+}
+#' @importFrom Matrix t
+#' @importFrom Matrix.utils aggregate.Matrix
+#' @importFrom SummarizedExperiment assays colData
+.pb0 <- function(sce, assay, by, fun) {
+    pb <- aggregate.Matrix(
+        t(assays(sce)[[assay]]), 
+        colData(sce)[, by], 
+        fun = fun)
+    if (length(by) == 1) {
+        t(pb)
+    } else {
+        cd <- as.list(colData(sce)[, by])
+        ids <- lapply(cd, levels)
+        n <- nlevels(cd[[2]])
+        split(pb, rep(ids[[1]], n)) %>% 
+            lapply(matrix, ncol = n, byrow = TRUE,
+                dimnames = list(rownames(sce), ids[[2]]))
+    }
 }
 
 # ------------------------------------------------------------------------------

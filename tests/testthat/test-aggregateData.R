@@ -15,7 +15,7 @@ sids <- colData(sce)$sample_id
 
 pb <- aggregateData(sce, assay = "counts", by = c("cluster_id", "sample_id"), fun = "sum")
 
-test_that("aggregateData", {
+test_that("aggregation across 2 factors", {
     expect_error(aggregateData(sce, assay = "x"))
     expect_error(aggregateData(sce, fun = "x"))
     expect_error(aggregateData(sce, by = "x"))
@@ -37,4 +37,20 @@ test_that("aggregateData", {
     expect_equal(assays(pb)[[k]][g, s], sum(assay(sce)[g, i]))
 })
 
+pb <- aggregateData(sce, assay = "counts", by = "cluster_id", fun = "sum")
 
+test_that("aggregation across 1 factor", {
+    expect_is(pb, "SingleCellExperiment")
+    
+    expect_identical(nrow(pb), nrow(sce))
+    expect_identical(ncol(pb), nlevels(kids))
+    
+    expect_identical(rownames(pb), rownames(sce))
+    expect_identical(colnames(pb), levels(kids))
+    
+    # random spot check
+    k <- sample(levels(kids), 1)
+    g <- sample(rownames(sce), 1)
+    i <- kids == k
+    expect_equal(assay(pb)[g, k], sum(assay(sce)[g, i]))
+})

@@ -34,6 +34,7 @@
 #' @importFrom purrr map_depth
 #' @importFrom tibble add_column
 #' @importFrom SingleCellExperiment colData counts
+#' @importFrom stats p.adjust
 #' @export
 mmDS <- function(x, 
     coef = NULL, covs = NULL, method = c("dream", "vst"),
@@ -76,26 +77,26 @@ mmDS <- function(x,
     # split cells by cluster
     cells_by_k <- split(colnames(x), x$cluster_id)
     
-    if (verbose) 
-        pb <- progress_bar$new(total = length(kids))
+    if (verbose) pb <- progress_bar$new(total = length(kids))
     res <- lapply(kids, function(k) {
         y <- x[, cells_by_k[[k]]]
         if (min_count < 1) 
             min_count <- floor(min_count * min(n_cells_by_ks[k, ]))
-        y <- y[rowSums(counts(x) >= min_count) > min_cells, ]
+        y <- y[rowSums(counts(y) >= min_count) > min_cells, ]
         if (verbose) 
             message(sprintf(
                 "Testing %s genes across %s cells in cluster %s...", 
                 nrow(y), ncol(y), dQuote(k)))
-
+        
+        # call to .mm_dream/.mm_vst
         fun(y, coef, covs, n_threads, verbose, ...) %>% 
-            add_column(gene = rownames(y), cluster_id = k, .before = 1) %>% 
+            add_column(.before = 1, gene = rownames(y), cluster_id = k) %>% 
             set_rownames(NULL)
     }) 
     if (verbose) pb$terminate()
     
     # global p-value adjustment
-    res %>% bind_rows %>% 
-        mutate(p_adj.glb = p.adjust(p_val)) %>% 
+    bind_rows(res) %>% 
+        add_column(.after = "p_adj.loc", p_adj.glb = p.adjust(.$p_val)) %>% 
         split(.$cluster_id)
 }

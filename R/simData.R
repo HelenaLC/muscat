@@ -178,8 +178,9 @@ simData <- function(x, n_genes = 500, n_cells = 300,
                 
                 re <- .sim(c, cs_g1, cs_g2, m_g1, m_g2, d_kc, lfc_kc)
                 y[gidx, cidx] <- re$cs
-                sim_mean[[k]]$A[gidx] <- re$ms$A
-                sim_mean[[k]]$B[gidx] <- re$ms$B
+                
+                for (g in c("A", "B")) sim_mean[[k]][[g]][gidx] <- 
+                    ifelse(is.null(re$ms[[g]]), NA, list(re$ms[[g]]))[[1]]
             }
         }
     }

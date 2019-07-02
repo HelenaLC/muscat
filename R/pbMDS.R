@@ -10,7 +10,7 @@
 #' 
 #' @examples 
 #' sce <- toyData()
-#' sce <- prepData(sce, "cluster_id", "sample_id", "group_id")
+#' sce <- prepSCE(sce, "cluster_id", "sample_id", "group_id")
 #' pb <- aggregateData(sce)
 #' pbMDS(pb)
 #' 

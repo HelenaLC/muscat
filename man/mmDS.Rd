@@ -11,7 +11,7 @@ mmDS(x, coef = NULL, covs = NULL, method = c("dream", "vst"),
   n_threads = 8, verbose = TRUE, ...)
 
 .mm_dream(x, coef, covs, n_threads, verbose, dup_corr = FALSE,
-  trended = TRUE, ddf = c("Satterthwaite", "Kenward-Roger"))
+  trended = FALSE, ddf = c("Satterthwaite", "Kenward-Roger"))
 
 .mm_vst(x, coef, covs, n_threads, verbose, vst = c("sctransform",
   "DESeq2"), bayesian = FALSE, blind = TRUE, REML = TRUE,
@@ -50,20 +50,20 @@ on progress and a progress bar should be displayed.}
 
 \item{...}{additional parameters passed to the method function.}
 
-\item{dup_corr}{logical; whether to use 
+\item{dup_corr}{logical; whether to use
 \code{\link[limma]{duplicateCorrelation}}.}
 
 \item{trended}{logical; whether to use expression-dependent variance priors
 in \code{\link[limma]{eBayes}}.}
 
-\item{ddf}{character string specifying the method for estimating 
-the effective degrees of freedom. For \code{method = "dream"}, 
-either \code{"Satterthwaite"} (faster) or \code{"Kenward-Roger"} 
+\item{ddf}{character string specifying the method for estimating
+the effective degrees of freedom. For \code{method = "dream"},
+either \code{"Satterthwaite"} (faster) or \code{"Kenward-Roger"}
 (more accurate); see \code{\link[variancePartition]{dream}}.
 For \code{method = "vst"}, method \code{"lme4"} is also valid;
 see \code{\link[lmerTest]{contest.lmerModLmerTest}}.}
 
-\item{vst}{method to use as variance-stabilizing transformations. 
+\item{vst}{method to use as variance-stabilizing transformations.
 \code{"sctransform"} for \code{\link[sctransform]{vst}};
 \code{"DESeq2"} for \code{\link[DESeq2]{varianceStabilizingTransformation}}.}
 
@@ -80,21 +80,21 @@ a data.frame
 Performs cluster-wise DE analysis by fitting cell-level models.
 }
 \details{
-\code{.mm_dream} and \code{.mm_vst} expect cells from a single cluster, 
-and do not perform filtering or handle incorrect parameters well. 
+\code{.mm_dream} and \code{.mm_vst} expect cells from a single cluster,
+and do not perform filtering or handle incorrect parameters well.
 Meant to be called by \code{mmDS} with \code{method = c("dream", "vst")} and
 \code{vst = c("sctransform", "DESeq2")} to be applied across all clusters.
 \describe{
 \item{\code{method = "dream"}}{
-  voom-lme4-implementation \code{\link[variancePartition]{dream}} 
+  voom-lme4-implementation \code{\link[variancePartition]{dream}}
   of mixed models for RNAseq data.}
 \item{\code{method = "vst"}}{
   \describe{
   \item{\code{vst = "sctransform"}}{
-    \code{lmer} or \code{blmer} mixed models on 
+    \code{lmer} or \code{blmer} mixed models on
     \code{\link[sctransform]{vst}} transformed counts.}
   \item{\code{vst = "DESeq2"}}{
-    \code{\link[DESeq2]{varianceStabilizingTransformation}} 
+    \code{\link[DESeq2]{varianceStabilizingTransformation}}
     followed by \code{lme4} mixed models.}}}}
 }
 \section{Functions}{
