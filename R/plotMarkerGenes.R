@@ -28,21 +28,21 @@ plotMarkerGenes <- function(x, marker_genes,
     stopifnot(is(x, "SingleCellExperiment"))
     stopifnot("logcounts" %in% assayNames(x))
     
-    cluster_ids <- colData(x)$cluster_id
+    kids <- sce$cluster_id
     es <- assays(x)$logcounts[unlist(marker_genes), ]
     es <- t(as.matrix(es))
     if (scale) es <- .scale(es)
-    df <- data.frame(es, cluster_id = cluster_ids)
+    df <- data.frame(es, cluster_id = kids)
     means_by_cluster <- df %>% 
         group_by(.data$cluster_id) %>% 
         summarise_all(mean) %>% 
         data.frame(row.names = 1)
     mat <- as.matrix(means_by_cluster)
     mat <- mat[, !is.na(mat[1, ])]
-    row_anno <- levels(cluster_ids)
+    row_anno <- levels(kids)
     if (cluster_columns) {
         hm <- Heatmap(mat)
-        row_o <- row_order(hm)[[1]]
+        row_o <- row_order(hm)
         col_o <- unlist(marker_genes[row_o])
         col_o <- make.names(col_o)
         col_o <- col_o[!duplicated(col_o)]
@@ -52,7 +52,7 @@ plotMarkerGenes <- function(x, marker_genes,
     }
     row_anno <- Heatmap(
         matrix = row_anno,
-        col = setNames(cluster_colors, levels(cluster_ids)),
+        col = setNames(cluster_colors, levels(kids)),
         name = "cluster_id",
         cluster_rows = FALSE,
         rect_gp = gpar(col = "white"))

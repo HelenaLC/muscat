@@ -62,12 +62,16 @@ cats <- factor(cats, levels = cats)
 }
 
 # ------------------------------------------------------------------------------
-# for ea. gene category, sample a non-intersecting set of gene indices
+# get gene indeces for by gene category & cluster
+#   gs = character vector of gene names
+#   ns = nb. of genes in ea. category
+#   > array of dim. #(categories) x #(clusters);
+#     ea. entry is a character vector of genes
 # ------------------------------------------------------------------------------
 .sample_gene_inds <- function(gs, ns) {
     cluster_ids <- colnames(ns)
     vapply(cluster_ids, function(k)
-        split(sample(gs), rep.int(cats, ns[, k])),
+        split(gs, rep.int(cats, ns[, k])),
         vector("list", length(cats)))
 }
 
