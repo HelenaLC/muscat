@@ -11,6 +11,8 @@
 #' @param method a character string. 
 #'   Either \code{"dream"} (default, lme4 with voom-weights), 
 #'   \code{"vst"} (variance-stabilizing transformation), 
+#'   \code{"poisson"} (poisson GLM-MM), \code{"nbinom"} (negative binomial GLM-MM), 
+#'   \code{"hybrid"} (combination of pseudobulk and poisson methods)
 #'   or a function accepting the same arguments.
 #' @param n_cells number of cells per cluster-sample 
 #'   required to consider a sample for testing.
@@ -37,7 +39,7 @@
 #' @importFrom stats p.adjust
 #' @export
 mmDS <- function(x, 
-    coef = NULL, covs = NULL, method = c("dream", "vst"),
+    coef = NULL, covs = NULL, method = c("dream", "vst", "poisson", "nbinom", "hybrid"),
     n_cells = 10, n_samples = 2, min_count = 1, min_cells = 20,
     n_threads = 8, verbose = TRUE, ...) {
     
