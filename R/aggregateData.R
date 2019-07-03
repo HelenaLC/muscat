@@ -76,7 +76,7 @@ aggregateData <- function(x,
     cs <- .split_cells(x, by)
     pb <- .pb(x, cs, assay, fun)
     if (scale) {
-        if (assay = "countts" & fun == "rowSums") {
+        if (assay == "counts" & fun == "rowSums") {
             pb_sum <- pb
         } else {
             pb_sum <- .pb(x, cs, "counts", "rowSums")
