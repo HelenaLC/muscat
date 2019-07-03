@@ -75,14 +75,14 @@ aggregateData <- function(x,
     # split cells & compute pseudo-bulks
     cs <- .split_cells(x, by)
     pb <- .pb(x, cs, assay, fun)
-    if (scale) {
+    if (scale & length(by) == 2) {
         if (assay == "counts" & fun == "rowSums") {
             pb_sum <- pb
         } else {
             pb_sum <- .pb(x, cs, "counts", "rowSums")
         }
-        pb <- map_depth(pb_sum, -2, function(u)
-            u / colSums(u)[col(u)] * 1e6)
+        ls <- lapply(pb_sum, colSums)
+        pb <- lapply(names(pb), function(i) pb[[i]] / ls[[i]] * 1e6)
     }
 
     # construct SCE
