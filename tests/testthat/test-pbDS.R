@@ -20,7 +20,7 @@ gids <- sce$group_id
 n_de <- 10
 de_gs <- sample(rownames(sce), n_de)
 g23 <- gids %in% c("g2", "g3")
-assay(sce[de_gs, g23]) <- assay(sce[de_gs, g23]) * 100
+assay(sce[de_gs, g23]) <- assay(sce[de_gs, g23]) * 10
 
 # pbDS() -----------------------------------------------------------------------
 pb <- aggregateData(sce, assay = "counts", fun = "sum")
@@ -32,7 +32,9 @@ contrast <- limma::makeContrasts("g2-g1", "g3-g1", levels = design)
 for (method in c("edgeR", "limma-trend", "limma-voom")) {
     test_that(paste("pbDS", method, sep = "."), {
         # test for cluster-wise differential expression
-        res <- pbDS(sce, pb, design, contrast, method = method, verbose = FALSE)
+        res <- pbDS(pb, 
+            design = design, contrast = contrast,
+            method = method, verbose = FALSE)
         
         expect_is(res, "list")
         expect_identical(length(res[[1]]), ncol(contrast))
@@ -40,17 +42,26 @@ for (method in c("edgeR", "limma-trend", "limma-voom")) {
         expect_true(all(vapply(map(res[[1]], names), "==", 
             levels(kids), FUN.VALUE = logical(nlevels(kids)))))
         
-        # check that nb. of DE genes is n_de in ea. comparison & cluster
-        p_adj <- map_depth(res$table, 2, "p_adj.loc")
-        n_de_res <- unlist(map_depth(p_adj, 2, function(u) sum(u < 1e-6)))
-        expect_true(all(n_de_res == n_de))
-        
-        # check that DE genes are correct
+        # check that nb. of DE genes is n_de in ea. 
+        # comparison & cluster, and that DE genes are correct
         de_gs_res <- map_depth(res$table, 2, function(u)
-            u$gene[order(u$p_adj.loc)][seq_len(n_de)])
+            pull(dplyr::filter(u, p_adj.loc < 1e-3), "gene"))
+        n_de_res <- unlist(map_depth(de_gs_res, 2, length))
+        expect_true(all(n_de_res == n_de))
         expect_true(all(unlist(map_depth(de_gs_res, 2, setequal, de_gs))))
     })
 }
+
+test_that("pbDS.DESeq2", {
+    res <- pbDS(pb, method = "DESeq2", verbose = FALSE)
+    expect_is(res, "list")
+    expect_identical(names(res$table), levels(kids))
+    de_gs_res <- lapply(res$table, function(u)
+        pull(dplyr::filter(u, p_adj.loc < 1e-3), "gene"))
+    n_de_res <- vapply(de_gs_res, length, numeric(1))
+    expect_true(all(n_de_res == n_de))
+    expect_true(all(unlist(map(de_gs_res, setequal, de_gs))))
+})
 
 # mmDS() -----------------------------------------------------------------------
 # test_that("mmDS;method='dream'", {

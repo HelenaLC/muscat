@@ -36,6 +36,7 @@
 #' 
 #' @author Helena L. Crowell \email{helena.crowell@uzh.ch} and Mark D. Robinson.
 #' 
+#' @importFrom dplyr last
 #' @importFrom Matrix colSums
 #' @importFrom purrr map_depth
 #' @importFrom S4Vectors metadata
@@ -44,49 +45,61 @@
 #' 
 #' @export
 
-aggregateData <- function(x, assay,
+aggregateData <- function(x, 
+    assay = NULL,
     by = c("cluster_id", "sample_id"),
     fun = c("sum", "mean", "median"), 
     scale = FALSE) {
-    
-    if (missing("assay"))
-        assay <- assayNames(x)[1]
-
+   
     # validity checks for input arguments
-    .check_sce(x, req_group = FALSE)
-    .check_arg_assay(x, assay)
+    if (is.null(assay)) assay <- assayNames(x)[1] else .check_arg_assay(x, assay)
     stopifnot(is.character(by), by %in% colnames(colData(x)), length(by) <= 2)
     stopifnot(is.logical(scale), length(scale) == 1)
 
+    # store aggregation parameters &
+    # nb. of cells that went into aggregation
+    md <- metadata(x)
+    md$agg_pars <- list(assay = assay, fun = fun, scale = scale)
+    md$n_cells <- table(as.data.frame(colData(x)[, by]))
+    
     # get aggregation function
-    fun <- match.arg(fun)
-    fun <- switch(fun,
+    fun <- switch(match.arg(fun),
         sum = "rowSums",
-        mean = "rowMeans", 
+        mean = "rowMeans",
         median = "rowMedians")
     
-    # split cells by cluster-sample
+    # split cells & compute pseudo-bulks
     cs <- .split_cells(x, by)
-    
-    # compute pseudo-bulks
     pb <- .pb(x, cs, assay, fun)
-    
-    # scale
     if (scale) {
         if (fun == "rowSums") {
             pb_sum <- pb
         } else {
             pb_sum <- .pb(x, cs, assay, "rowSums")
         }
-        pb <- map_depth(pb_sum, -2, function(u) 
+        pb <- map_depth(pb_sum, -2, function(u)
             u / colSums(u)[col(u)] * 1e6)
     }
 
-    # return SCE
-    md <- metadata(x)
-    md$agg_pars <- list(assay = assay, fun = fun)
+    # construct SCE
+    pb <- SingleCellExperiment(pb, metadata = md)
     
-    SingleCellExperiment(
-        assays = pb,
-        metadata = md)
+    # propagate colData columns that are unique across 2nd 'by'
+    cd <- colData(x)
+    ids <- colnames(pb)
+    counts <- vapply(ids, function(u) {
+        m <- as.logical(match(cd[, by[2]], u, nomatch = 0))
+        vapply(cd[m, ], function(u) length(unique(u)), numeric(1))
+    }, numeric(ncol(colData(x))))
+    cd_keep <- apply(counts, 1, function(u) all(u == 1))
+    cd_keep <- setdiff(names(which(cd_keep)), by)
+    if (length(cd_keep) != 0) {
+        m <- match(ids, cd[, by[2]], nomatch = 0)
+        cd <- cd[m, cd_keep, drop = FALSE]
+        rownames(cd) <- ids
+        colData(pb) <- cd
+    } else {
+        colData(pb) <- DataFrame()
+    }
+    return(pb)
 }

@@ -87,8 +87,8 @@
 #' @importFrom tibble add_column
 #' @export
 
-pbDS <- function(pb, 
-    design = NULL, coef = NULL, contrast = NULL, 
+pbDS2 <- function(pb, 
+    design, contrast = NULL, coef = NULL, 
     method = c("edgeR", "DESeq2", "limma-trend", "limma-voom"),
     min_cells = 10, verbose = TRUE) {
     
@@ -99,18 +99,6 @@ pbDS <- function(pb,
     stopifnot(is.numeric(min_cells), length(min_cells) == 1)
     stopifnot(is.logical(verbose), length(verbose) == 1)
     method <- match.arg(method)
-    
-    if (missing("design")) {
-        formula <- as.formula(paste("~", names(colData(pb))[1]))
-        if (method == "DESeq2") {
-            design <- formula
-            contrast <- NA
-            cs <- NULL
-        } else {
-            design <- model.matrix(formula, colData(pb))
-            coef <- ncol(design)
-        }
-    }
     
     if (!is.null(contrast)) {
         ctype <- "contrast"
@@ -133,56 +121,52 @@ pbDS <- function(pb,
     res <- lapply(kids, function (k) {
         if (verbose) cat(k, "..", sep = "")
         y <- assays(pb)[[k]]
-        rmv <- n_cells[k, ] < min_cells
-        y <- y[, !rmv]
-        if (method == "DESeq2") {
+        y <- y[, n_cells[k, ] >= min_cells]
+        d <- design[colnames(y), ]
+        if (any(colSums(d) < 2)) 
+            return(NULL)
+        if (method == "edgeR") {
+            y <- suppressMessages(DGEList(y, remove.zeros = TRUE))
+            y <- calcNormFactors(y)
+            y <- estimateDisp(y, d)
+            fit <- glmQLFit(y, d)
+            tt <- lapply(cs, function(c) {
+                qlf <- glmQLFTest(fit, coef[[c]], contrast[, c])
+                tt <- topTags(qlf, n = Inf, sort.by = "none")
+                res_df(k, tt, ctype, c) %>% 
+                    rename(p_val = "PValue", p_adj.loc = "FDR")
+            })
+        } else if (method == "DESeq2") {
             mode(y) <- "integer"
-            cd <- colData(pb)[!rmv, , drop = FALSE]
-            y <- DESeqDataSetFromMatrix(y, cd, design)
-            y <- suppressMessages(DESeq(y))
-            res <- results(y, alpha = 0.05)
-            tt <- data.frame(gene = rownames(y), res, stringsAsFactors = FALSE)
+            dds <- DESeqDataSetFromMatrix(y, colData(pb), design)
+            dds <- suppressMessages(DESeq(dds))
+            res <- results(dds, alpha = 0.05)
+            tt <- data.frame(gene = rownames(dds), res, stringsAsFactors = FALSE)
             tt <- rename(tt, p_val = "pvalue", p_adj.loc = "padj")
         } else {
-            d <- design[colnames(y), ]
-            if (any(colSums(d) < 2)) 
-                return(NULL)
-            if (method == "edgeR") {
+            if (method == "limma-trend") {
+                trend <- robust <- TRUE
+            } else if (method == "limma-voom") {
+                trend <- robust <- FALSE
                 y <- suppressMessages(DGEList(y, remove.zeros = TRUE))
                 y <- calcNormFactors(y)
-                y <- estimateDisp(y, d)
-                fit <- glmQLFit(y, d)
-                tt <- lapply(cs, function(c) {
-                    qlf <- glmQLFTest(fit, coef[[c]], contrast[, c])
-                    tt <- topTags(qlf, n = Inf, sort.by = "none")
-                    res_df(k, tt, ctype, c) %>% 
-                        rename(p_val = "PValue", p_adj.loc = "FDR")
-                })
-            } else {
-                if (method == "limma-trend") {
-                    trend <- robust <- TRUE
-                } else if (method == "limma-voom") {
-                    trend <- robust <- FALSE
-                    y <- suppressMessages(DGEList(y, remove.zeros = TRUE))
-                    y <- calcNormFactors(y)
-                    y <- voom(y, d)
-                }
-                w <- n_cells[k, !rmv]
-                fit <- lmFit(y, d, weights = w)
-                tt <- lapply(cs, function(c) {
-                    cfit <- contrasts.fit(fit, contrast[, c], coef[[c]])
-                    efit <- eBayes(cfit, trend = trend, robust = robust)
-                    tt <- topTable(efit, number = Inf, sort.by = "none")  
-                    res_df(k, tt, ctype, c) %>% 
-                        rename(p_val = "P.Value", p_adj.loc = "adj.P.Val")
-                })
+                y <- voom(y, d)
             }
+            w <- n_cells[k, colnames(y)]
+            fit <- lmFit(y, d, weights = w)
+            tt <- lapply(cs, function(c) {
+                cfit <- contrasts.fit(fit, contrast[, c], coef[[c]])
+                efit <- eBayes(cfit, trend = trend, robust = robust)
+                tt <- topTable(efit, number = Inf, sort.by = "none")  
+                res_df(k, tt, ctype, c) %>% 
+                    rename(p_val = "P.Value", p_adj.loc = "adj.P.Val")
+            })
         }
         return(list(tt = tt, data = y))
     })
     # remove empty clusters
     skipped <- vapply(res, is.null, logical(1))
-    if (any(skipped) & verbose)
+    if (any(skipped))
         message(paste("Cluster(s)", dQuote(kids[skipped]), "skipped due to an",
             "insufficient number of cells in at least 2 samples per group."))
     res <- res[!skipped]
@@ -190,17 +174,15 @@ pbDS <- function(pb,
     
     # re-organize by contrast & 
     # do global p-value adjustment
-    tt <- map(res, "tt")
-    if (!is.null(cs)) {
-        tt <- lapply(cs, map, .x = tt)
-        tt <- .p_adj_global(tt)
-    } else {
-        tt <- lapply(tt, function(u) 
-            add_column(u, .after = "p_adj.loc",
-                p_adj.glb = p.adjust(u$p_adj.loc)))
-    }
-
+    tt <- lapply(res, "[[", "tt")
+    tt <- lapply(cs, function(c) map(tt, c))
+    tt <- .p_adj_global(tt)
+    
     # return results
-    list(table = tt, data = map(res, "data"), method = method, 
-        design = design, contrast = contrast, coef = coef)
+    data <- lapply(res, "[[", "data")
+    list(table = tt, 
+        data = data, 
+        design = design, 
+        contrast = contrast, 
+        coef = coef)
 }

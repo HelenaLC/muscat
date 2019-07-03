@@ -4,7 +4,7 @@
 \alias{aggregateData}
 \title{Aggregation of single-cell to pseudo-bulk data}
 \usage{
-aggregateData(x, assay, by = c("cluster_id", "sample_id"),
+aggregateData(x, assay = NULL, by = c("cluster_id", "sample_id"),
   fun = c("sum", "mean", "median"), scale = FALSE)
 }
 \arguments{

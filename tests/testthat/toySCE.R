@@ -1,6 +1,6 @@
 toySCE <- function() {
     ngs <- 300
-    ncs <- 2000
+    ncs <- 2e3
     
     gs <- paste0("gene", seq_len(ngs))
     cs <- paste0("cell", seq_len(ncs))

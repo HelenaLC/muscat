@@ -55,45 +55,6 @@ cluster_colors <- c(
 }
 
 # ------------------------------------------------------------------------------
-# compute pseudo-bulks
-# ------------------------------------------------------------------------------
-#' @importFrom purrr map_depth
-#' @importFrom SummarizedExperiment assays
-#' @importFrom utils getFromNamespace
-.pb <- function(x, cs, assay, fun) {
-    fun <- switch(fun,
-        rowMedians = getFromNamespace(fun, "matrixStats"),
-        getFromNamespace(fun, "Matrix"))
-    pb <- map_depth(cs, -1, function(i) {
-        if (length(i) == 0) return(numeric(nrow(x)))
-        fun(assays(x)[[assay]][, i, drop = FALSE])
-    })
-    map_depth(pb, -2, function(u) 
-        data.frame(u, 
-            row.names = rownames(x),
-            check.names = FALSE))
-}
-#' @importFrom Matrix t
-#' @importFrom Matrix.utils aggregate.Matrix
-#' @importFrom SummarizedExperiment assays colData
-.pb0 <- function(sce, assay, by, fun) {
-    pb <- aggregate.Matrix(
-        t(assays(sce)[[assay]]), 
-        colData(sce)[, by], 
-        fun = fun)
-    if (length(by) == 1) {
-        t(pb)
-    } else {
-        cd <- as.list(colData(sce)[, by])
-        ids <- lapply(cd, levels)
-        n <- nlevels(cd[[2]])
-        split(pb, rep(ids[[1]], n)) %>% 
-            lapply(matrix, ncol = n, byrow = TRUE,
-                dimnames = list(rownames(sce), ids[[2]]))
-    }
-}
-
-# ------------------------------------------------------------------------------
 # split cells by cluster-sample
 # ------------------------------------------------------------------------------
 #   x:  a SingleCellExperiment or colData
