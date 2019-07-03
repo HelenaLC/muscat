@@ -43,9 +43,10 @@
 #' @importFrom stats as.formula model.matrix
 #' @importFrom variancePartition dream getContrast
 .mm_dream <- function(x,
-    coef, covs, n_threads, verbose,
+    coef = NULL, covs = NULL, 
     dup_corr = FALSE, trended = FALSE,
-    ddf = c("Satterthwaite", "Kenward-Roger")) {
+    ddf = c("Satterthwaite", "Kenward-Roger"),
+    n_threads = 1, verbose = FALSE) {
     
     if (is.null(sizeFactors(x)))
         x <- computeSumFactors(x)
@@ -101,45 +102,22 @@
 #' @param REML logical; whether to maximize REML instead of log-likelihood.
 #'
 #' @importFrom BiocParallel bplapply MulticoreParam
-#' @importFrom DESeq2 DESeqDataSetFromMatrix estimateDispersions
-#'   sizeFactors varianceStabilizingTransformation
 #' @importFrom dplyr last
 #' @importFrom purrr set_names
-#' @importFrom sctransform vst
-#' @importFrom scran computeSumFactors
-#' @importFrom SingleCellExperiment counts sizeFactors sizeFactors<-
-#' @importFrom SummarizedExperiment assay
+#' @importFrom SingleCellExperiment counts
 #' @importFrom tibble add_column
-.mm_vst <- function(x,
-    coef, covs, n_threads, verbose,
-    vst = c("sctransform", "DESeq2"),
+.mm_vst <- function(x, 
+    vst = c("sctransform", "DESeq2"), 
+    coef = NULL, covs = NULL,
     bayesian = FALSE, blind = TRUE, REML = TRUE,
-    ddf = c("Satterthwaite", "Kenward-Roger", "lme4")) {
+    ddf = c("Satterthwaite", "Kenward-Roger", "lme4"),
+    n_threads = 1, verbose = FALSE) {
 
     vst <- match.arg(vst)
     ddf <- match.arg(ddf)
     cd <- .prep_cd(x, covs)
-
-    # variance-stabilizing transformation
-    fun_call <- switch(vst,
-        sctransform = {
-            # assure correct vst() function is used
-            fun <- getFromNamespace("vst", vst)
-            expression(fun(assay(x), show_progress = verbose)$y)
-        },
-        DESeq2 = {
-            if (is.null(sizeFactors(x)))
-                x <- computeSumFactors(x)
-            formula <- paste("~", paste(c(covs, "sample_id"), collapse="+"))
-            formula <- as.formula(formula)
-            y <- as.matrix(counts(x))
-            y <- suppressMessages(DESeqDataSetFromMatrix(y, cd, formula))
-            sizeFactors(y) <- sizeFactors(x)
-            if (!blind) y <- estimateDispersions(y)
-            expression(assay(varianceStabilizingTransformation(y, blind)))
-        })
-    if (verbose) y <- eval(fun_call) else y <- suppressMessages(eval(fun_call))
-
+    y <- counts(x)
+    
     # get formula
     formula <- paste(c("~(1|sample_id)", covs, "group_id"), collapse = "+")
     if (verbose) print(formula)
@@ -160,8 +138,8 @@
         set_names(rownames(y))
 
     if (verbose) message("Applying empirical Bayes moderation..")
-    .mm_eBayes(fits, coef) %>% 
-        add_column(.after = "p_val", p_adj.loc = p.adjust(.$p_val))
+    fits <- .mm_eBayes(fits, coef)
+    add_column(fits, .after = "p_val", p_adj.loc = p.adjust(fits$p_val))
 }
 
 # helper to prepare colData for .mm_dream/vst
@@ -181,7 +159,7 @@
 #' @importFrom lmerTest lmer contest
 #' @importFrom lme4 .makeCC lmerControl
 #' @importFrom purrr map set_names
-#' @importFrom stats residuals
+#' @importFrom stats df.residual residuals sd
 #' @importFrom utils getFromNamespace
 .fit_lmer <- function(df, formula, coef, bayesian, REML, ddf) {
     # here we should do some handling of convergence/singularity
@@ -211,20 +189,24 @@
     }, error = function(e) e)
 }
 
-
 #' @importFrom BiocParallel bplapply MulticoreParam
 #' @importFrom dplyr %>% bind_rows last
 #' @importFrom purrr set_names
 #' @importFrom SingleCellExperiment counts
 #' @importFrom SummarizedExperiment assay
 #' @importFrom tibble add_column
-.mm_glmm <- function(x, coef, covs, n_threads, verbose=TRUE, moderate=TRUE, family=c("poisson","nbinom")){
+.mm_glmm <- function(x, 
+    coef, covs, n_threads, 
+    family = c("poisson","nbinom"), 
+    verbose=TRUE, moderate=TRUE) {
+    
     family <- match.arg(family)
     cd <- .prep_cd(x, covs)
     y <- counts(x)
-    if(is.null(sizeFactors(x))){
+    
+    if (is.null(sizeFactors(x))) {
         cd$ls <- log(colSums(y))
-    }else{
+    } else {
         cd$ls <- sizeFactors(x)
     }
     
@@ -238,52 +220,52 @@
         coef <- paste0("group_id", last(levels(x$group_id)))
         if (verbose) 
             message("Argument 'coef' not specified; ", 
-                    sprintf("testing for %s.", dQuote(coef)))
+                sprintf("testing for %s.", dQuote(coef)))
     }
     
     # fit mixed model for ea. gene
-    fits <- bplapply(seq_len(nrow(y)), function(i) {
-        if(moderate){
-            if(family=="nbinom"){
-                return(.fit_nbinom(df=data.frame(u=y[i, ], cd), formula, coef))
-            }else{
-                return(.fit_bglmer(df=data.frame(u=y[i, ], cd), formula, coef))
-            }
-        }else{
-            return(tryCatch({
-                if(family=="nbinom"){
-                    mod <- glmmTMB(formula, family=nbinom1, data=data.frame(u=y[i, ], cd), REML=FALSE)
-                    res <- coef(summary(mod))[[1]][coef,]
-                }else{
-                    mod <- bglmer(formula, family="poisson", data=data.frame(u=y[i, ], cd))
-                    res <- coef(summary(mod))[coef,]
-                }
-                res
-            }, error=function(e) rep(NA_real_, 4)))
+    gs <- seq_len(nrow(y))
+    names(gs) <- rownames(y)
+    fits <- bplapply(gs, function(i) {
+        df <- data.frame(u = y[i, ], cd)
+        if (moderate) {
+            fun <- switch(family,
+                nbinom = .fit_nbinom,
+                poisson = .fit_bglmer)
+            fun(df, formula, coef)
+        } else {
+            tryCatch({
+                switch(family,
+                    nbinom = {
+                        mod <- glmmTMB(formula, df, family = nbinom1, REML = FALSE)
+                        coef(summary(mod))[[1]][coef, ] },
+                    poisson = {
+                        mod <- bglmer(formula, df, family = "poisson")
+                        coef(summary(mod))[coef, ] })
+            }, error=function(e) rep(NA_real_, 4))
         }
-    }, BPPARAM = MulticoreParam(n_threads, progressbar=verbose)) %>% 
-        set_names(rownames(y))
+    }, BPPARAM = MulticoreParam(n_threads, progressbar=verbose))
     
-    if(moderate){
+    if (moderate){
         if (verbose) message("Applying empirical Bayes moderation..")
         fits <- .mm_eBayes(fits, coef)
-    }else{
+    } else {
         fits <- as.data.frame(t(bind_rows(fits)))
         colnames(fits) <- c("beta", "SE", "stat", "p_val")
     }
-    fits %>% add_column(.after = "p_val", p_adj.loc = p.adjust(.$p_val))
+    add_column(fits, .after = "p_val", p_adj.loc = p.adjust(fits$p_val))
 }
 
 #' @import blme
-.mm_poisson <- function(x, coef, covs, n_threads, verbose=TRUE, moderate=TRUE){
-    .mm_glmm(x, coef, covs, n_threads, verbose=verbose, moderate=moderate, family="poisson")
-}
+.mm_poisson <- function(x, coef, covs, n_threads, verbose = TRUE, moderate = TRUE)
+    .mm_glmm(x, coef, covs, n_threads, family = "poisson", 
+        verbose = verbose, moderate = moderate)
+
 
 #' @import glmmTMB
-.mm_nbinom <- function(x, coef, covs, n_threads, verbose=TRUE, moderate=TRUE){
-    .mm_glmm(x, coef, covs, n_threads, verbose=verbose, moderate=moderate, family="poisson")
-}
-
+.mm_nbinom <- function(x, coef, covs, n_threads, verbose = TRUE, moderate = TRUE)
+    .mm_glmm(x, coef, covs, n_threads, family="poisson", 
+        verbose = verbose, moderate = moderate)
 
 
 #' @importFrom BiocParallel bplapply MulticoreParam
@@ -292,27 +274,32 @@
 #' @importFrom SingleCellExperiment counts SingleCellExperiment
 #' @importFrom SummarizedExperiment assay
 #' @importFrom tibble add_column
+#' @importFrom Matrix colSums t 
 #' @importFrom Matrix.utils aggregate.Matrix
 #' @import glmmTMB
 #' @import blme
-.mm_hybrid <- function(x, coef, covs, n_threads, verbose=TRUE, fam=c("nbinom","poisson"), pthres4mm=0.1){
+.mm_hybrid <- function(x, 
+    coef, covs, n_threads, verbose = TRUE, 
+    fam = c("nbinom","poisson"), pthres4mm = 0.1) {
+    
     fam <- match.arg(fam)
     x$cluster_id <- droplevels(x$cluster_id)
     cd <- .prep_cd(x, covs)
     y <- counts(x)
-    if(is.null(sizeFactors(x))){
+
+    if (is.null(sizeFactors(x))) {
         cd$ls <- log(colSums(y))
-    }else{
+    } else {
         cd$ls <- sizeFactors(x)
     }
     
-    pb <- SingleCellExperiment( list(t(aggregate.Matrix(t(counts(x)), x$sample_id))) %>% 
-                                    set_names(as.character(x$cluster_id[1])) )
-    pb.cd <- as.data.frame(getPBcolData(x)[colnames(pb),])
+    # compute pseudobulk sum-counts
+    pb <- aggregateData(x, verbose = verbose)
+    pb_cd <- as.data.frame(colData(pb))
     
     # get sample-level formula
-    f <- paste(c("~group_id", intersect(covs, colnames(pb.cd))), collapse="+")
-    mm <- model.matrix(as.formula(f), data=pb.cd)
+    f <- paste(c("~group_id", intersect(covs, names(pb_cd))), collapse="+")
+    mm <- model.matrix(as.formula(f), pb_cd)
     
     # get cell-level formula
     formula <- paste(c("~(1|sample_id)+offset(ls)", covs, "group_id"), collapse = "+")
@@ -324,33 +311,35 @@
         coef <- paste0("group_id", last(levels(x$group_id)))
         if (verbose) 
             message("Argument 'coef' not specified; ", 
-                    sprintf("testing for %s.", dQuote(coef)))
+                sprintf("testing for %s.", dQuote(coef)))
     }
     
     # pseudo-bulk analysis:
-    res <- pbDS(x, pb, mm, coef=which(colnames(mm)==coef), method="edgeR")
+    res <- pbDS(pb, mm, coef = which(colnames(mm) == coef), method = "edgeR")
     res <- res$table[[1]][[1]]
-    res <- res[,setdiff(colnames(res), c("F","p_adj.loc","coef","p_adj.glb"))] %>% 
-        rename(pb.p_val="p_val")
+    cols_keep <- setdiff(colnames(res), c("F", "p_adj.loc", "coef", "p_adj.glb"))
+    res <- rename(res[, cols_keep], pb.p_val = "p_val")
     row.names(res) <- res$gene
     names(wg) <- wg <- as.character(res$gene)[which(res$pb.p_val < pthres4mm)]
     
     # fit mixed model for ea. gene which is below threshold in pseudobulk analysis
     fits <- bplapply(wg, function(i) {
-        if(fam=="nbinom"){
-            return(tryCatch({
-                mod <- glmmTMB(formula, family=nbinom1, data=data.frame(u=y[i, ], cd), REML=FALSE)
-                coef(summary(mod))[[1]][coef,]
-            }, error=function(e) rep(NA_real_, 4)))
-        }
+        df <- data.frame(u=y[i, ], cd)
         tryCatch({
-            mod <- bglmer(formula, family="poisson", data=data.frame(u=y[i, ], cd))
-            coef(summary(mod))[coef,]
+            switch(fam,
+                nbinom = {
+                    mod <- glmmTMB(formula, df, family = nbinom1, REML=FALSE)
+                    coef(summary(mod))[[1]][coef, ]
+                },
+                poisson = {
+                    mod <- bglmer(formula, df, family = "poisson")
+                    coef(summary(mod))[coef, ]
+                })
         }, error=function(e) rep(NA_real_, 4))
-    }, BPPARAM = MulticoreParam(n_threads, progressbar=verbose))
+    }, BPPARAM = MulticoreParam(n_threads, progressbar = verbose))
     
     res$glmm.estimate <- res$glmm.p_val <- NA_real_
-    res[wg, c("glmm.estimate", "glmm.p_val")] <- t(bind_rows(fits))[,c(1,4)]
+    res[wg, c("glmm.estimate", "glmm.p_val")] <- t(bind_rows(fits))[, c(1,4)]
     
     res$geomean.p_val <- res$mean.p_val <- res$p_val <- res$pb.p_val
     
@@ -358,16 +347,14 @@
     res[wg,"mean.p_val"] <- rowMeans(as.matrix(res[wg,c("pb.p_val","glmm.p_val")]))
     res[wg,"p_val"] <- res[wg,"glmm.p_val"]
     
-    res[,-1:-2] %>% add_column(.after = "p_val", p_adj.loc = p.adjust(.$p_val))
+    res <- res[, -c(1, 2)]
+    add_column(res, .after = "p_val", p_adj.loc = p.adjust(res$p_val))
 }
-
-
-
 
 # fits negative binomial mixed models and returns fit information required for eBayes
 #' @import glmmTMB
 #' @importFrom purrr map set_names
-#' @importFrom stats residuals
+#' @importFrom stats df.residual residuals sd
 .fit_nbinom <- function(df, formula, coef){
     mod <- tryCatch({
         glmmTMB(formula, family=nbinom1, data=df, REML=FALSE)
@@ -392,7 +379,7 @@
 # fits poisson mixed models and returns fit information required for eBayes
 #' @import blme
 #' @importFrom purrr map set_names
-#' @importFrom stats residuals
+#' @importFrom stats df.residual residuals sd
 .fit_bglmer <- function(df, formula, coef){
     mod <- tryCatch({
         bglmer(formula, family="poisson", data=df)
@@ -413,8 +400,6 @@
     }, error=function(e) NULL)
 }
 
-
-
 # formats a list of .fit_lmer results into
 # an eBayes compatible list & performs moderation
 #' @importFrom dplyr %>% bind_cols pull
@@ -429,7 +414,7 @@
         res <- lapply(vars, map, .x = f) %>%
             map(data.frame) %>% map(t) %>%
             map(function(u) {if (ncol(u) == 1) c(u) else u})
-        names(res)[1:4] <- c("coefficients", "stdev.unscaled", "z", "PValue")
+        names(res)[seq_len(4)] <- c("coefficients", "stdev.unscaled", "z", "PValue")
         res <- eBayes(res, trend = trended, robust = TRUE)
         res <- res[c("coefficients", "z", "PValue", "p.value")] %>%
             set_names(c("beta", "stat", "p_val0", "p_val")) %>%
@@ -445,25 +430,4 @@
             vapply(fits[rmv], as.character, character(1))
     }
     res[names(fits), ]
-}
-
-getPBcolData <- function(sce){
-    CD <- colData(sce)
-    nsamps <- length(unique(CD$sample_id))
-    # get rid of most columns that would slow down agg:
-    CD <- CD[,which(sapply(CD, FUN=function(x) length(unique(x)))<=nsamps),drop=FALSE]
-    pb <- aggregate(CD, by=list(CD$sample_id), FUN=function(x){
-        ifelse(length(unique(x))>1, NA, x[1])
-    })
-    # re-factor:
-    for(f in intersect(colnames(pb), colnames(CD))){
-        if(is.factor(CD[[f]])) pb[[f]] <- factor(levels(CD[[f]])[pb[[f]]], levels=levels(CD[[f]]))
-    }
-    pb <- pb[,colSums(is.na(as.matrix(pb)))<nrow(pb),drop=FALSE]
-    # save the number of cells:
-    pb$nbCells <- as.numeric(table(CD$sample_id)[pb$sample_id])
-    row.names(pb) <- pb[,1]
-    pb <- pb[,-1]
-    pb$sample_id <- NULL
-    pb
 }

@@ -41,7 +41,7 @@
 #' @importFrom purrr map_depth
 #' @importFrom S4Vectors metadata
 #' @importFrom SingleCellExperiment SingleCellExperiment
-#' @importFrom SummarizedExperiment colData
+#' @importFrom SummarizedExperiment colData colData<-
 #' 
 #' @export
 
@@ -52,7 +52,11 @@ aggregateData <- function(x,
     scale = FALSE) {
    
     # validity checks for input arguments
-    if (is.null(assay)) assay <- assayNames(x)[1] else .check_arg_assay(x, assay)
+    if (is.null(assay)) {
+        assay <- assayNames(x)[1] 
+    } else {
+        .check_arg_assay(x, assay)
+    }
     stopifnot(is.character(by), by %in% colnames(colData(x)), length(by) <= 2)
     stopifnot(is.logical(scale), length(scale) == 1)
 

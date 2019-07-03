@@ -21,8 +21,10 @@
 #' 
 #' @references 
 #' Kang et al. (2018). 
-#' Multiplexed droplet single-cell RNA-sequencing using natural genetic variation. 
-#' \emph{Nature Biotechnology}, \bold{36}(1): 89-94. DOI: 10.1038/nbt.4042.
+#' Multiplexed droplet single-cell RNA-sequencing 
+#' using natural genetic variation. 
+#' \emph{Nature Biotechnology}, 
+#' \bold{36}(1): 89-94. DOI: 10.1038/nbt.4042.
 #'  
 #' @author Helena L. Crowell \email{helena.crowell@uzh.ch}.
 

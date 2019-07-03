@@ -117,8 +117,10 @@ simData <- function(x, n_genes = 500, n_cells = 300,
         gs_by_k <- .impute_type_genes(x, gs_by_k, gs_idx, p_type)
 
     # split by cluster & categroy
-    gs_by_k <- gs_by_k %>% split(col(.)) %>% 
-        set_names(kids) %>% map(set_names, gs)
+    gs_by_k <- split(gs_by_k, col(gs_by_k))
+    gs_by_k <- map(gs_by_k, set_names, gs)
+    names(gs_by_k) <- kids
+    
     gs_by_kc <- lapply(kids, function(k) 
         lapply(cats, function(c)
             gs_by_k[[k]][gs_idx[[c, k]]]) %>% 

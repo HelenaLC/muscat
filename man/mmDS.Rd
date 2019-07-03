@@ -9,14 +9,18 @@
 mmDS(x, coef = NULL, covs = NULL, method = c("dream", "vst",
   "poisson", "nbinom", "hybrid"), n_cells = 10, n_samples = 2,
   min_count = 1, min_cells = 20, n_threads = 8, verbose = TRUE,
-  ...)
-
-.mm_dream(x, coef, covs, n_threads, verbose, dup_corr = FALSE,
-  trended = FALSE, ddf = c("Satterthwaite", "Kenward-Roger"))
-
-.mm_vst(x, coef, covs, n_threads, verbose, vst = c("sctransform",
+  dup_corr = FALSE, trended = FALSE, vst = c("sctransform",
   "DESeq2"), bayesian = FALSE, blind = TRUE, REML = TRUE,
   ddf = c("Satterthwaite", "Kenward-Roger", "lme4"))
+
+.mm_dream(x, coef = NULL, covs = NULL, dup_corr = FALSE,
+  trended = FALSE, ddf = c("Satterthwaite", "Kenward-Roger"),
+  n_threads = 1, verbose = FALSE)
+
+.mm_vst(x, vst = c("sctransform", "DESeq2"), coef = NULL,
+  covs = NULL, bayesian = FALSE, blind = TRUE, REML = TRUE,
+  ddf = c("Satterthwaite", "Kenward-Roger", "lme4"), n_threads = 1,
+  verbose = FALSE)
 }
 \arguments{
 \item{x}{a \code{\link[SingleCellExperiment]{SingleCellExperiment}}.}
@@ -51,20 +55,11 @@ at least \code{min_cells} must have a count >= \code{min_count}.}
 \item{verbose}{logical specifying whether messages 
 on progress and a progress bar should be displayed.}
 
-\item{...}{additional parameters passed to the method function.}
-
 \item{dup_corr}{logical; whether to use
 \code{\link[limma]{duplicateCorrelation}}.}
 
 \item{trended}{logical; whether to use expression-dependent variance priors
 in \code{\link[limma]{eBayes}}.}
-
-\item{ddf}{character string specifying the method for estimating
-the effective degrees of freedom. For \code{method = "dream"},
-either \code{"Satterthwaite"} (faster) or \code{"Kenward-Roger"}
-(more accurate); see \code{\link[variancePartition]{dream}}.
-For \code{method = "vst"}, method \code{"lme4"} is also valid;
-see \code{\link[lmerTest]{contest.lmerModLmerTest}}.}
 
 \item{vst}{method to use as variance-stabilizing transformations.
 \code{"sctransform"} for \code{\link[sctransform]{vst}};
@@ -75,6 +70,15 @@ see \code{\link[lmerTest]{contest.lmerModLmerTest}}.}
 \item{blind}{logical; whether to ignore experimental design for the vst.}
 
 \item{REML}{logical; whether to maximize REML instead of log-likelihood.}
+
+\item{ddf}{character string specifying the method for estimating
+the effective degrees of freedom. For \code{method = "dream"},
+either \code{"Satterthwaite"} (faster) or \code{"Kenward-Roger"}
+(more accurate); see \code{\link[variancePartition]{dream}}.
+For \code{method = "vst"}, method \code{"lme4"} is also valid;
+see \code{\link[lmerTest]{contest.lmerModLmerTest}}.}
+
+\item{...}{additional parameters passed to the method function.}
 }
 \value{
 a data.frame
@@ -107,6 +111,22 @@ Meant to be called by \code{mmDS} with \code{method = c("dream", "vst")} and
 \item \code{.mm_vst}: see details.
 }}
 
+\examples{
+data(sce)
+# subset "B cells" cluster
+sce <- sce[, sce$cluster_id == "B cells"]
+sce$cluster_id <- droplevels(sce$cluster_id)
+
+# downsample to 100 genes & 50 cells per sample
+cells_by_sample <- split(colnames(sce), sce$sample_id)
+genes_keep <- sample(nrow(sce), 100)
+cells_keep <- sapply(cells_by_sample, sample, 50)
+sce <- sce[genes_keep, cells_keep]
+
+res <- mmDS(sce, method = "dream", verbose = FALSE)
+head(res$`B cells`)
+
+}
 \author{
 Pierre-Luc Germain and Helena L. Crowell.
 }

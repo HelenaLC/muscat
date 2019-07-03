@@ -29,30 +29,56 @@
 #'
 #' @return a data.frame
 #' 
+#' @examples 
+#' data(sce)
+#' # subset "B cells" cluster
+#' sce <- sce[, sce$cluster_id == "B cells"]
+#' sce$cluster_id <- droplevels(sce$cluster_id)
+#' 
+#' # downsample to 100 genes & 50 cells per sample
+#' cells_by_sample <- split(colnames(sce), sce$sample_id)
+#' genes_keep <- sample(nrow(sce), 100)
+#' cells_keep <- sapply(cells_by_sample, sample, 50)
+#' sce <- sce[genes_keep, cells_keep]
+#' 
+#' res <- mmDS(sce, method = "dream", verbose = FALSE)
+#' head(res$`B cells`)
+#' 
 #' @author Pierre-Luc Germain and Helena L. Crowell.
 #' 
+#' @importFrom DESeq2 DESeqDataSetFromMatrix estimateDispersions
+#'   sizeFactors varianceStabilizingTransformation
 #' @importFrom dplyr %>% mutate bind_rows
+#' @importFrom matrixStats rowMins
 #' @importFrom progress progress_bar
 #' @importFrom purrr map_depth
 #' @importFrom tibble add_column
-#' @importFrom SingleCellExperiment colData counts
+#' @importFrom scran computeSumFactors
+#' @importFrom sctransform vst
+#' @importFrom SingleCellExperiment counts counts<- 
+#'   colData sizeFactors sizeFactors<-
 #' @importFrom stats p.adjust
 #' @export
-mmDS <- function(x, 
-    coef = NULL, covs = NULL, method = c("dream", "vst", "poisson", "nbinom", "hybrid"),
+mmDS <- function(x, coef = NULL, covs = NULL, 
+    method = c("dream", "vst", "poisson", "nbinom", "hybrid"),
     n_cells = 10, n_samples = 2, min_count = 1, min_cells = 20,
-    n_threads = 8, verbose = TRUE, ...) {
+    n_threads = 8, verbose = TRUE, 
+    dup_corr = FALSE, trended = FALSE,
+    vst = c("sctransform", "DESeq2"), 
+    bayesian = FALSE, blind = TRUE, REML = TRUE,
+    ddf = c("Satterthwaite", "Kenward-Roger", "lme4")) {
     
     .check_sce(x, req_group = TRUE)
     .check_arg_assay(x, "counts")
+    
+    args <- as.list(environment())
+    args$method <- match.arg(method)
+    args$vst <- match.arg(vst)
+    args$ddf <- match.arg(ddf)
 
     if (!is.null(covs) && !all(covs %in% names(colData(x))))
         stop(paste("Some of the specified covariates couldn't be found:",
             paste(setdiff(covs, names(colData(x))), collapse=", ")))
-    
-    # get method function
-    method <- match.arg(method)
-    fun <- ifelse(is.function(method), method, get(paste0(".mm_", method)))
     
     # counts cells per cluster-sample
     n_cells_by_ks <- table(x$cluster_id, x$sample_id)
@@ -78,20 +104,56 @@ mmDS <- function(x,
     
     # split cells by cluster
     cells_by_k <- split(colnames(x), x$cluster_id)
+
+    if (min_count < 1) {
+        min_count <- floor(min_count * rowMins(n_cells_by_ks))
+    } else {
+        min_count <- rep(min_count, length(kids))
+    }
+    names(min_count) <- kids
+    
+    # variance-stabilizing transformation
+    if (args$method == "vst") {
+        vst_call <- switch(args$vst,
+            sctransform = {
+                # assure correct vst() function is used
+                fun <- getFromNamespace("vst", "sctransform")
+                expression(fun(assay(x), show_progress = verbose)$y)
+            },
+            DESeq2 = {
+                if (is.null(sizeFactors(x)))
+                    x <- computeSumFactors(x)
+                formula <- as.formula(paste("~", 
+                    paste(c(covs, "sample_id"), collapse = "+")))
+                y <- suppressMessages(DESeqDataSetFromMatrix(
+                    as.matrix(counts(x)), colData(x), formula))
+                sizeFactors(y) <- sizeFactors(x)
+                if (!blind) y <- estimateDispersions(y)
+                expression(assay(varianceStabilizingTransformation(y, blind)))
+            })
+        if (!verbose) vst_call <- parse(text = 
+                sprintf("suppressMessages(%s)", paste(vst_call)))
+        counts(x) <- eval(vst_call)
+    }
+    
+    # get method function & construct correct call
+    fun <- ifelse(is.function(args$method), 
+        args$method, get(paste0(".mm_", args$method)))
+    args_use <- names(formals(fun))
+    args <- args[names(args) %in% args_use]
     
     if (verbose) pb <- progress_bar$new(total = length(kids))
     res <- lapply(kids, function(k) {
         y <- x[, cells_by_k[[k]]]
-        if (min_count < 1) 
-            min_count <- floor(min_count * min(n_cells_by_ks[k, ]))
-        y <- y[rowSums(counts(y) >= min_count) > min_cells, ]
+        y <- y[rowSums(counts(y) >= min_count[k]) > min_cells, ]
         if (verbose) 
             message(sprintf(
                 "Testing %s genes across %s cells in cluster %s...", 
                 nrow(y), ncol(y), dQuote(k)))
         
         # call to .mm_dream/.mm_vst
-        fun(y, coef, covs, n_threads, verbose, ...) %>% 
+        args$x <- y
+        do.call(fun, args) %>% 
             add_column(.before = 1, gene = rownames(y), cluster_id = k) %>% 
             set_rownames(NULL)
     }) 

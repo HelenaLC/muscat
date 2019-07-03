@@ -3,10 +3,10 @@
 
 # check input SCE
 .check_sce <- function(x, req_group = TRUE) {
-  stopifnot(is(x, "SingleCellExperiment"))
-  stopifnot(c("cluster_id", "sample_id") %in% colnames(colData(x)))
-  if (req_group)
-      stopifnot("group_id" %in% colnames(colData(x)))
+    stopifnot(is(x, "SingleCellExperiment"))
+    stopifnot(c("cluster_id", "sample_id") %in% colnames(colData(x)))
+    if (req_group)
+        stopifnot("group_id" %in% colnames(colData(x)))
 }
 
 # check of 'assay' argument
@@ -37,7 +37,7 @@
     ei <- metadata(x)$experiment_info
     kids <- levels(x$cluster_id)
     nk <- length(kids)
-
+    
     stopifnot(is(y, "list"), all.equal(names(y),
         c("table", "data", "design", "contrast", "coef")))
     # table

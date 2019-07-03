@@ -48,14 +48,14 @@ cats <- factor(cats, levels = cats)
     ns <- vapply(ids, length, numeric(1))
     if (is.null(probs)) 
         probs <- vector("list", 3)
-    probs <- lapply(1:3, function(i) {
+    probs <- lapply(seq_along(probs), function(i) {
         if (!is.null(probs[[i]])) {
             return(probs[[i]])
         } else {
             rep(1 / ns[i], ns[i])
         }
     })
-    vapply(1:3, function(i) 
+    vapply(seq_along(probs), function(i) 
         sample(ids[[i]], n, TRUE, probs[[i]]), 
         character(n)) %>% data.frame(row.names = NULL) %>% 
         set_colnames(c("cluster_id", "sample_id", "group_id"))
@@ -131,11 +131,12 @@ cats <- factor(cats, levels = cats)
     fc <- rep(fc, each = n_cs)
     ds <- rep(1/d, each = n_cs)
     ms <- c(t(m[, cs])) * fc 
-    rnbinom(n_gs * n_cs, size = ds, mu = ms) %>% 
-        matrix(byrow = TRUE,
+    y <- rnbinom(n_gs * n_cs, size = ds, mu = ms)
+    y <- matrix(y, byrow = TRUE, 
         nrow = n_gs, ncol = n_cs, 
-        dimnames = list(names(d), cs)) %>% 
-        list(counts = ., means = split(ms, rep(seq_len(nrow(m)), each = n_cs)))
+        dimnames = list(names(d), cs))
+    ms <- split(ms, rep(seq_len(nrow(m)), each = n_cs))
+    list(counts = y, means = ms)
 }
 
 # ------------------------------------------------------------------------------
@@ -216,11 +217,11 @@ cats <- factor(cats, levels = cats)
         de = ms,
         db = cbind(
             ms[, 1],
-            rowMeans(ms[, 2:3])),
+            rowMeans(ms[, c(2, 3)])),
         cbind(
-            rowMeans(ms[, 1:2]),
-            rowMeans(ms[, 3:4]))) %>% 
-        split(col(.)) %>% 
-        set_names(c("A", "B")[c(ng1, ng2) != 0])
+            rowMeans(ms[, c(1, 2)]),
+            rowMeans(ms[, c(3, 4)])))
+    ms <- split(ms, col(ms))
+    names(ms) <- c("A", "B")[c(ng1, ng2) != 0]
     list(cs = cs, ms = ms)
 }

@@ -79,6 +79,7 @@
 #'
 #' @author Helena L. Crowell \email{helena.crowell@uzh.ch} and Mark D. Robinson.
 #'
+#' @importFrom DESeq2 DESeq results
 #' @importFrom edgeR calcNormFactors DGEList 
 #'   estimateDisp glmQLFit glmQLFTest topTags
 #' @importFrom dplyr rename

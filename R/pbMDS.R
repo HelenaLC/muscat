@@ -14,7 +14,8 @@
 #' pb <- aggregateData(sce)
 #' pbMDS(pb)
 #' 
-#' @author Helena L. Crowell \email{helena.crowells@uzh.ch} and Mark D. Robinson.
+#' @author 
+#' Helena L. Crowell \email{helena.crowells@uzh.ch} and Mark D. Robinson.
 #' 
 #' @import ggplot2
 #' @importFrom edgeR calcNormFactors cpm DGEList plotMDS.DGEList
