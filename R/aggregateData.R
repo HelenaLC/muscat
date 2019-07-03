@@ -82,7 +82,8 @@ aggregateData <- function(x,
             pb_sum <- .pb(x, cs, "counts", "rowSums")
         }
         ls <- lapply(pb_sum, colSums)
-        pb <- lapply(names(pb), function(i) pb[[i]] / ls[[i]] * 1e6)
+        pb <- lapply(seq_along(pb), function(i) pb[[i]] / ls[[i]] * 1e6)
+        names(pb) <- names(pb_sum)
     }
 
     # construct SCE
