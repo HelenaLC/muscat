@@ -6,9 +6,10 @@
 \alias{.mm_vst}
 \title{DS analysis using mixed-models (MM)}
 \usage{
-mmDS(x, coef = NULL, covs = NULL, method = c("dream", "vst"),
-  n_cells = 10, n_samples = 2, min_count = 1, min_cells = 20,
-  n_threads = 8, verbose = TRUE, ...)
+mmDS(x, coef = NULL, covs = NULL, method = c("dream", "vst",
+  "poisson", "nbinom", "hybrid"), n_cells = 10, n_samples = 2,
+  min_count = 1, min_cells = 20, n_threads = 8, verbose = TRUE,
+  ...)
 
 .mm_dream(x, coef, covs, n_threads, verbose, dup_corr = FALSE,
   trended = FALSE, ddf = c("Satterthwaite", "Kenward-Roger"))
@@ -29,6 +30,8 @@ column names to use as covariates.}
 \item{method}{a character string. 
 Either \code{"dream"} (default, lme4 with voom-weights), 
 \code{"vst"} (variance-stabilizing transformation), 
+\code{"poisson"} (poisson GLM-MM), \code{"nbinom"} (negative binomial GLM-MM), 
+\code{"hybrid"} (combination of pseudobulk and poisson methods)
 or a function accepting the same arguments.}
 
 \item{n_cells}{number of cells per cluster-sample 
