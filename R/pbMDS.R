@@ -30,17 +30,20 @@
 pbMDS <- function(x) {
     y <- as(assays(x), "list")
     y <- do.call("cbind", y)
+    rmv <- rowSums(y) == 0
+    y <- y[, !rmv]
     d <- suppressMessages(DGEList(y))
     d <- calcNormFactors(d)
     
     mds <- plotMDS.DGEList(d, plot = FALSE)
     ei <- metadata(x)$experiment_info
     m <- match(colnames(x), ei$sample_id)
+    kids <- assayNames(x)
     nk <- length(assays(x))
     df <- data.frame(
         MDS1 = mds$x, 
         MDS2 = mds$y, 
-        cluster_id = rep(assayNames(x), each = ncol(x)),
+        cluster_id = factor(rep(kids, each = ncol(x))[!rmv], levels = kids),
         group_id = rep(ei$group_id[m], nk))
     
     cols <- cluster_colors
