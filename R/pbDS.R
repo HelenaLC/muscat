@@ -50,29 +50,21 @@
 #' # simulate 5 clusters, 20% of DE genes
 #' data(sce)
 #'     
-#' # compute pseudo-bulk counts
+#' # compute pseudobulk sum-counts & run DS analysis
 #' pb <- aggregateData(sce)
-#' 
-#' # specify design & contrast matrix
-#' ei <- metadata(x)$experiment_info
-#' design <- model.matrix(~ 0 + ei$group_id)
-#' dimnames(design) <- list(ei$sample_id, levels(ei$group_id))
-#' contrast <- limma::makeContrasts("B-A", levels = design)
-#' 
-#' # test for cluster-specific DE 
-#' res <- pbDS(sce, pb, design, contrast, method = "edgeR")
+#' res <- pbDS(pb, method = "limma-trend")
 #'
 #' names(res)
-#' names(res[[1]])
-#' lapply(res[[1]]$`stim-ctrl`, head)
+#' names(res$table)
+#' head(res$table$`stim-ctrl`$`B cells`)
 #' 
 #' # count nb. of DE genes by cluster
-#' vapply(res[[1]]$`stim-ctrl`, function(x) 
-#'   sum(x$p_adj < 0.05), numeric(1))
+#' vapply(res$table$`stim-ctrl`, function(u) 
+#'   sum(u$p_adj.loc < 0.05), numeric(1))
 #' 
 #' # get top 5 hits for ea. cluster w/ abs(logFC) > 1
 #' library(dplyr)
-#' lapply(res[[1]]$`stim-ctrl`, function(u)
+#' lapply(res$table$`stim-ctrl`, function(u)
 #'   filter(u, abs(logFC) > 1) %>% 
 #'     arrange(p_adj) %>% 
 #'     slice(seq_len(5)))

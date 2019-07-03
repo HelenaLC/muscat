@@ -76,10 +76,10 @@ aggregateData <- function(x,
     cs <- .split_cells(x, by)
     pb <- .pb(x, cs, assay, fun)
     if (scale) {
-        if (fun == "rowSums") {
+        if (assay = "countts" & fun == "rowSums") {
             pb_sum <- pb
         } else {
-            pb_sum <- .pb(x, cs, assay, "rowSums")
+            pb_sum <- .pb(x, cs, "counts", "rowSums")
         }
         pb <- map_depth(pb_sum, -2, function(u)
             u / colSums(u)[col(u)] * 1e6)
