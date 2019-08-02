@@ -15,7 +15,7 @@ multi-sample multi-condition single-cell RNA sequencing data.
 
 ***
 
-Let `sce` be a `r BiocStyle::Biocpkg("SingleCellExperiment")` object with cell metadata (`colData`) columns
+Let `sce` be a [`SingleCellExperiment`](https://www.bioconductor.org/packages/SingleCellExperiment.html) object with cell metadata (`colData`) columns
 
 1. `"sample_id"` specifying unique sample identifiers (e.g., PeterPan1, Nautilus7, ...)
 2. `"group_id"` specifying each sample's experimental condition (e.g., reference/stimulated, healthy/diseased, ...)
