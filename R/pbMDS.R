@@ -31,29 +31,27 @@ pbMDS <- function(x) {
     y <- as(assays(x), "list")
     y <- do.call("cbind", y)
     rmv <- rowSums(y) == 0
-    y <- y[, !rmv]
+    y <- y[!rmv, ]
     d <- suppressMessages(DGEList(y))
     d <- calcNormFactors(d)
     
     mds <- plotMDS.DGEList(d, plot = FALSE)
     ei <- metadata(x)$experiment_info
     m <- match(colnames(x), ei$sample_id)
-    kids <- assayNames(x)
-    nk <- length(assays(x))
-    df <- data.frame(
-        MDS1 = mds$x, 
-        MDS2 = mds$y, 
-        cluster_id = factor(rep(kids, each = ncol(x))[!rmv], levels = kids),
+    nk <- length(kids <- assayNames(x))
+    
+    df <- data.frame(MDS1 = mds$x, MDS2 = mds$y, 
+        cluster_id = factor(rep(kids, each = ncol(x)), levels = kids),
         group_id = rep(ei$group_id[m], nk))
     
-    cols <- cluster_colors
+    cols <- .cluster_colors
     if (nk > length(cols)) 
         cols <- colorRampPalette(cols)(nk)
     
     ggplot(df, aes_string(x = "MDS1", y = "MDS2", 
         col = "cluster_id", shape = "group_id")) +
         scale_color_manual(values = cols) +
-        geom_point(size = 5, alpha = .8) + 
+        geom_point(size = 5, alpha = 0.8) + 
         guides(color = guide_legend(override.aes = list(alpha = 1))) +
         theme_bw() + theme(aspect.ratio = 1,
             axis.text = element_text(color = "black"),
