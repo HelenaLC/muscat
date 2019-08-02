@@ -7,8 +7,8 @@ as elaborated in our preprint:
 
 > Crowell HL, Soneson C\*, Germain P-L\*,  
 Calini D, Collin L, Raposo C, Malhotra D & Robinson MD:  
-On the discovery of population-specific state transitions  
-from multi-sample multi-condition single-cell RNA sequencing data.  
+On the discovery of population-specific state transitions from  
+multi-sample multi-condition single-cell RNA sequencing data.  
 *bioRxiv* **713412** (July, 2019). doi: [10.1101/713412](https://doi.org/10.1101/713412)
 
 *These authors contributed equally.
@@ -33,7 +33,7 @@ pb <- aggregateData(sce,
 ds_pb <- pbDS(pb, method = "edgeR")
 ```
 
-Mixed models can be run directly on cell-level measurements:
+Mixed models can be run directly on cell-level measurements, e.g.:
 
 ```{r}
 ds_mm <- mmDS(sce, method = "dream")
