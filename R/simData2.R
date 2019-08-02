@@ -1,4 +1,4 @@
-#' simData
+#' simData2
 #' 
 #' Simulation of complex scRNA-seq data 
 #' 
@@ -33,16 +33,6 @@
 #' simData(sce,
 #'     n_genes = 10, n_cells = 10,
 #'     p_dd = diag(6)[1, ])
-#'     
-#' @author Helena L Crowell
-#' 
-#' @references 
-#' Crowell, HL, Soneson, C, Germain, P-L, Calini, D, 
-#' Collin, L, Raposo, C, Malhotra, D & Robinson, MD: 
-#' On the discovery of population-specific state transitions from 
-#' multi-sample multi-condition single-cell RNA sequencing data. 
-#' \emph{bioRxiv} \strong{713412} (2018). 
-#' doi: \url{https://doi.org/10.1101/713412}
 #' 
 #' @importFrom data.table data.table
 #' @importFrom dplyr mutate_all mutate_at
@@ -54,9 +44,10 @@
 #' @importFrom SummarizedExperiment colData
 #' @importFrom S4Vectors split
 #' @importFrom tibble column_to_rownames
+#' 
 #' @export
 
-simData <- function(x, n_genes = 500, n_cells = 300, 
+simData2 <- function(x, n_genes = 500, n_cells = 300, 
     probs = NULL, p_dd = diag(6)[1, ], p_type = 0,
     lfc = 2, rel_lfc = NULL) {
     
@@ -80,6 +71,7 @@ simData <- function(x, n_genes = 500, n_cells = 300,
     names(sids) <- sids
     names(gids) <- gids
     nk <- length(kids)
+    ns <- length(sids)
     
     if (is.null(rel_lfc)) {
         rel_lfc <- rep(1, nk)
@@ -162,17 +154,16 @@ simData <- function(x, n_genes = 500, n_cells = 300,
     sim_mean <- lapply(kids, function(k) 
         lapply(gids, function(g)
             setNames(numeric(n_genes), rownames(y))))
+
+    ### not very elegant...
     for (k in kids) {
         for (s in sids) {
             for (c in cats[n_dd[, k] != 0]) {
                 gs_kc <- gs_by_kc[[k]][[c]]
                 cs_ks <- cs_by_ks[[k]][[s]]
                 
-                g1 <- cs_idx[[k]][[s]]$A
-                g2 <- cs_idx[[k]][[s]]$B
-                
-                ng1 <- length(g1)
-                ng2 <- length(g2) 
+                ng1 <- length(g1 <- cs_idx[[k]][[s]]$A)
+                ng2 <- length(g2 <- cs_idx[[k]][[s]]$B)
                 
                 cs_g1 <- sample(cs_ks, ng1, replace = TRUE)
                 cs_g2 <- sample(cs_ks, ng2, replace = TRUE)
@@ -199,6 +190,45 @@ simData <- function(x, n_genes = 500, n_cells = 300,
         bind_rows(.id = "cluster_id") %>% 
         mutate_at("cluster_id", factor) %>% 
         mutate(gene = rep(gs, nk))
+    
+    ### while 'mcmapply' impvoes speed, the matrix 
+    ### reconstruction step makes this is slower ¯\_(o_o)_/¯
+    # pars <- expand.grid(kids, sids, cats)
+    # pars <- mutate_all(pars, as.character)
+    # sim <- mcmapply(
+    #     mc.cores = 8, SIMPLIFY = FALSE,
+    #     k = pars$Var1, s = pars$Var2, c = pars$Var3,
+    #     function(k, s, c) {
+    #         if (n_dd[c, k] == 0) return(NULL)
+    #         # get genes & cells to simulate from
+    #         gs_kc <- gs_by_kc[[k]][[c]]
+    #         cs_ks <- cs_by_ks[[k]][[s]]
+    #         # get output cell & gene indices by group
+    #         ng1 <- length(g1 <- cs_idx[[k]][[s]]$A)
+    #         ng2 <- length(g2 <- cs_idx[[k]][[s]]$B)
+    #         # for ea. group..
+    #         # ..sample cells to simluate from 
+    #         cs_g1 <- sample(cs_ks, ng1, replace = TRUE) 
+    #         cs_g2 <- sample(cs_ks, ng2, replace = TRUE)
+    #         # ..get simulation means
+    #         m_g1 <- m[[s]][gs_kc, cs_g1, drop = FALSE]
+    #         m_g2 <- m[[s]][gs_kc, cs_g2, drop = FALSE] 
+    #         # get dispersions & logFCs
+    #         d_kc <- d[gs_kc]
+    #         lfc_kc <- lfc[[c, k]]
+    #         # call simulation wrapper
+    #         re <- .sim(c, cs_g1, cs_g2, m_g1, m_g2, d_kc, lfc_kc)
+    #         dimnames(re$cs) <- list(gs_idx[[c, k]], c(g1, g2))
+    #         return(re)
+    #     })
+    # y <- map_depth(sim, 1, "cs") %>% 
+    #     map(as.data.frame) %>% 
+    #     split(kids) %>% 
+    #     map(split, sids) %>% 
+    #     map_depth(2, bind_rows) %>%
+    #     map_depth(1, bind_cols) %>% 
+    #     bind_cols %>% 
+    #     as.matrix
     
     # construct gene metadata table storing ------------------------------------
     # gene | cluster_id | category | logFC, gene, disp, mean used for sim.

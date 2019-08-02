@@ -10,8 +10,8 @@ prepSim(x, min_count = 1, min_cells = 10, min_genes = 100,
 \arguments{
 \item{x}{a \code{\link[SingleCellExperiment]{SingleCellExperiment}}.}
 
-\item{min_count, min_cells}{used for filtering of genes; 
-only genes with a count > \code{min_count} in >= \code{min_cells} will be retained.}
+\item{min_count, min_cells}{used for filtering of genes; only genes with 
+a count > \code{min_count} in >= \code{min_cells} will be retained.}
 
 \item{min_genes}{used for filtering cells;
 only cells with a count > 0 in >= \code{min_genes} will be retained.}
@@ -69,11 +69,12 @@ head(colData(sce2)) # cell parameters
 }
 \references{
 Crowell, HL, Soneson, C, Germain, P-L, Calini, D, 
-Collin, L, Raposo, C, Malhotra, D & Robinson, MD (2018). 
+Collin, L, Raposo, C, Malhotra, D & Robinson, MD: 
 On the discovery of population-specific state transitions from 
 multi-sample multi-condition single-cell RNA sequencing data. 
-\emph{bioRxiv} \strong{713412}; doi: \url{https://doi.org/10.1101/713412}
+\emph{bioRxiv} \strong{713412} (2018). 
+doi: \url{https://doi.org/10.1101/713412}
 }
 \author{
-Helena Lucia Crowell \email{helena.crowell@uzh.ch}
+Helena L Crowell
 }

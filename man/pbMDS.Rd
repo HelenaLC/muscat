@@ -8,7 +8,7 @@ pbMDS(x)
 }
 \arguments{
 \item{x}{a \code{\link[SingleCellExperiment]{SingleCellExperiment}} 
-containing pseudo-bulk data as returned by \code{\link{aggregateData}}.}
+containing pseudobulk data as returned by \code{\link{aggregateData}}.}
 }
 \value{
 a \code{ggplot} object.
@@ -17,12 +17,11 @@ a \code{ggplot} object.
 ...
 }
 \examples{
-sce <- toyData()
-sce <- prepSCE(sce, "cluster_id", "sample_id", "group_id")
+data(sce)
 pb <- aggregateData(sce)
 pbMDS(pb)
 
 }
 \author{
-Helena L. Crowell \email{helena.crowells@uzh.ch} and Mark D. Robinson.
+Helena L Crowell & Mark D Robinson
 }

@@ -34,7 +34,15 @@
 #' length(assays(pb)) # single assay
 #' head(assay(pb))    # n_genes x n_clusters
 #' 
-#' @author Helena L. Crowell \email{helena.crowell@uzh.ch} and Mark D. Robinson.
+#' @author Helena L Crowell & Mark D Robinson
+#' 
+#' @references 
+#' Crowell, HL, Soneson, C, Germain, P-L, Calini, D, 
+#' Collin, L, Raposo, C, Malhotra, D & Robinson, MD: 
+#' On the discovery of population-specific state transitions from 
+#' multi-sample multi-condition single-cell RNA sequencing data. 
+#' \emph{bioRxiv} \strong{713412} (2018). 
+#' doi: \url{https://doi.org/10.1101/713412}
 #' 
 #' @importFrom dplyr last
 #' @importFrom Matrix colSums
@@ -42,15 +50,12 @@
 #' @importFrom S4Vectors metadata
 #' @importFrom SingleCellExperiment SingleCellExperiment
 #' @importFrom SummarizedExperiment colData colData<-
-#' 
 #' @export
 
-aggregateData <- function(x, 
-    assay = NULL,
-    by = c("cluster_id", "sample_id"),
-    fun = c("sum", "mean", "median"), 
-    scale = FALSE) {
-   
+aggregateData <- function(x,
+    assay = NULL, by = c("cluster_id", "sample_id"),
+    fun = c("sum", "mean", "median"), scale = FALSE) {
+    
     # validity checks for input arguments
     if (is.null(assay)) {
         assay <- assayNames(x)[1] 
@@ -59,7 +64,7 @@ aggregateData <- function(x,
     }
     stopifnot(is.character(by), by %in% colnames(colData(x)), length(by) <= 2)
     stopifnot(is.logical(scale), length(scale) == 1)
-
+    
     # store aggregation parameters &
     # nb. of cells that went into aggregation
     md <- metadata(x)
@@ -85,7 +90,7 @@ aggregateData <- function(x,
         pb <- lapply(seq_along(pb), function(i) pb[[i]] / ls[[i]] * 1e6)
         names(pb) <- names(pb_sum)
     }
-
+    
     # construct SCE
     pb <- SingleCellExperiment(pb, metadata = md)
     

@@ -42,5 +42,5 @@ head(assay(frq))
 
 }
 \author{
-Helena L. Crowell \email{helena.crowell@uzh.ch} & Mark D. Robinson.
+Helena L Crowell & Mark D Robinson
 }

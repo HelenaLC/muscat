@@ -25,11 +25,14 @@ should be appendeded to the output result table(s).}
 \item{digits}{integer value specifying the 
 number of significant digits to maintain.}
 
+\item{sep}{character string to use as separator 
+when constructing new column names.}
+
 \item{...}{optional arguments passed to 
 \code{\link{calcExprFreqs}} if \code{frq = TRUE}.}
 }
 \value{
-returns a data.frame.
+returns a `data.frame`.
 }
 \description{
 \code{resDS} provides a simple wrapper to format cluster-level
@@ -39,47 +42,39 @@ to optionally append gene expression frequencies by cluster-sample
 }
 \details{
 When \code{bind = "col"}, the list of DS testing results at 
-  \code{y$table} will be merge vertically (by column) into a single table
-  in tidy format with column \code{contrast/coef} specifying the comparison.
+\code{y$table} will be merge vertically (by column) into a single table
+in tidy format with column \code{contrast/coef} specifying the comparison.
   
-  Otherwise, when \code{bind = "row"}, an identifier of the respective
-  contrast or coefficient will be appended to the column names,
-  and all tables will be merge horizontally (by row).
+Otherwise, when \code{bind = "row"}, an identifier of the respective
+contrast or coefficient will be appended to the column names,
+and all tables will be merge horizontally (by row).
   
-  Expression frequencies pre-computed with \code{\link{calcExprFreqs}} 
-  may be provided with \code{frq}. Alternatively, when \code{frq = TRUE}, 
-  expression frequencies can be computed directly, and additional arguments 
-  may be passed to \code{\link{calcExprFreqs}} (see examples below).
+Expression frequencies pre-computed with \code{\link{calcExprFreqs}} 
+may be provided with \code{frq}. Alternatively, when \code{frq = TRUE}, 
+expression frequencies can be computed directly, and additional arguments 
+may be passed to \code{\link{calcExprFreqs}} (see examples below).
 }
 \examples{
-# simulate 5 clusters, 20\% of DE genes
-data(kang)
-sim <- simData(kang, n_genes = 100, n_cells = 800, 
-  p_dd = c(0.8, 0, 0.2, 0, 0, 0), fc = 4)
+data(sce)
 
-# compute pseudo-bulk counts
-pb <- aggregateData(sim, assay = "counts", fun = "sum")
+# compute pseudobulks (sum of counts)
+pb <- aggregateData(sce, assay = "counts", fun = "sum")
 
-# specify design & contrast matrix
-ei <- S4Vectors::metadata(sim)$experiment_info
-design <- stats::model.matrix(~ 0 + ei$group_id)
-dimnames(design) <- list(ei$sample_id, levels(ei$group_id))
-contrast <- limma::makeContrasts("B-A", levels = design)
+# run DS analysis (edgeR on pseudobulks)
+res <- pbDS(pb, method = "edgeR")
 
-# test for cluster-specific DE 
-res <- runDS(sim, pb, design, contrast, method = "edgeR")
+head(resDS(sce, res, bind = "row")) # tidy format
+head(resDS(sce, res, bind = "col", digits = Inf))
 
-head(resDS(sim, res, bind = "row"))
-head(resDS(sim, res, bind = "col", digits = Inf))
+# append CPMs & expression frequencies
+head(resDS(sce, res, cpm = TRUE))
+head(resDS(sce, res, frq = TRUE))
 
-head(resDS(sim, res, cpm = TRUE)) # append CPM by sample
-head(resDS(sim, res, frq = TRUE)) # append expr. freqs. by sample
-
-# pre-computed expr. freqs. & append
-frq <- calcExprFreqs(sim, th = 10)
-head(resDS(sim, res, frq = frq))
+# pre-computed expression frequencies & append
+frq <- calcExprFreqs(sce, assay = "counts", th = 0)
+head(resDS(sce, res, frq = frq))
 
 }
 \author{
-Helena L. Crowell \email{helena.crowell@uzh.ch} and Mark D. Robinson.
+Helena L Crowell & Mark D Robinson
 }

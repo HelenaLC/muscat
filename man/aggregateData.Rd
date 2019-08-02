@@ -48,6 +48,14 @@ length(assays(pb)) # single assay
 head(assay(pb))    # n_genes x n_clusters
 
 }
+\references{
+Crowell, HL, Soneson, C, Germain, P-L, Calini, D, 
+Collin, L, Raposo, C, Malhotra, D & Robinson, MD: 
+On the discovery of population-specific state transitions from 
+multi-sample multi-condition single-cell RNA sequencing data. 
+\emph{bioRxiv} \strong{713412} (2018). 
+doi: \url{https://doi.org/10.1101/713412}
+}
 \author{
-Helena L. Crowell \email{helena.crowell@uzh.ch} and Mark D. Robinson.
+Helena L Crowell & Mark D Robinson
 }

@@ -56,7 +56,7 @@
 #' frq <- calcExprFreqs(sce, assay = "counts", th = 0)
 #' head(resDS(sce, res, frq = frq))
 #' 
-#' @author Helena L Crowell \email{helena.crowell@@uzh.ch} and Mark D Robinson
+#' @author Helena L Crowell & Mark D Robinson
 #' 
 #' @importFrom dplyr %>% bind_rows inner_join full_join mutate mutate_if select
 #' @importFrom edgeR cpm

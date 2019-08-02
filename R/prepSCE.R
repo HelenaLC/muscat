@@ -39,6 +39,8 @@
 #' head(colData(sce))
 #' metadata(sce)$experiment_info
 #' 
+#' @author Helena L Crowell
+#' 
 #' @return a \code{\link[SingleCellExperiment]{SingleCellExperiment}}.
 #' 
 #' @importFrom dplyr mutate_all

@@ -40,7 +40,7 @@
 #' # test for cluster-specific DE 
 #' res <- runDS(sce, pb, design, contrast, method = "edgeR")
 #' 
-#' @author Helena L. Crowell \email{helena@crowells.eu}
+#' @author Helena L Crowell & Mark D Robinson
 #' 
 #' @import ComplexHeatmap
 #' @importFrom dplyr %>% bind_rows filter_

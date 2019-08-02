@@ -11,7 +11,8 @@
 #' @param method a character string. 
 #'   Either \code{"dream"} (default, lme4 with voom-weights), 
 #'   \code{"vst"} (variance-stabilizing transformation), 
-#'   \code{"poisson"} (poisson GLM-MM), \code{"nbinom"} (negative binomial GLM-MM), 
+#'   \code{"poisson"} (poisson GLM-MM), 
+#'   \code{"nbinom"} (negative binomial GLM-MM), 
 #'   \code{"hybrid"} (combination of pseudobulk and poisson methods)
 #'   or a function accepting the same arguments.
 #' @param n_cells number of cells per cluster-sample 
@@ -44,7 +45,15 @@
 #' res <- mmDS(sce, method = "dream", verbose = FALSE)
 #' head(res$`B cells`)
 #' 
-#' @author Pierre-Luc Germain and Helena L. Crowell.
+#' @author Pierre-Luc Germain & Helena L Crowell
+#' 
+#' @references 
+#' Crowell, HL, Soneson, C, Germain, P-L, Calini, D, 
+#' Collin, L, Raposo, C, Malhotra, D & Robinson, MD: 
+#' On the discovery of population-specific state transitions from 
+#' multi-sample multi-condition single-cell RNA sequencing data. 
+#' \emph{bioRxiv} \strong{713412} (2018). 
+#' doi: \url{https://doi.org/10.1101/713412}
 #' 
 #' @importFrom DESeq2 DESeqDataSetFromMatrix estimateDispersions
 #'   sizeFactors varianceStabilizingTransformation
@@ -59,6 +68,7 @@
 #'   colData sizeFactors sizeFactors<-
 #' @importFrom stats p.adjust
 #' @export
+
 mmDS <- function(x, coef = NULL, covs = NULL, 
     method = c("dream", "vst", "poisson", "nbinom", "hybrid"),
     n_cells = 10, n_samples = 2, min_count = 1, min_cells = 20,

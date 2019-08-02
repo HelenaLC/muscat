@@ -62,5 +62,5 @@ res <- runDS(sce, pb, design, contrast, method = "edgeR")
 
 }
 \author{
-Helena L. Crowell \email{helena@crowells.eu}
+Helena L Crowell & Mark D Robinson
 }

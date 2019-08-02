@@ -69,7 +69,15 @@
 #'     arrange(p_adj) %>% 
 #'     slice(seq_len(5)))
 #'
-#' @author Helena L. Crowell \email{helena.crowell@uzh.ch} and Mark D. Robinson.
+#' @author Helena L Crowell & Mark D Robinson
+#'
+#' @references 
+#' Crowell, HL, Soneson, C, Germain, P-L, Calini, D, 
+#' Collin, L, Raposo, C, Malhotra, D & Robinson, MD: 
+#' On the discovery of population-specific state transitions from 
+#' multi-sample multi-condition single-cell RNA sequencing data. 
+#' \emph{bioRxiv} \strong{713412} (2018). 
+#' doi: \url{https://doi.org/10.1101/713412}
 #'
 #' @importFrom DESeq2 DESeq results
 #' @importFrom edgeR calcNormFactors DGEList 

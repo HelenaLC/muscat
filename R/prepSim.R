@@ -12,8 +12,8 @@
 #' }
 #' 
 #' @param x a \code{\link[SingleCellExperiment]{SingleCellExperiment}}.
-#' @param min_count,min_cells used for filtering of genes; 
-#'   only genes with a count > \code{min_count} in >= \code{min_cells} will be retained.
+#' @param min_count,min_cells used for filtering of genes; only genes with 
+#'   a count > \code{min_count} in >= \code{min_cells} will be retained.
 #' @param min_genes used for filtering cells;
 #'   only cells with a count > 0 in >= \code{min_genes} will be retained.
 #' @param min_size used for filtering subpopulation-sample combinations;
@@ -52,20 +52,21 @@
 #' head(rowData(sce2)) # gene parameters
 #' head(colData(sce2)) # cell parameters
 #' 
-#' @author Helena Lucia Crowell \email{helena.crowell@@uzh.ch}
+#' @author Helena L Crowell
 #' 
-#' @references Crowell, HL, Soneson, C, Germain, P-L, Calini, D, 
-#' Collin, L, Raposo, C, Malhotra, D & Robinson, MD (2018). 
+#' @references 
+#' Crowell, HL, Soneson, C, Germain, P-L, Calini, D, 
+#' Collin, L, Raposo, C, Malhotra, D & Robinson, MD: 
 #' On the discovery of population-specific state transitions from 
 #' multi-sample multi-condition single-cell RNA sequencing data. 
-#' \emph{bioRxiv} \strong{713412}; doi: \url{https://doi.org/10.1101/713412}
+#' \emph{bioRxiv} \strong{713412} (2018). 
+#' doi: \url{https://doi.org/10.1101/713412}
 #' 
 #' @importFrom edgeR DGEList estimateDisp glmFit
 #' @importFrom Matrix colSums rowSums
 #' @importFrom SingleCellExperiment SingleCellExperiment counts
 #' @importFrom SummarizedExperiment colData rowData<-
 #' @importFrom stats model.matrix
-#' 
 #' @export
 
 prepSim <- function(x, 

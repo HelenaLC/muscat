@@ -52,3 +52,6 @@ head(colData(sce))
 metadata(sce)$experiment_info
 
 }
+\author{
+Helena L Crowell
+}

@@ -14,8 +14,9 @@
 #' Assay \code{logcounts} corresponds to log-normalized values 
 #' obtained from \code{\link[scater]{normalize}} with default parameters.
 #'   
-#' The complete raw, gene, and cell metadata is available through the NCBI GEO,
-#' accession number GSE96583.
+#' The complete raw, gene, and cell metadata 
+#' is available through the NCBI GEO accession number 
+#' [GSE96583](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE96583).
 #' 
 #' @return a \code{\link[SingleCellExperiment]{SingleCellExperiment}}.
 #' 
@@ -26,6 +27,6 @@
 #' \emph{Nature Biotechnology}, 
 #' \bold{36}(1): 89-94. DOI: 10.1038/nbt.4042.
 #'  
-#' @author Helena L. Crowell \email{helena.crowell@uzh.ch}.
+#' @author Helena L Crowell
 
 NULL

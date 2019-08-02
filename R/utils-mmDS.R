@@ -82,7 +82,8 @@
     }
 
     contrast <- getContrast(v, as.formula(formula), cd, coef)
-    fit <- dream(v, formula, cd, contrast, ddf = ddf, suppressWarnings = !verbose)
+    fit <- dream(v, formula, cd, contrast, 
+        ddf = ddf, suppressWarnings = !verbose)
     fit <- eBayes(fit, trend = trended, robust = TRUE)
     if (n_threads > 1) stopCluster(cl)
 
@@ -95,8 +96,8 @@
 #' see details.
 #'
 #' @param vst method to use as variance-stabilizing transformations.
-#'   \code{"sctransform"} for \code{\link[sctransform]{vst}};
-#'   \code{"DESeq2"} for \code{\link[DESeq2]{varianceStabilizingTransformation}}.
+#'   \code{"sctransform"} for \code{\link[sctransform]{vst}}; \code{"DESeq2"} 
+#'   for \code{\link[DESeq2]{varianceStabilizingTransformation}}.
 #' @param bayesian logical; whether to use bayesian mixed models.
 #' @param blind logical; whether to ignore experimental design for the vst.
 #' @param REML logical; whether to maximize REML instead of log-likelihood.
@@ -211,7 +212,8 @@
     }
     
     # get formula
-    formula <- paste(c("~(1|sample_id)+offset(ls)", covs, "group_id"), collapse = "+")
+    str <- c("~(1|sample_id)+offset(ls)", covs, "group_id")
+    formula <- paste(str, collapse = "+")
     if (verbose) print(formula)
     formula <- as.formula(paste("u", formula))
     
@@ -237,7 +239,8 @@
             tryCatch({
                 switch(family,
                     nbinom = {
-                        mod <- glmmTMB(formula, df, family = nbinom1, REML = FALSE)
+                        mod <- glmmTMB(formula, df, 
+                            family = nbinom1, REML = FALSE)
                         coef(summary(mod))[[1]][coef, ] },
                     poisson = {
                         mod <- bglmer(formula, df, family = "poisson")
@@ -257,13 +260,15 @@
 }
 
 #' @import blme
-.mm_poisson <- function(x, coef, covs, n_threads, verbose = TRUE, moderate = TRUE)
+.mm_poisson <- function(x, coef, covs, 
+    n_threads, verbose = TRUE, moderate = TRUE)
     .mm_glmm(x, coef, covs, n_threads, family = "poisson", 
         verbose = verbose, moderate = moderate)
 
 
 #' @import glmmTMB
-.mm_nbinom <- function(x, coef, covs, n_threads, verbose = TRUE, moderate = TRUE)
+.mm_nbinom <- function(x, coef, covs, 
+    n_threads, verbose = TRUE, moderate = TRUE)
     .mm_glmm(x, coef, covs, n_threads, family="poisson", 
         verbose = verbose, moderate = moderate)
 
@@ -293,7 +298,7 @@
         cd$ls <- sizeFactors(x)
     }
     
-    # compute pseudobulk sum-counts
+    # compute pseudobulks (sum of counts)
     pb <- aggregateData(x, verbose = verbose)
     pb_cd <- as.data.frame(colData(pb))
     
@@ -302,7 +307,8 @@
     mm <- model.matrix(as.formula(f), pb_cd)
     
     # get cell-level formula
-    formula <- paste(c("~(1|sample_id)+offset(ls)", covs, "group_id"), collapse = "+")
+    str <- c("~(1|sample_id)+offset(ls)", covs, "group_id")
+    formula <- paste(str, collapse = "+")
     if (verbose) print(formula)
     formula <- as.formula(paste("u", formula))
     
@@ -317,12 +323,13 @@
     # pseudo-bulk analysis:
     res <- pbDS(pb, mm, coef = which(colnames(mm) == coef), method = "edgeR")
     res <- res$table[[1]][[1]]
-    cols_keep <- setdiff(colnames(res), c("F", "p_adj.loc", "coef", "p_adj.glb"))
+    cols <- c("F", "p_adj.loc", "coef", "p_adj.glb")
+    cols_keep <- setdiff(colnames(res), cols)
     res <- rename(res[, cols_keep], pb.p_val = "p_val")
     row.names(res) <- res$gene
     names(wg) <- wg <- as.character(res$gene)[which(res$pb.p_val < pthres4mm)]
     
-    # fit mixed model for ea. gene which is below threshold in pseudobulk analysis
+    # fit mixed model for ea. gene  below threshold in pseudobulk analysis
     fits <- bplapply(wg, function(i) {
         df <- data.frame(u=y[i, ], cd)
         tryCatch({
@@ -343,15 +350,17 @@
     
     res$geomean.p_val <- res$mean.p_val <- res$p_val <- res$pb.p_val
     
-    res[wg,"geomean.p_val"] <- 10^-rowMeans(-log10(as.matrix(res[wg,c("pb.p_val","glmm.p_val")])))
-    res[wg,"mean.p_val"] <- rowMeans(as.matrix(res[wg,c("pb.p_val","glmm.p_val")]))
-    res[wg,"p_val"] <- res[wg,"glmm.p_val"]
+    mat <- as.matrix(res[wg, c("pb.p_val", "glmm.p_val")])
+    res[wg, "geomean.p_val"] <- 10^-rowMeans(-log10(mat))
+    res[wg, "mean.p_val"] <- rowMeans(mat)
+    res[wg, "p_val"] <- res[wg, "glmm.p_val"]
     
     res <- res[, -c(1, 2)]
     add_column(res, .after = "p_val", p_adj.loc = p.adjust(res$p_val))
 }
 
-# fits negative binomial mixed models and returns fit information required for eBayes
+# fits negative binomial mixed models and
+# returns fit information required for 'eBayes'
 #' @import glmmTMB
 #' @importFrom purrr map set_names
 #' @importFrom stats df.residual residuals sd
@@ -376,7 +385,8 @@
 }
 
 
-# fits poisson mixed models and returns fit information required for eBayes
+# fits poisson mixed models and 
+# returns fit information required for 'eBayes'
 #' @import blme
 #' @importFrom purrr map set_names
 #' @importFrom stats df.residual residuals sd
@@ -414,7 +424,8 @@
         res <- lapply(vars, map, .x = f) %>%
             map(data.frame) %>% map(t) %>%
             map(function(u) {if (ncol(u) == 1) c(u) else u})
-        names(res)[seq_len(4)] <- c("coefficients", "stdev.unscaled", "z", "PValue")
+        nms <- c("coefficients", "stdev.unscaled", "z", "PValue")
+        names(res)[seq_len(4)] <- nms
         res <- eBayes(res, trend = trended, robust = TRUE)
         res <- res[c("coefficients", "z", "PValue", "p.value")] %>%
             set_names(c("beta", "stat", "p_val0", "p_val")) %>%
