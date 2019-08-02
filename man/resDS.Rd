@@ -6,13 +6,13 @@
 Formatting of DS analysis results}
 \usage{
 resDS(x, y, bind = c("col", "row"), frq = FALSE, cpm = FALSE,
-  digits = 3, ...)
+  digits = 3, sep = "__", ...)
 }
 \arguments{
 \item{x}{a \code{\link[SingleCellExperiment]{SingleCellExperiment}}.}
 
-\item{y}{a list of cluster-level differential testing results 
-as returned by \code{\link{runDS}}.}
+\item{y}{a list of DS testing results as returned 
+by \code{\link{pbDS}} or \code{\link{mmDS}}.}
 
 \item{bind}{character string specifying the output format (see details).}
 

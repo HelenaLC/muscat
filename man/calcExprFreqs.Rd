@@ -25,26 +25,22 @@ a \code{\link[SummarizedExperiment]{SummarizedExperiment}}
 Calculates gene expression frequencies
 }
 \details{
-\code{calcExprFreq} computes, for each e.g. cluster, cluster-sample, 
-or cluster-group, the fraction of cells that express a given gene. 
-Here, a gene is considered to be expressed when the specified 
-measurement value lies above the specified threshold value.
+\code{calcExprFreq} computes, for each sample and group (in each cluster),
+the fraction of cells that express a given gene. Here, a gene is considered 
+to be expressed when the specified measurement value (\code{assay}) 
+lies above the specified threshold value (\code{th}).
 }
 \examples{
-library(SummarizedExperiment)
-data(kang)
-
-colnames(colData(kang)) # contains sample_id only
-frq <- calcExprFreqs(kang)
-assayNames(frq)  # one assay per cluster
-head(assay(frq)) # expr. freqs. by sample
-
-sim <- simData(kang, n_genes = 5, n_cells = 1e3) 
-frq <- calcExprFreqs(sim)
-colnames(colData(sim)) # contains group_id!
-assay(frq)             # freqs. by group included
+data(sce)
+colnames(colData(sce)) 
+frq <- calcExprFreqs(sce)
+# one assay per cluster
+assayNames(frq) 
+# expression frequencies by
+# sample & group; 1st cluster:
+head(assay(frq))
 
 }
 \author{
-Helena L. Crowell \email{helena.crowell@uzh.ch} and Mark D. Robinson.
+Helena L. Crowell \email{helena.crowell@uzh.ch} & Mark D. Robinson.
 }
