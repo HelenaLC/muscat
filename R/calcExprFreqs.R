@@ -2,10 +2,10 @@
 #' 
 #' Calculates gene expression frequencies
 #' 
-#' \code{calcExprFreq} computes, for each e.g. cluster, cluster-sample, 
-#' or cluster-group, the fraction of cells that express a given gene. 
-#' Here, a gene is considered to be expressed when the specified 
-#' measurement value lies above the specified threshold value.
+#' \code{calcExprFreq} computes, for each sample and group (in each cluster),
+#' the fraction of cells that express a given gene. Here, a gene is considered 
+#' to be expressed when the specified measurement value (\code{assay}) 
+#' lies above the specified threshold value (\code{th}).
 #' 
 #' @param x a \code{\link[SingleCellExperiment]{SingleCellExperiment}}.
 #' @param assay a character string specifying which assay to use.
@@ -19,68 +19,60 @@
 #'   of expressing cells in each each group will be included as well.
 #'   
 #' @examples
-#' library(SummarizedExperiment)
-#' data(kang)
+#' data(sce)
+#' colnames(colData(sce)) 
+#' frq <- calcExprFreqs(sce)
+#' # one assay per cluster
+#' assayNames(frq) 
+#' # expression frequencies by
+#' # sample & group; 1st cluster:
+#' head(assay(frq))
 #' 
-#' colnames(colData(kang)) # contains sample_id only
-#' frq <- calcExprFreqs(kang)
-#' assayNames(frq)  # one assay per cluster
-#' head(assay(frq)) # expr. freqs. by sample
-#' 
-#' sim <- simData(kang, n_genes = 5, n_cells = 1e3) 
-#' frq <- calcExprFreqs(sim)
-#' colnames(colData(sim)) # contains group_id!
-#' assay(frq)             # freqs. by group included
-#' 
-#' @author Helena L. Crowell \email{helena.crowell@uzh.ch} and Mark D. Robinson.
+#' @author Helena L. Crowell \email{helena.crowell@@uzh.ch} & Mark D. Robinson.
 #' 
 #' @importFrom Matrix rowMeans
 #' @importFrom methods is
+#' @importFrom purrr set_names
 #' @importFrom SummarizedExperiment assays colData SummarizedExperiment
 #' @importFrom utils getFromNamespace
 #' @export
     
 calcExprFreqs <- function(x, assay = "counts", th = 0) {
-    
     # check validity of input arguments
     .check_sce(x, req_group = FALSE)
     .check_arg_assay(x, assay)
     stopifnot(is.numeric(th), length(th) == 1)
     
     # split cells by cluster-sample
-    cells_by_cluster_sample <- .split_cells(x)
+    cs_by_ks <- .split_cells(x)
 
     # for each gene, compute fraction of cells 
     # w/ assay value above threshold in each sample
     fun <- getFromNamespace("rowMeans", "Matrix")
-    fq <- lapply(cells_by_cluster_sample, vapply, function(i) 
+    fq <- lapply(cs_by_ks, vapply, function(i) 
         fun(assays(x)[[assay]][, i, drop = FALSE] > th),
         numeric(nrow(x)))
 
+    # same for ea. group (if colData column "group_id" exists)
     if ("group_id" %in% colnames(colData(x))) {
-        kids <- colData(x)$cluster_id
-        sids <- colData(x)$sample_id
-        gids <- colData(x)$group_id
-        
-        n_cells_by_ks <- table(kids, sids)
-        n_cells_by_kg <- table(kids, gids)
+        kids <- x$cluster_id
+        nc_by_ks <- table(kids, x$sample_id)
+        nc_by_kg <- table(kids, x$group_id)
         
         ei <- metadata(x)$experiment_info
-        samples_by_g <- split(levels(sids), ei$group_id) 
-        gids <- names(samples_by_g)
-        
-        kids <- levels(kids)
-        names(kids) <- kids
+        s_by_g <- split(ei$sample_id, ei$group_id) 
+        gids <- names(s_by_g)
+        kids <- set_names(levels(kids))
         
         fq <- lapply(kids, function(k) {
-            n_cells_s <- fq[[k]] * n_cells_by_ks[k, ][col(fq[[k]])]
+            nc_by_s <- fq[[k]] * nc_by_ks[k, ][col(fq[[k]])]
             fq_by_g <- vapply(gids, function(g) {
-                n_cells_g <- n_cells_s[, samples_by_g[[g]], drop = FALSE]
-                rowSums(n_cells_g) / n_cells_by_kg[k, g]
+                nc_g <- nc_by_s[, s_by_g[[g]], drop = FALSE]
+                rowSums(nc_g) / nc_by_kg[k, g]
             }, numeric(nrow(x)))
             cbind(fq[[k]], fq_by_g)
         })
     }
     # return SCE
-    SummarizedExperiment(assays = fq)
+    SingleCellExperiment(assays = fq)
 }
