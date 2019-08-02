@@ -1,3 +1,5 @@
-.DS_Store
-
-.Rproj.user
+README.html
+vignettes/vignette.html
+vignettes/vignette_cache
+vignettes/vignette_files
+**/*/.DS_Store
