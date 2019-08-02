@@ -1,4 +1,4 @@
-<img src="inst/extdata/muscat.png" width="200" align="right" /> 
+<img src="inst/extdata/muscat.png" width="200" align="right"/> 
 
 `muscat` (**Mu**lti-sample **mu**lti-group **sc**RNA-seq **a**nalysis **t**ools )  
 provides various methods for *Differential State* (DS) analyses in  
