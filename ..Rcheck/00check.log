@@ -1,9 +1,0 @@
-* using log directory ‘/Users/helena/Dropbox/PhD/packages/muscat/..Rcheck’
-* using R version 3.6.0 beta (2019-04-15 r76395)
-* using platform: x86_64-apple-darwin15.6.0 (64-bit)
-* using session charset: UTF-8
-* checking for file ‘./DESCRIPTION’ ... ERROR
-Required fields missing or empty:
-  ‘Author’ ‘Maintainer’
-* DONE
-Status: 1 ERROR
