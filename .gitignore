@@ -1,5 +1,4 @@
-README.html
-vignettes/vignette.html
+**/*.html
+**/*/.DS_Store
 vignettes/vignette_cache
 vignettes/vignette_files
-**/*/.DS_Store
