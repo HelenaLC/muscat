@@ -1,4 +1,52 @@
-cluster_colors <- c(
+# ==============================================================================
+# filters rows/columns from input matrix `m` until all entries >= `n`, 
+# such that ea. iteration removes the row/column w/ the smallest summed value.
+# ------------------------------------------------------------------------------
+.filter_matrix <- function(m, n = 100) {
+    while (any(m < n)) {
+        # get candidate rows/cols for removal
+        i <- m < n
+        r <- apply(i, 1, any)
+        c <- apply(i, 2, any)
+        # get smallest row/col
+        rs <- rowSums(m)
+        cs <- colSums(m)
+        r <- which(r)[which.min(rs[r])]
+        c <- which(c)[which.min(cs[c])]
+        # priorities removal of rows over cols
+        if (rs[r] <= cs[c]) {
+            m <- m[-r, , drop = FALSE]
+        } else {
+            m <- m[, -c, drop = FALSE]
+        }
+        if (any(dim(m) == 1)) 
+            break
+    }
+    return(m)
+}
+
+.update_sce <- function(sce) {
+    # update colData
+    cd <- as.data.frame(colData(sce))
+    cd <- mutate_if(cd, is.factor, droplevels) 
+    colData(sce) <- DataFrame(cd, row.names = colnames(sce))
+    # update metadata
+    ei <- metadata(sce)$experiment_info
+    ei <- ei[ei$sample_id %in% levels(sce$sample_id), ]
+    ei <- mutate_if(ei, is.factor, droplevels)
+    metadata(sce)$experiment_info <- ei
+    return(sce)
+}
+
+.filter_sce <- function(sce, kids, sids) {
+    cs1 <- sce$cluster_id %in% kids
+    cs2 <- sce$sample_id %in% sids
+    sce <- sce[, cs1 & cs2]
+    sce <- .update_sce(sce)
+    return(sce)
+}
+
+.cluster_colors <- c(
     "#DC050C", "#FB8072", "#1965B0", "#7BAFDE", "#882E72",
     "#B17BA6", "#FF7F00", "#FDB462", "#E7298A", "#E78AC3",
     "#33A02C", "#B2DF8A", "#55A1B1", "#8DD3C7", "#A6761D",
