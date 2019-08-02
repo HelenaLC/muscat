@@ -2,6 +2,8 @@
 # ==============================================================================
 
 # check input SCE
+#' @importFrom methods is
+#' @importFrom SummarizedExperiment colData
 .check_sce <- function(x, req_group = TRUE) {
     stopifnot(is(x, "SingleCellExperiment"))
     stopifnot(c("cluster_id", "sample_id") %in% colnames(colData(x)))
@@ -35,11 +37,9 @@
 # check validity of runDS() output
 .check_res <- function(x, y) {
     ei <- metadata(x)$experiment_info
-    kids <- levels(x$cluster_id)
-    nk <- length(kids)
-    
-    stopifnot(is(y, "list"), all.equal(names(y),
-        c("table", "data", "design", "contrast", "coef")))
+    nk <- length(kids <- levels(x$cluster_id))
+    nms <- c("table", "data", "method", "design", "contrast", "coef")
+    stopifnot(is(y, "list"), all.equal(names(y), nms))
     # table
     stopifnot(is(y$table, "list"))
     stopifnot(vapply(y$table, function(u) is(u, "list"), logical(1)))
