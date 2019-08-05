@@ -30,6 +30,7 @@ Suggests:
 	cowplot, 
 	ExperimentHub, 
 	knitr, 
+	RColorBrewer,
 	rmarkdown, 
 	testthat, 
 	UpSetR
