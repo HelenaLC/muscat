@@ -30,6 +30,7 @@
 #' 
 #' @examples
 #' data(sce)
+#' library(SingleCellExperiment)
 #' 
 #' # prep. SCE for simulation
 #' sce <- prepSim(sce)
