@@ -30,9 +30,32 @@
 #' 
 #' @examples
 #' data(sce)
-#' simData(sce,
-#'     n_genes = 10, n_cells = 10,
-#'     p_dd = diag(6)[1, ])
+#' 
+#' # prep. SCE for simulation
+#' sce <- prepSim(sce)
+#' 
+#' # simulate data
+#' (sim <- simData(sce,
+#'   n_genes = 100, n_cells = 10,
+#'   p_dd = c(0.9, 0, 0.1, 0, 0, 0)))
+#' 
+#' # simulation metadata
+#' head(gi <- metadata(sim)$gene_info)
+#' 
+#' # should be ~10% DE  
+#' table(gi$category)
+#' 
+#' # unbalanced sample sizes
+#' sim <- simData(sce,
+#'   n_genes = 10, n_cells = 100,
+#'   probs = list(NULL, c(0.1, 0.3, 0.6), NULL))
+#' table(sim$sample_id)
+#' 
+#' # one group only
+#' sim <- simData(sce,
+#'   n_genes = 10, n_cells = 100,
+#'   probs = list(NULL, NULL, c(1, 0)))
+#' levels(sim$group_id)
 #'     
 #' @author Helena L Crowell
 #' 
@@ -53,7 +76,6 @@
 #' @importFrom SingleCellExperiment SingleCellExperiment
 #' @importFrom SummarizedExperiment colData
 #' @importFrom S4Vectors split
-#' @importFrom tibble column_to_rownames
 #' @export
 
 simData <- function(x, n_genes = 500, n_cells = 300, 
@@ -63,35 +85,22 @@ simData <- function(x, n_genes = 500, n_cells = 300,
     # throughout this code...
     # k: cluster ID
     # s: sample ID
-    # c: gene category
+    # g: group ID
+    # c: DD category
     
     # check validity of input arguments
     .check_sce(x, req_group = FALSE)
-    stopifnot(is.numeric(n_genes), length(n_genes) == 1)
-    stopifnot(is.numeric(n_cells), length(n_cells) == 1 | length(n_cells) == 2)
-    stopifnot(is.numeric(p_dd), length(p_dd) == 6, sum(p_dd) == 1)
-    stopifnot(is.numeric(p_type), length(p_type) == 1, p_type >= 0)
-    stopifnot(is.numeric(lfc), is.numeric(lfc), lfc > 1)
+    .check_args_simData(as.list(environment()))
     
-    kids <- levels(x$cluster_id)
-    sids <- levels(x$sample_id)
-    gids <- c("A", "B")
-    names(kids) <- kids
-    names(sids) <- sids
-    names(gids) <- gids
+    kids <- set_names(levels(x$cluster_id))
+    sids <- set_names(levels(x$sample_id))
+    gids <- set_names(c("A", "B"))
     nk <- length(kids)
     
-    if (is.null(rel_lfc)) {
+    if (is.null(rel_lfc)) 
         rel_lfc <- rep(1, nk)
+    if (is.null(names(rel_lfc))) 
         names(rel_lfc) <- kids
-    } else {
-        stopifnot(is.numeric(rel_lfc), length(rel_lfc) == nk, rel_lfc >= 0)
-        if (is.null(names(rel_lfc))) {
-            names(rel_lfc) <- kids
-        } else {
-            stopifnot(setequal(names(rel_lfc), kids))
-        }
-    }
     
     # initialize count matrix
     gs <- paste0("gene", seq_len(n_genes))
