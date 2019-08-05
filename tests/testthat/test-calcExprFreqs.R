@@ -1,9 +1,10 @@
 context("Expression frequencies by cluster, sample & group")
+source("toySCE.R")
 
 # generate toy dataset
 seed <- as.numeric(format(Sys.Date(), "%s"))
 set.seed(seed)
-sce <- toySCE()
+sce <- .toySCE()
 
 # put in 50% random 0s
 n <- length(assay(sce))
@@ -37,7 +38,7 @@ test_that("Frequencies lie in [0, 1] w/o any NAs", {
 })
 
 test_that("10x random spot checks", {
-    for (i in seq_len(10)) {
+    replicate(10, {
         # sample cluster, sample & group
         k <- sample(kids, 1)
         s <- sample(sids, 1)
@@ -49,5 +50,5 @@ test_that("10x random spot checks", {
         i <- sample(rownames(sce), 1)
         expect_identical(mean(counts(sce)[i, si] > 0), assays(x)[[k]][i, s])
         expect_identical(mean(counts(sce)[i, gi] > 0), assays(x)[[k]][i, g])
-    }
+    })
 })

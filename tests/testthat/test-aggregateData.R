@@ -1,4 +1,5 @@
-context("Aggregation of single-cell to pseudo-bulk data")
+context("Aggregation of single-cell to pseudobulk data")
+source("toySCE.R")
 
 # load packages
 suppressMessages(library(SummarizedExperiment))
@@ -6,9 +7,9 @@ suppressMessages(library(SummarizedExperiment))
 # generate toy dataset
 seed <- as.numeric(format(Sys.Date(), "%s"))
 set.seed(seed)
-sce <- toySCE()
-kids <- sce$cluster_id
-sids <- sce$sample_id
+sce <- .toySCE()
+nk <- length(kids <- levels(sce$cluster_id))
+ns <- length(sids <- levels(sce$sample_id))
 
 test_that("aggregation across 2 factors", {
     for (fun in c("sum", "mean", "median")) {
@@ -17,23 +18,32 @@ test_that("aggregation across 2 factors", {
         expect_error(aggregateData(sce, fun = "x"))
         expect_error(aggregateData(sce, by = "x"))
         
+        pars <- metadata(pb)$agg_pars
+        expect_identical(pars$by, c("cluster_id", "sample_id"))
+        expect_identical(pars$assay, "counts")
+        expect_identical(pars$fun, fun)
+        expect_false(pars$scale)
+        
         expect_is(pb, "SingleCellExperiment")
-        expect_identical(assayNames(pb), levels(kids))
+        expect_identical(assayNames(pb), kids)
         
         expect_identical(nrow(pb), nrow(sce))
-        expect_identical(ncol(pb), nlevels(sids))
+        expect_identical(ncol(pb), ns)
         
         expect_identical(rownames(pb), rownames(sce))
-        expect_identical(colnames(pb), levels(sids))
+        expect_identical(colnames(pb), sids)
         
-        expect_identical(as.numeric(table(sids)), pb$n_cells)
+        expect_equivalent(metadata(pb)$n_cells,
+            table(sce$cluster_id, sce$sample_id))
         
-        # random spot check
-        k <- sample(levels(kids), 1)
-        s <- sample(levels(sids), 1)
-        g <- sample(rownames(sce), 1)
-        i <- sids == s & kids == k
-        expect_equal(assays(pb)[[k]][g, s], get(fun)(assay(sce)[g, i]))
+        # 10x random spot check
+        replicate(10, {
+            k <- sample(kids, 1)
+            s <- sample(sids, 1)
+            g <- sample(rownames(sce), 1)
+            i <- sce$sample_id == s & sce$cluster_id == k
+            expect_equal(assays(pb)[[k]][g, s], get(fun)(assay(sce)[g, i]))
+        })
     }
 })
 
@@ -43,17 +53,17 @@ test_that("aggregation across 1 factor", {
         expect_is(pb, "SingleCellExperiment")
         
         expect_identical(nrow(pb), nrow(sce))
-        expect_identical(ncol(pb), nlevels(kids))
+        expect_identical(ncol(pb), nk)
         
         expect_identical(rownames(pb), rownames(sce))
-        expect_identical(colnames(pb), levels(kids))
+        expect_identical(colnames(pb), kids)
         
-        expect_identical(as.numeric(table(kids)), pb$n_cells)
+        expect_equivalent(table(sce$cluster_id), metadata(pb)$n_cells)
         
         # random spot check
-        k <- sample(levels(kids), 1)
+        k <- sample(kids, 1)
         g <- sample(rownames(sce), 1)
-        i <- kids == k
+        i <- sce$cluster_id == k
         expect_equal(assay(pb)[g, k], get(fun)(assay(sce)[g, i]))
     }
 })

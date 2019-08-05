@@ -20,7 +20,7 @@ test_that(".sample_n_cells", {
 })
 
 test_that(".split_cells", {
-    n_cells <- 1000
+    n_cells <- 1e3
     cells <- paste0("cell", seq_len(n_cells))
     x <- matrix(0, 
         nrow = 1, ncol = n_cells, 
