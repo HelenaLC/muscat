@@ -30,8 +30,7 @@ vignette: >
   %\VignetteIndexEntry{Untitled}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}  
-#bibliography: "`r file.path(system.file('extdata', package = 'muscat'), 'refs.bib')`"
-bibliography: '../inst/extdata/refs.bib'
+bibliography: "`r file.path(system.file('extdata', package = 'muscat'), 'refs.bib')`"
 ---
 
 <style type="text/css">
@@ -40,8 +39,12 @@ bibliography: '../inst/extdata/refs.bib'
 }
 </style>
 
-```{r echo = FALSE, warning = FALSE, message = FALSE}
+```{r setup, include = FALSE}
 knitr::opts_chunk$set(autodep = TRUE, cache = TRUE)
+```
+
+```{r echo = FALSE}
+library(BiocStyle)
 ```
 
 ```{r load-libs, warning = FALSE, message = FALSE}
@@ -52,6 +55,17 @@ library(ggplot2)
 library(muscat)
 library(purrr)
 ```
+
+`muscat` (**Mu**lti-sample **mu**lti-group **sc**RNA-seq **a**nalysis **t**ools )  
+provides various methods for *Differential State* (DS) analyses in  
+multi-sample, multi-group, multi-(cell-)subpopulation scRNA-seq data,  
+as elaborated in our preprint:
+
+> Crowell HL, Soneson C\*, Germain P-L\*,  
+Calini D, Collin L, Raposo C, Malhotra D & Robinson MD:  
+On the discovery of population-specific state transitions from  
+multi-sample multi-condition single-cell RNA sequencing data.  
+*bioRxiv* **713412** (July, 2019). doi: [10.1101/713412](https://doi.org/10.1101/713412)
 
 # Introduction
 
@@ -73,7 +87,7 @@ The approach presented here is modular and thus subpopulation labels could origi
 
 ## Data description
 
-For this vignette, we will use a `r Biocpkg("SingleCellExperiment")` (SCE) containing 10x droplet-based scRNA-seq PBCM data from 8 Lupus patients obtained befor and after 6h-treatment with IFN-$\beta$ (@Kang2018-demuxlet). The complete raw data, as well as gene and cell metadata is available through the NCBI GEO, accession number [GSE96583](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE96583). 
+For this vignette, we will use a `r Biocpkg("SingleCellExperiment")` (SCE) containing 10x droplet-based scRNA-seq PBCM data from 8 Lupus patients obtained befor and after 6h-treatment with IFN-$\beta$ [@Kang2018-demuxlet]. The complete raw data, as well as gene and cell metadata is available through the NCBI GEO, accession number [GSE96583](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE96583). 
 
 ## Loading the data
 
@@ -131,7 +145,7 @@ dim(sce)
 
 Finally, we use `normalize` to calculate log$_2$-transformed normalized expression values by dividing each count by its size factor, adding a pseudo-count of 1, and log-transforming[^1].  
 
-[^1]: Note that, in this workflow, expression values are used for visualization only, and that differential analysis is performed on cluster-sample aggregates; see section \@ref(sec-agg).
+[^1]: Note that, in this workflow, expression values are used for visualization only, and that differential analyses are performed on pseudobulks (section \@ref(sec-pbDS)) or the count data directly (section \@ref(sec-mmDS)).
 
 ```{r norm}
 # compute sum-factors & normalize
@@ -177,17 +191,16 @@ names(kids) <- kids; names(sids) <- sids
 
 As we will be aggregating measurements at the cluster-sample level, it is of particular importance to check the number of cells captured for each such instance. While `aggregateData` (see Section \@ref(sec-agg)) allows excluding cluster-sample combinations with less than a threshold number of cells, clusters or samples with overall very low cell-counts may be excluded from further analysis at this point already.
 
-For the Kang dataset, for example, we might consider removing the *Dendritic cells* and *Megakaryocytes* clusters, as these containg less than 50 cells across all samples.
+For the @Kang2018-demuxlet dataset, for example, we might consider removing the *Dendritic cells* and *Megakaryocytes* clusters, as these containg less than 50 cells across all samples.
 
 ```{r ncells, size = "tiny"}
 # nb. of cells per cluster-sample
-options(width = 100)
 table(sce$cluster_id, sce$sample_id)
 ```
 
 ### Dimension reduction {.tabset}
 
-The dimension reductions (DR) available within the SCE can be accessed via `reducedDims` from the `r Biocpkg("scater")` package. The data provided by Kang et al. already contains t-SNE coordinates; however, we can of course compute additional dimension reductions using one of `r Biocpkg("scater")`'s `runX` functions:
+The dimension reductions (DR) available within the SCE can be accessed via `reducedDims` from the `r Biocpkg("scater")` package. The data provided by @Kang2018-demuxlet already contains t-SNE coordinates; however, we can of course compute additional dimension reductions using one of `r Biocpkg("scater")`'s `runX` functions:
 
 ```{r umap}
 # compute UMAP using 1st 20 PCs
@@ -217,7 +230,7 @@ for (dr in c("TSNE", "UMAP")) {
 }
 ```
 
-For our dataset, the t-SNE and UMAP colored by `cluster_id`s (Figures \@ref(fig:tsne)&\@ref(fig:umap)A) show that cell-populations are well-separated from one another. INF-beta stimulation manifests as a severe shift in the low-dimensional projection of cells when coloring by `group_id`s (Figures \@ref(fig:tsne)&\@ref(fig:umap)B), indicating widespread, genome-scale transcriptiontal changes. 
+For our dataset, the t-SNE and UMAP colored by `cluster_id`s (Figure \@ref(fig:dr-ids)A) show that cell-populations are well-separated from one another. INF-$\beta$ stimulation manifests as a severe shift in the low-dimensional projection of cells when coloring by `group_id`s (Figure \@ref(fig:dr-ids)B), indicating widespread, genome-scale transcriptiontal changes. 
 
 # Differential State (DS) analysis
 
@@ -225,9 +238,9 @@ For our dataset, the t-SNE and UMAP colored by `cluster_id`s (Figures \@ref(fig:
 
 In order to leverage existing robust bulk RNA-seq DE frameworks, such as `r Biocpkg("edgeR")` [@Robinson2010-edgeR], `r Biocpkg("DESeq2")` [@Love2014-DESeq2], and `r Biocpkg("limma")` [@Ritchie2015-limma], we first aggregate measurements for each sample (in each cluster) to obtain pseudobulk data.
 
-```{r echo = FALSE, out.height = 5, fig.cap = "Schematic overview of cell- and sample-level approaches for DS analysis. Top panels show a schematic of the data distributions or aggregates across samples (each violin is a group or sample; each dot is a sample) and conditions (blue or orange). The bottom panels highlight the data organization in sub-matrix slices of the original count table."}
-#knitr::include_graphics(file.path(system.file("extdata", package = "muscat"), "ds_approaches.png"))
-knitr::include_graphics("../inst/extdata/ds_approaches.png")
+```{r echo = FALSE, out.height = 4, fig.cap = "Schematic overview of cell- and sample-level approaches for DS analysis. Top panels show a schematic of the data distributions or aggregates across samples (each violin is a group or sample; each dot is a sample) and conditions (blue or orange). The bottom panels highlight the data organization in sub-matrix slices of the original count table."}
+knitr::include_graphics(file.path(system.file(
+  "extdata", package = "muscat"), "ds_approaches.png"))
 ```
 
 In general, `aggregateData()` will aggregate the data by the `colData` variables specified with argument `by`, and return a `SingleCellExperiment` containing pseudobulk data.  
@@ -241,8 +254,7 @@ pb <- aggregateData(
 # one sheet per subpopulation
 assayNames(pb)
 # pseudobulks for 1st subpopulation
-options(width = 100)
-head(assay(pb))
+t(head(assay(pb)))
 ```
 
 ## Pseudobulk-level MDS plot
@@ -253,34 +265,41 @@ Prior to conducting any formal testing, we can compute a multi-dimensional scali
 
 In our MDS plot on pseudo-bulk counts (Fig. \@ref(fig:pb-mds)), we can observe that the first dimension (MDS1) clearly separates cell-populations (clusters), while the second (MDS2) separates control and stimulated samples (groups). Furthermore, the two T-cell clusters fall close to each other. 
 
-```{r pb-mds, fig.height = 5, fig.cap = "Pseudobulk-level multidimensional scaling (MDS) plot. Each point represents a cluster-sample instance; points are colored by cluster ID and shaped by group ID."}
+```{r pb-mds, fig.height = 4, fig.cap = "Pseudobulk-level multidimensional scaling (MDS) plot. Each point represents a cluster-sample instance; points are colored by cluster ID and shaped by group ID."}
 pbMDS(pb)
 ```
 
-## Sample-level analysis: Pseudobulk methods {.smaller}
+## Sample-level analysis: Pseudobulk methods {#sec-pbDS}
 
-Once we have assembled the pseudo-bulk data, we can test for cluster-level DE using `runDS`. We specify a design matrix capturing the experimental design using `model.matrix` (package `r Rpackage("stats")`), and a contrast matrrix that specifies our comparison of interesting using `makeContrasts` from the `r Biocpkg("limma")` package. Alternatively, the comparison of interest (or a list thereof) can be specified with via `coefs` (see `?glmQLFTest` for details).
+Once we have assembled the pseudobulk data, we can test for DS using `pbDS`.
 
-For the Kang dataset, we want to carry out a single comparison of stimulated against control samples, thus placing `"ctrl"` on the right-hand side as the reference condition. 
+For the @Kang2018-demuxlet dataset, we want to carry out a single comparison of stimulated against control samples, thus placing `"ctrl"` on the right-hand side as the reference condition: 
 
 ```{r}
-# construct design & contrast matrix
-# ei <- metadata(sce)$experiment_info
-# design <- model.matrix(~ 0 + ei$group_id)
-# dimnames(design) <- list(ei$sample_id, levels(ei$group_id))
-# contrast <- makeContrasts("stim-ctrl", levels = design)
-
-# run DE analysis
+# run DS analysis
 res <- pbDS(pb, verbose = FALSE)
-# access results
+# access results table for 1st comparison
 tbl <- res$table[[1]]
 # one data.frame per cluster
 names(tbl)
 # view results for 1st cluster
-head(tbl[[1]])
+head(format(tbl[[1]], digits = 2))
 ```
 
-## Cell-levels analysis: Mixed models
+Alternatively, we specify a design matrix capturing the experimental design using `model.matrix` (package `r Rpackage("stats")`), and a contrast matrix that specifies our comparison of interesting using `makeContrasts` from the `r Biocpkg("limma")` package. Alternatively, the comparison(s) of interest (or a list thereof) can be specified with via `coefs` (see `?glmQLFTest` for details).
+
+```{r eval = FALSE}
+# construct design & contrast matrix
+ei <- metadata(sce)$experiment_info
+mm <- model.matrix(~ 0 + ei$group_id)
+dimnames(mm) <- list(ei$sample_id, levels(ei$group_id))
+contrast <- makeContrasts("stim-ctrl", levels = mm)
+
+# run DS analysis
+pbDS(pb, design = mm, contrast = contrast)
+```
+
+## Cell-levels analysis: Mixed models {#sec-mmDS}
 
 Alternative to the above sample-level approach, we fit (for each gene) a mixed model (MM) to the cell-level measurement data. `muscat` provides implementations of MM that use 3 main approaches:
 
@@ -288,7 +307,7 @@ Alternative to the above sample-level approach, we fit (for each gene) a mixed m
 2. fitting LMMs on variance-stabilized data; and,
 3. fitting generalized linear mixed models (GLMMs) directly on counts
 
-In each case, a $\sim 1 + \text{group_id} + (1|\text{sample_id})$ model is fit for each gene, optimizing the log-likelihood (i.e. `REML = FALSE`). P-values are calculated using the estimates of degrees of freedom specifying by argument `df` (default `"Satterthwaite"`). Fitting, testing and moderation are applied subpopulation-wise. For differential testing, `mmDS` will only consider:
+In each case, a $\sim 1 + \text{group_id} + (1\,|\,\text{sample_id})$ model is fit for each gene, optimizing the log-likelihood (i.e., `REML = FALSE`). P-values are calculated using the estimates of degrees of freedom specifying by argument `df` (default `"Satterthwaite"`). Fitting, testing and moderation are applied subpopulation-wise. For differential testing, `mmDS` will only consider:
 
 - subpopulations with at least `n_cells` cells (default 10) in at least `n_samples` samples (default 2)
 - genes with a count >= `min_count` (default 1) in at least `min_cells` (default 20)
@@ -302,13 +321,13 @@ mm <- mmDS(sce, method = "dream",
   min_counts = 1, min_cells = 20)
 
 # 2nd & 3rd approach
-mm <- mmDS(sce, method = "vst", vst = "sctransform", ...)
-mm <- mmDS(sce, method = "nbinom", ...)
+mm <- mmDS(sce, method = "vst", vst = "sctransform")
+mm <- mmDS(sce, method = "nbinom")
 ```
 
 # Handling results
 
-## Results filtering & overview {.smaller}
+## Results filtering & overview
 
 To get a general overview of the differential testing results, we first filter them to retain hits FDR < 5\% and abs(logFC) > 1, and count the number and frequency of differential findings by cluster. Finally, we can view the top hits (lowest adj. p-value) in each cluster.
 
@@ -325,10 +344,10 @@ p_de <- format(n_de / nrow(sce) * 100, digits = 3)
 data.frame("#DS" = n_de, "%DS" = p_de, check.names = FALSE)
 
 # view top 2 hits in each cluster
-bind_rows(lapply(tbl_fil, top_n, 2, p_adj.loc))
+format(bind_rows(lapply(tbl_fil, top_n, 2, p_adj.loc)), digits = 2)
 ```
 
-## Calculating expression frequencies {.smaller}
+## Calculating expression frequencies
 
 Besides filter DS results based on magnitude (logFCs) and significance (FDR), it is often worthwhile to also consider the expression frequencies of each gene, i.e., the fraction of cells that express a given gene in each sample and/or group.  
 `muscat` provides wrapper, `calcExprFreqs` to compute cluster-sample/-group wise expression frequencies. Here, a gene is considered to be expressed when the specified measurement value (argument `assay`) falls above a certain threshold (argument `th`). Note that, `assay = "counts"` and `th = 0` (default) amounts to the fraction of cells for which a respective gene has been detected.  
@@ -340,8 +359,7 @@ frq <- calcExprFreqs(sce, assay = "counts", th = 0)
 assayNames(frq)
 # expression frequencies in each
 # sample & group; 1st cluster
-options(width = 100)
-head(assay(frq))
+t(head(assay(frq), 5))
 ```
 
 We can use the obtained frequencies to, for instance, only retain genes that are expressed in an average of 10\% of cells across all sample:
@@ -372,8 +390,18 @@ Otherwise, `bind = "col"`, results will be merge horizontally into a single wide
 Expression frequencies computed with `calcExprFreqs`, as well as cluster-sample level avg. CPM, can be included in the results by setting `frq/cpm = TRUE`. Alternatively, if the former have been pre-computed, they can be supplied directly as an input to `resDS` (see example below).
 
 ```{r eval = FALSE}
-tbl_big <- resDS(sce, res, bind = "row", frq = frq, cpm = FALSE)
-tbl_tdy <- resDS(sce, res, bind = "col", frq = frq, cpm = FALSE)
+# tidy format; attach pre-computed expression frequencies
+resDS(sce, res, bind = "row", frq = frq)
+
+# big-table format; attach CPMs
+resDS(sce, res, bind = "col", cpm = TRUE)
+```
+
+Alternatively, if expression frequencies have not been pre-computed with `calcExprFreqs`, they may be added to the results table directly by specifying `frq = TRUE`:
+
+```{r eval = FALSE}
+# compute expression frequencies on the fly
+resDS(sce, res, frq = TRUE)
 ```
 
 # Visualizing results
@@ -384,20 +412,19 @@ DS analysis aims at identifying population-specific changes in state (or express
 
 To gain an impression of the between-cluster (dis-)agreement on DE genes, we generate an upset-plot that visualizas the number of DE genes that are shared across or unique to certain clusters:
 
-```{r upset, fig.width = 10, fig.cap = "Upset plot. Included are DS findings (FDR < 0.05, |logFC| > 1) across all clusters; shown are the 80 most frequent interactions."}
+```{r upset, fig.width = 10, fig.cap = "Upset plot. Included are DS findings (FDR < 0.05, |logFC| > 1) across all clusters; shown are the 50 most frequent interactions."}
 library(UpSetR)
 de_gs_by_k <- map(tbl_fil, "gene")
-upset(fromList(de_gs_by_k), sets = kids, 
-  nintersects = 80, mb.ratio = c(0.4, 0.6))
+upset(fromList(de_gs_by_k))
 ```
 
-An upset plot as the one above tells us, for instance, that 185 genes are differential for all subpopulations; 387 across both *Monocytes* clusters; and 169 only in the *B cells* cluster.
+An upset plot as the one above tells us, for instance, that 185 genes are differential for all subpopulations; 387 across both *Monocytes* clusters; and 159 only in the *B cells* cluster.
 
-## Dim. reduction colored by expression
+## DR colored by expression
 
 The code chunk generates a set of t-SNEs colored by gene expression for the top DS gene in each subpopulation. To facilitate matching the affected cells to their cluster and experimental group, we also add the t-SNEs colored by subpopulation and group ID, respectively, that are plotted above (Fig. \@ref(fig:t-sne)).  
 
-```{r fig.height = 12, fig.width = 16, fig.cap = "t-SNE colored by gene expression. Show are t-SNE projections with cells colored by cluster and group ID (top row), and by the expression of the top DE gene for each cluster (bottom row)."}
+```{r fig.width = 14, fig.height = 12, fig.cap = "t-SNE colored by gene expression. Show are t-SNE projections with cells colored by cluster and group ID (top row), and by the expression of the top DE gene for each cluster (bottom row)."}
 ps_expr <- lapply(kids, function(k) {
   g <- tbl_fil[[k]]$gene[1]
   .plot_dr(sce, "TSNE", g) + 
@@ -413,27 +440,29 @@ plot_grid(row1, row2, ncol = 1, rel_heights = c(2, 3))
 
 For changes of high interest, we can view the cell-level expression profiles of a specific gene across samples or groups using `plotExpression` (`r Biocpkg("scater")` package). 
 
-Here, we generate violins plot for the top DE genes (lowest adj. p-value) in the first three clusters (Fig. \@ref(fig:violins)). Note that, as we are testing for DE on the cluster-level, we need to subset the cells that have been assigned to a given cluster for plotting. 
+Here, we generate violins plot for the top-12 DS genes (lowest adj. p-value) in each cluster. Note that, as we are testing for differential states at the cluster-level, we need to subset the cells that have been assigned to a given cluster for plotting. 
 
 ```{r eval = FALSE}
 # generate violins for top hits by cluster
 lapply(kids, function(k) {
-  u <- sce[, sce$cluster_id == k]     # subset this cluster
-  gs <- tbl_fil[[k]]$gene[seq_len(12)] # get top hits
+  u <- sce[, sce$cluster_id == k]      # subset this cluster
+  gs <- tbl_fil[[k]]$gene[seq_len(12)] # get top 12 hits
   
-  plotExpression(u, features = gs, x = "sample_id", 
-    point_size = 0.4, colour_by = "group_id", ncol = 4) +
-    ggtitle(k) + theme(legend.position = "none",
+  plotExpression(u, features = gs, ncol = 4,
+    x = "sample_id", colour_by = "group_id") +
+    ggtitle(k) + theme(legend.position = "none", 
       axis.text.x = element_text(angle = 45, hjust = 1))
 })
 ```
 
-```{r violins, results = "asis", echo = FALSE, fig.height = 8, fig.width = 12, fig.cap = "Violin plots. Show are the top 12 hits (lowest adj. p-value) for a given cluster. Each violin is a sample; coloring corresponds to experimental groups (blue = control, orange = stimulated)."}
+```{r violins, results = "asis", echo = FALSE, fig.width = 10, fig.height = 6, fig.cap = "Violin plots. Show are the top 12 hits (lowest adj. p-value) for a given cluster. Each violin is a sample; coloring corresponds to experimental groups (blue = control, orange = stimulated)."}
 for (k in kids) {
   cat("### ", k, "{-}\n")
-  print(plotExpression(sce[, sce$cluster_id == k], 
-    features = tbl_fil[[k]]$gene[seq_len(12)], x = "sample_id", 
-    colour_by = "group_id", point_size = 0.4, ncol = 4) +
+  print(plotExpression(
+    sce[, sce$cluster_id == k], 
+    features = tbl_fil[[k]]$gene[seq_len(12)],
+    x = "sample_id", colour_by = "group_id", 
+    point_size = 0.8, ncol = 4) +
     theme_classic() + theme(legend.position = "none", 
       axis.text.x = element_text(angle = 45, hjust = 1)))
   cat("\n\n")
@@ -442,51 +471,27 @@ for (k in kids) {
 
 ## Heatmap of cluster-sample expression means
 
-Especially when wanting to gain an overview of numerous DE testing results for many clusters, bothm dimension reduction and cell-level visualisations require a lot of space can become cumbersome to interpret. In this setting, it is thus recommendable to visualise aggregated measures, e.g., mean expressions by cluster sample. We can use `aggregateData` to assemble cluster-sample level mean expression values for all genes, and visualize any hits of interest.
+Especially when wanting to gain an overview of numerous DE testing results for many clusters, bothm dimension reduction and cell-level visualisations require a lot of space can become cumbersome to interpret. In this setting, it is thus recommendable to visualise aggregated measures, e.g., mean expressions by cluster sample.
 
-```{r}
-# compute cluster-sample expression means
-ms <- aggregateData(sce, assay = "logcounts", fun = "mean")
-ms <- data.frame(
-    row.names = NULL, gene = rownames(ms),
-    cluster_id = rep(assayNames(ms), each = nrow(sce)),
-    do.call("rbind", as.list(assays(ms))))
-
-n <- 3 # nb. of genes to plot per cluster
-top <- lapply(kids, function(k) {
-    u <- dplyr::arrange(tbl[[k]], p_adj.loc)
-    u <- u[seq_len(n), ]
-    ms %>% dplyr::filter(gene %in% u$gene & cluster_id %in% u$cluster_id)
-})
-# assemble means from all clusters
-top <- do.call("rbind", top)
-# set rownames & remove un-needed columns
-rownames(top) <- with(top, sprintf("%s(%s)", gene, cluster_id))
-top <- select(top, -c("gene", "cluster_id"))
-mat <- as.matrix(top)
-mat <- muscat:::.scale(mat)
-# plot heatmap of cluster-sample expression means
-Heatmap(mat,
-    name = "mean\nexpression",
-    cluster_rows = FALSE,
-    cluster_columns = FALSE,
-    row_names_gp = gpar(fontsize = 8))
+```{r pb-hm-1}
+# top-5 DS genes per cluster
+pbHeatmap(sce, res, top_n = 5)
 ```
 
-Alternatively, `plotDiffHeatmap` provides a set of options regarding which genes, cluster, and comparisons to include (arguments `k`, `g` and `c`, respectively).
+Alternatively, `pbHeatmap` provides a set of options regarding which cluster(s), gene(s), and comparison to include (arguments `k`, `g` and `c`, respectively).
 
-For example, the following options render a heatmap visualizing the top 20 DS genes for the B cells cluster:
+For example, the following options render a heatmap visualizing the top 20 DS genes for the *B cells* cluster:
 
-```{r eval = FALSE}
-# plot top results for a single cluster
-plotDiffHeatmap(sce, res, k = "B cells", sort_by = "p_adj.loc", top_n = 20)
+```{r pb-hm-2}
+# top DS genes for single cluster
+pbHeatmap(sce, res, k = "B cells")
 ```
 
 Similarly, we can visualize the cluster-sample means of a single gene of interest across all clusters in order to identify cell-types that are affected similarly by different experimental conditions:
 
-```{r eval = FALSE}
-# plot single gene across all clusters
-plotDiffHeatmap(sce, res, g = rownames(sce)[1])
+```{r pb-hm-3}
+# single genes across all clusters
+pbHeatmap(sce, res, g = "ISG20")
 ```
 
 # Session info {.smaller}
