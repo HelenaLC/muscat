@@ -20,10 +20,13 @@
 #'   
 #' @examples
 #' data(sce)
-#' colnames(colData(sce)) 
+#' library(SingleCellExperiment)
+#' 
 #' frq <- calcExprFreqs(sce)
+#' 
 #' # one assay per cluster
-#' assayNames(frq) 
+#' assayNames(frq)  
+#' 
 #' # expression frequencies by
 #' # sample & group; 1st cluster:
 #' head(assay(frq))
