@@ -5,7 +5,6 @@ source("toySCE.R")
 suppressMessages({
     library(dplyr)
     library(purrr)
-    library(SummarizedExperiment)
 })
 
 # generate toy dataset

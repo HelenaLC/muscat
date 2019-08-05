@@ -1,3 +1,4 @@
+require(SingleCellExperiment)
 .toySCE <- function() {
     ngs <- 300
     ncs <- 2e3

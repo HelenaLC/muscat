@@ -1,9 +1,6 @@
 context("Aggregation of single-cell to pseudobulk data")
 source("toySCE.R")
 
-# load packages
-suppressMessages(library(SummarizedExperiment))
-
 # generate toy dataset
 seed <- as.numeric(format(Sys.Date(), "%s"))
 set.seed(seed)
