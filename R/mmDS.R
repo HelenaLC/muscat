@@ -125,24 +125,12 @@ mmDS <- function(x, coef = NULL, covs = NULL,
     # variance-stabilizing transformation
     if (args$method == "vst") {
         vst_call <- switch(args$vst,
-            sctransform = {
-                # assure correct vst() function is used
-                fun <- getFromNamespace("vst", "sctransform")
-                expression(fun(assay(x), show_progress = verbose)$y)
-            },
-            DESeq2 = {
-                if (is.null(sizeFactors(x)))
-                    x <- computeSumFactors(x)
-                formula <- as.formula(paste("~", 
-                    paste(c(covs, "sample_id"), collapse = "+")))
-                y <- suppressMessages(DESeqDataSetFromMatrix(
-                    as.matrix(counts(x)), colData(x), formula))
-                sizeFactors(y) <- sizeFactors(x)
-                if (!blind) y <- estimateDispersions(y)
-                expression(assay(varianceStabilizingTransformation(y, blind)))
-            })
-        if (!verbose) vst_call <- parse(text = 
-                sprintf("suppressMessages(%s)", paste(vst_call)))
+            sctransform = expression(.vst_sctransform(x, verbose)),
+            DESeq2 = expression(.vst_DESeq2(x, covs, blind)))
+        if (!verbose) {
+            vst_call <- sprintf("suppressMessages(%s)", paste(vst_call))
+            vst_call <- parse(text = vst_call)
+        }
         counts(x) <- eval(vst_call)
     }
     
@@ -169,8 +157,11 @@ mmDS <- function(x, coef = NULL, covs = NULL,
     }) 
     if (verbose) pb$terminate()
     
+    # assemble results from all cluster
+    res <- bind_rows(res)
     # global p-value adjustment
-    bind_rows(res) %>% 
-        add_column(.after = "p_adj.loc", p_adj.glb = p.adjust(.$p_val)) %>% 
-        split(.$cluster_id)
+    p_adj.glb <- p.adjust(res$p_val)
+    res <- add_column(res, p_adj.glb, .after = "p_adj.loc")
+    # re-split by cluster
+    split(res, res$cluster_id)
 }
