@@ -42,7 +42,7 @@ e.g., mean, median, sum (depending on the input assay).}
 to each row (gene) of the cluster-sample pseudobulk data.}
 
 \item{col}{character vector of colors or color mapping function
-generated with \code{\link{circlize}{colorRamp2}}. Passed to 
+generated with \code{\link[circlize]{colorRamp2}}. Passed to 
 argument \code{col} in \code{\link[ComplexHeatmap]{Heatmap}}
 (see \code{?ComplexHeatmap::Heatmap} for details).}
 

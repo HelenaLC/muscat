@@ -44,6 +44,8 @@ data(sce)
 
 # pseudobulk counts by cluster-sample
 pb <- aggregateData(sce)
+
+library(SingleCellExperiment)
 assayNames(sce)  # one sheet per cluster
 head(assay(sce)) # n_genes x n_samples
 
