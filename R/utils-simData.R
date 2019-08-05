@@ -207,11 +207,13 @@ cats <- factor(cats, levels = cats)
     )
     cs <- map(re, "counts")
     cs <- do.call("cbind", cs)
-    ms <- map(re, "means") %>%
-        `[`(!vapply(., is.null, logical(1))) %>% 
+    ms <- map(re, "means")
+    rmv <- vapply(ms, is.null, logical(1))
+    ms <- ms[!rmv] %>% 
         map_depth(2, mean) %>% 
         map_depth(1, unlist) %>% 
-        bind_cols %>% as.matrix
+        bind_cols %>% 
+        as.matrix
     ms <- switch(cat, 
         ee = ms,
         de = ms,
