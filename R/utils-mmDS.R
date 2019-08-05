@@ -62,8 +62,8 @@
     v <- voom(y, mm)
 
     if (dup_corr) {
-        dup_corr <- duplicateCorrelation(v, mm, block = x$sample_id)
-        v <- voom(y, mm, block = x$sample_id, correlation = dup_corr$consensus)
+        dc <- duplicateCorrelation(v, mm, block = x$sample_id)
+        v <- voom(y, mm, block = x$sample_id, correlation = dc$consensus)
     }
 
     if (n_threads > 1) {
@@ -259,33 +259,28 @@
     add_column(fits, .after = "p_val", p_adj.loc = p.adjust(fits$p_val))
 }
 
-#' @import blme
 .mm_poisson <- function(x, coef, covs, 
     n_threads, verbose = TRUE, moderate = TRUE)
     .mm_glmm(x, coef, covs, n_threads, family = "poisson", 
         verbose = verbose, moderate = moderate)
 
-
-#' @import glmmTMB
 .mm_nbinom <- function(x, coef, covs, 
     n_threads, verbose = TRUE, moderate = TRUE)
-    .mm_glmm(x, coef, covs, n_threads, family="poisson", 
+    .mm_glmm(x, coef, covs, n_threads, family = "nbinom", 
         verbose = verbose, moderate = moderate)
 
-
 #' @importFrom BiocParallel bplapply MulticoreParam
+#' @importFrom blme bglmer
 #' @importFrom dplyr %>% bind_rows last rename
-#' @importFrom purrr set_names
-#' @importFrom SingleCellExperiment counts SingleCellExperiment
-#' @importFrom SummarizedExperiment assay
+#' @importFrom glmmTMB glmmTMB nbinom1
+#' @importFrom Matrix colSums t
+#' @importFrom SingleCellExperiment counts sizeFactors
+#' @importFrom stats model.matrix
+#' @importFrom SummarizedExperiment colData
 #' @importFrom tibble add_column
-#' @importFrom Matrix colSums t 
-#' @importFrom Matrix.utils aggregate.Matrix
-#' @import glmmTMB
-#' @import blme
 .mm_hybrid <- function(x, 
     coef, covs, n_threads, verbose = TRUE, 
-    fam = c("nbinom","poisson"), pthres4mm = 0.1) {
+    fam = c("nbinom","poisson"), th = 0.1) {
     
     fam <- match.arg(fam)
     x$cluster_id <- droplevels(x$cluster_id)
@@ -299,12 +294,13 @@
     }
     
     # compute pseudobulks (sum of counts)
-    pb <- aggregateData(x, verbose = verbose)
+    pb <- aggregateData(x)
     pb_cd <- as.data.frame(colData(pb))
     
     # get sample-level formula
-    f <- paste(c("~group_id", intersect(covs, names(pb_cd))), collapse="+")
-    mm <- model.matrix(as.formula(f), pb_cd)
+    str <- c("~group_id", intersect(covs, names(pb_cd)))
+    formula <- as.formula(paste(str, collapse = "+"))
+    mm <- model.matrix(formula, pb_cd)
     
     # get cell-level formula
     str <- c("~(1|sample_id)+offset(ls)", covs, "group_id")
@@ -320,40 +316,41 @@
                 sprintf("testing for %s.", dQuote(coef)))
     }
     
-    # pseudo-bulk analysis:
+    # pseudobulk analysis
     res <- pbDS(pb, mm, coef = which(colnames(mm) == coef), method = "edgeR")
     res <- res$table[[1]][[1]]
     cols <- c("F", "p_adj.loc", "coef", "p_adj.glb")
     cols_keep <- setdiff(colnames(res), cols)
-    res <- rename(res[, cols_keep], pb.p_val = "p_val")
+    res <- rename(res[, cols_keep], p_val.pb = "p_val")
     row.names(res) <- res$gene
-    names(wg) <- wg <- as.character(res$gene)[which(res$pb.p_val < pthres4mm)]
+    gs <- as.character(res$gene)
+    gs_keep <- res$p_val.pb < th
+    names(gs) <- gs <- as.character(gs)[gs_keep]
     
-    # fit mixed model for ea. gene  below threshold in pseudobulk analysis
-    fits <- bplapply(wg, function(i) {
-        df <- data.frame(u=y[i, ], cd)
+    # fit mixed model for ea. gene below threshold in PB analysis
+    fits <- bplapply(gs, function(i) {
+        df <- data.frame(u = y[i, ], cd)
         tryCatch({
             switch(fam,
                 nbinom = {
-                    mod <- glmmTMB(formula, df, family = nbinom1, REML=FALSE)
+                    mod <- glmmTMB(formula, df, family = nbinom1, REML = FALSE)
                     coef(summary(mod))[[1]][coef, ]
                 },
                 poisson = {
                     mod <- bglmer(formula, df, family = "poisson")
                     coef(summary(mod))[coef, ]
                 })
-        }, error=function(e) rep(NA_real_, 4))
+        }, error = function(e) rep(NA_real_, 4))
     }, BPPARAM = MulticoreParam(n_threads, progressbar = verbose))
     
-    res$glmm.estimate <- res$glmm.p_val <- NA_real_
-    res[wg, c("glmm.estimate", "glmm.p_val")] <- t(bind_rows(fits))[, c(1,4)]
+    res$glmm.est <- res$p_val.glmm <- NA_real_
+    res[gs, c("glmm.est", "p_val.glmm")] <- t(bind_rows(fits))[, c(1,4)]
+    res$geomean.p_val <- res$mean.p_val <- res$p_val <- res$p_val.pb
     
-    res$geomean.p_val <- res$mean.p_val <- res$p_val <- res$pb.p_val
-    
-    mat <- as.matrix(res[wg, c("pb.p_val", "glmm.p_val")])
-    res[wg, "geomean.p_val"] <- 10^-rowMeans(-log10(mat))
-    res[wg, "mean.p_val"] <- rowMeans(mat)
-    res[wg, "p_val"] <- res[wg, "glmm.p_val"]
+    mat <- as.matrix(res[gs, c("p_val.pb", "p_val.glmm")])
+    res[gs, "geomean.p_val"] <- 10^-rowMeans(-log10(mat))
+    res[gs, "mean.p_val"] <- rowMeans(mat)
+    res[gs, "p_val"] <- res[gs, "p_val.glmm"]
     
     res <- res[, -c(1, 2)]
     add_column(res, .after = "p_val", p_adj.loc = p.adjust(res$p_val))
@@ -361,15 +358,14 @@
 
 # fits negative binomial mixed models and
 # returns fit information required for 'eBayes'
-#' @import glmmTMB
+#' @importFrom glmmTMB glmmTMB nbinom1
 #' @importFrom purrr map set_names
-#' @importFrom stats df.residual residuals sd
+#' @importFrom stats coef df.residual residuals sd
 .fit_nbinom <- function(df, formula, coef){
-    mod <- tryCatch({
-        glmmTMB(formula, family=nbinom1, data=df, REML=FALSE)
-    }, error=function(e){ print(e); return(NULL)})
+    mod <- tryCatch(
+        glmmTMB(formula, family = nbinom1, data = df, REML = FALSE), 
+        error = function(e) { print(e); NULL })
     if (is.null(mod)) return(mod)
-    
     tryCatch({
         coefs <- colnames(coef(mod)[[1]][[1]])
         cs <- as.numeric(coefs == coef)
@@ -381,21 +377,20 @@
             Amean = mean(df$u),
             sigma = sd(residuals(mod)), 
             df.residual = df.residual(mod)))
-    }, error=function(e) NULL)
+    }, error = function(e) NULL)
 }
 
 
 # fits poisson mixed models and 
 # returns fit information required for 'eBayes'
-#' @import blme
+#' @importFrom blme bglmer
 #' @importFrom purrr map set_names
-#' @importFrom stats df.residual residuals sd
+#' @importFrom stats coef df.residual residuals sd
 .fit_bglmer <- function(df, formula, coef){
-    mod <- tryCatch({
-        bglmer(formula, family="poisson", data=df)
-    }, error=function(e){ print(e); return(NULL)})
+    mod <- tryCatch(
+        bglmer(formula, family="poisson", data=df), 
+        error = function(e) { print(e); NULL })
     if (is.null(mod)) return(mod)
-    
     tryCatch({
         coefs <- colnames(coef(mod)[[1]])
         cs <- as.numeric(coefs == coef)
@@ -407,7 +402,7 @@
             Amean = mean(df$u),
             sigma = sd(residuals(mod)), 
             df.residual = df.residual(mod)))
-    }, error=function(e) NULL)
+    }, error = function(e) NULL)
 }
 
 # formats a list of .fit_lmer results into
@@ -441,4 +436,35 @@
             vapply(fits[rmv], as.character, character(1))
     }
     res[names(fits), ]
+}
+
+# wrappers for variance-stabilizing transformations
+# using the 'sctransform' and 'DESeq2' package, respectively
+# ==============================================================================
+#' @importFrom sctransform vst
+#' @importFrom SingleCellExperiment counts
+#' @importFrom utils getFromNamespace
+.vst_sctransform <- function(x, verbose) {
+    fun <- getFromNamespace("vst", "sctransform")
+    fun(assay(x), show_progress = verbose)$y
+}
+# ------------------------------------------------------------------------------
+#' @importFrom DESeq2 vst
+#' @importFrom scran computeSumFactors
+#' @importFrom SingleCellExperiment counts sizeFactors
+#' @importFrom utils getFromNamespace
+.vst_DESeq2 <- function(x, covs, blind) {
+    if (is.null(sizeFactors(x)))
+        x <- computeSumFactors(x)
+    covs <- paste(c(covs, "sample_id"), collapse = "+")
+    formula <- as.formula(paste("~", covs))
+    y <- counts(x)
+    mode(y) <- "integer"
+    y <- DESeqDataSetFromMatrix(y, colData(x), formula)
+    sizeFactors(y) <- sizeFactors(x)
+    if (!blind) 
+        y <- estimateDispersions(y)
+    fun <- getFromNamespace("vst", "DESeq2")
+    y <- fun(y, blind)
+    assay(y)
 }
