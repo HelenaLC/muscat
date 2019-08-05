@@ -26,7 +26,7 @@
 #' @param normalize logical; whether to apply a z-normalization 
 #'   to each row (gene) of the cluster-sample pseudobulk data.
 #' @param col character vector of colors or color mapping function
-#'   generated with \code{\link{circlize}{colorRamp2}}. Passed to 
+#'   generated with \code{\link[circlize]{colorRamp2}}. Passed to 
 #'   argument \code{col} in \code{\link[ComplexHeatmap]{Heatmap}}
 #'   (see \code{?ComplexHeatmap::Heatmap} for details).
 #' @param row_anno,col_anno logical; whether to render
@@ -56,7 +56,7 @@
 #' @author Helena L Crowell
 #' 
 #' @importFrom ComplexHeatmap Heatmap columnAnnotation rowAnnotation
-#' @importFrom dplyr bind_rows
+#' @importFrom dplyr bind_rows filter_
 #' @importFrom grid gpar
 #' @importFrom purrr map
 #' @importFrom scales hue_pal
