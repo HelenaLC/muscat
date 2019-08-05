@@ -48,9 +48,32 @@ across 2 experimental conditions from a real scRNA-seq data set.
 }
 \examples{
 data(sce)
-simData(sce,
-    n_genes = 10, n_cells = 10,
-    p_dd = diag(6)[1, ])
+
+# prep. SCE for simulation
+sce <- prepSim(sce)
+
+# simulate data
+(sim <- simData(sce,
+  n_genes = 100, n_cells = 10,
+  p_dd = c(0.9, 0, 0.1, 0, 0, 0)))
+
+# simulation metadata
+head(gi <- metadata(sim)$gene_info)
+
+# should be ~10\% DE  
+table(gi$category)
+
+# unbalanced sample sizes
+sim <- simData(sce,
+  n_genes = 10, n_cells = 100,
+  probs = list(NULL, c(0.1, 0.3, 0.6), NULL))
+table(sim$sample_id)
+
+# one group only
+sim <- simData(sce,
+  n_genes = 10, n_cells = 100,
+  probs = list(NULL, NULL, c(1, 0)))
+levels(sim$group_id)
     
 }
 \references{

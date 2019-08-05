@@ -2,19 +2,23 @@
 % Please edit documentation in R/pbMDS.R
 \name{pbMDS}
 \alias{pbMDS}
-\title{Pseudo-bulk level MDS plot}
+\title{Pseudobulk-level MDS plot}
 \usage{
 pbMDS(x)
 }
 \arguments{
 \item{x}{a \code{\link[SingleCellExperiment]{SingleCellExperiment}} 
-containing pseudobulk data as returned by \code{\link{aggregateData}}.}
+containing cluster-sample pseudobulks as returned by 
+\code{\link{aggregateData}} with argument 
+\code{by = c("cluster_id", "sample_id")}.}
 }
 \value{
 a \code{ggplot} object.
 }
 \description{
-...
+Renders a multidimensional scaling (MDS) 
+  where each point represents a cluster-sample instance; 
+  with points colored by cluster ID and shaped by group ID.
 }
 \examples{
 data(sce)

@@ -2,13 +2,13 @@
 % Please edit documentation in R/aggregateData.R
 \name{aggregateData}
 \alias{aggregateData}
-\title{Aggregation of single-cell to pseudo-bulk data}
+\title{Aggregation of single-cell to pseudobulk data}
 \usage{
 aggregateData(x, assay = NULL, by = c("cluster_id", "sample_id"),
   fun = c("sum", "mean", "median"), scale = FALSE)
 }
 \arguments{
-\item{x}{a \code{[SingleCellExperiment]{SingleCellExperiment}}.}
+\item{x}{a \code{\link[SingleCellExperiment]{SingleCellExperiment}}.}
 
 \item{assay}{character string specifying the assay slot to use as 
 input data. Defaults to the 1st available (\code{assayNames(x)[1]}).}
@@ -23,27 +23,37 @@ Specifies the function to use as summary statistic.}
 with the effective library size & multiplied by 1M?}
 }
 \value{
-a \code{[SingleCellExperiment]{SingleCellExperiment}}.
+a \code{\link[SingleCellExperiment]{SingleCellExperiment}}.
+\itemize{
+\item{If \code{length(by) == 2}, each sheet (\code{assay}) contains 
+  pseudobulks for each of \code{by[1]}, e.g., for each cluster when 
+  \code{by = "cluster_id"}. Rows correspond to genes, columns to 
+  \code{by[2]}, e.g., samples when \code{by = "sample_id"}}.
+\item{If \code{length(by) == 1}, the returned SCE will contain only 
+  a single \code{assay} with rows = genes and colums = \code{by}.}}
+  
+  Aggregation parameters (\code{assay, by, fun, scaled}) are stored in 
+  \code{metadata()$agg_pars}, and the number of cells that were aggregated 
+  are accessible in \code{metadata()$n_cells}.
 }
 \description{
 ...
 }
 \examples{
-library(SummarizedExperiment)
-data(kang)
+data(sce)
 
-# pseudo-bulk counts by cluster-sample
-pb <- aggregateData(kang)
-assayNames(pb)  # one sheet per cluster
-head(assay(pb)) # n_genes x n_samples
+# pseudobulk counts by cluster-sample
+pb <- aggregateData(sce)
+assayNames(sce)  # one sheet per cluster
+head(assay(sce)) # n_genes x n_samples
 
 # scaled CPM
-assays(kang)$cpm <- edgeR::cpm(assay(kang))
-pb <- aggregateData(kang, assay = "cpm", scale = TRUE)
+assays(sce)$cpm <- edgeR::cpm(assay(sce))
+pb <- aggregateData(sce, assay = "cpm", scale = TRUE)
 head(assay(pb)) 
 
-# aggregate by cluster
-pb <- aggregateData(kang, by = "cluster_id")
+# aggregate by cluster only
+pb <- aggregateData(sce, by = "cluster_id")
 length(assays(pb)) # single assay
 head(assay(pb))    # n_genes x n_clusters
 

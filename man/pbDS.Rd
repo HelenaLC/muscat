@@ -2,7 +2,7 @@
 % Please edit documentation in R/pbDS.R
 \name{pbDS}
 \alias{pbDS}
-\title{Cluster-specific DE analysis using}
+\title{pseudobulk DS analysis}
 \usage{
 pbDS(pb, design = NULL, coef = NULL, contrast = NULL,
   method = c("edgeR", "DESeq2", "limma-trend", "limma-voom"),
@@ -12,20 +12,21 @@ pbDS(pb, design = NULL, coef = NULL, contrast = NULL,
 \item{pb}{a \code{\link[SingleCellExperiment]{SingleCellExperiment}}
 containing pseudobulks as returned by \code{\link{aggregateData}}.}
 
-\item{design}{For edegR and limma, a design matrix with row and column names
-created with \code{\link[stats]{model.matrix}}. 
-For DESeq2, a formula containing variables in \code{colData(pb)}.}
+\item{design}{For methods \code{"edegR"} and \code{"limma"}, a design matrix 
+with row & column names(!) created with \code{\link[stats]{model.matrix}}; 
+For \code{"DESeq2"}, a formula with variables in \code{colData(pb)}.
+Defaults to \code{~ group_id} or the corresponding \code{model.matrix}.}
 
 \item{coef}{passed to \code{\link[edgeR]{glmQLFTest}}.
 Ignored if \code{contrast} is not NULL.}
 
-\item{contrast}{a matrix of contrasts created with \code{\link[limma]{makeContrasts}}.}
+\item{contrast}{a matrix of contrasts to test for
+created with \code{\link[limma]{makeContrasts}}.}
 
 \item{method}{a character string.}
 
-\item{min_cells}{a numeric. 
-Specifies the minimum number of cells in a given cluster-sample 
-required to consider the sample for differential testing.}
+\item{min_cells}{a numeric. Specifies the minimum number of cells in a given 
+cluster-sample required to consider the sample for differential testing.}
 
 \item{verbose}{logical. Should information on progress be reported?}
 }
@@ -38,25 +39,9 @@ a list containing
 }
 }
 \description{
-\code{run_edgeR} tests for cluster-specific 
-  differential expression by aggregating single-cell 
-  measurements and using \code{edgeR} for testing.
-}
-\details{
-\code{run_edgeR} tests for cluster-specific 
-  differential expression by aggregating single-cell 
-  measurements. Depending on the selected \code{method},
-  differential testing is performed on pseudo-bulk data
-  obtained via...
-  \describe{
-  \item{\code{raw_counts}}{
-    summing, for every gene, raw counts for each cluster-sample.}
-  \item{\code{normed_counts}}{
-    summing, for every gene, normalized counts for each cluster-sample.}
-  \item{\code{scaled_cpm}}{
-    summing, for every gene, scaled CPM for each cluster-sample.
-    Scaled CPM are obtained by multiplying pseudo-bulk raw counts
-    by effective library sizes and dividing by 1M.}}
+\code{pbDS} tests for DS after aggregating single-cell 
+  measurements to pseudobulk data, by applying bulk RNA-seq DE methods, 
+  such as \code{edgeR}, \code{DESeq2} and \code{limma}.
 }
 \examples{
 # simulate 5 clusters, 20\% of DE genes
