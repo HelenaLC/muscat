@@ -48,6 +48,7 @@ across 2 experimental conditions from a real scRNA-seq data set.
 }
 \examples{
 data(sce)
+library(SingleCellExperiment)
 
 # prep. SCE for simulation
 sce <- prepSim(sce)
