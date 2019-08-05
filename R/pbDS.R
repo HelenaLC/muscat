@@ -1,43 +1,24 @@
 #' @rdname pbDS
-#' @title Cluster-specific DE analysis using
+#' @title pseudobulk DS analysis
 #'
-#' @description \code{run_edgeR} tests for cluster-specific 
-#'   differential expression by aggregating single-cell 
-#'   measurements and using \code{edgeR} for testing.
+#' @description \code{pbDS} tests for DS after aggregating single-cell 
+#'   measurements to pseudobulk data, by applying bulk RNA-seq DE methods, 
+#'   such as \code{edgeR}, \code{DESeq2} and \code{limma}.
 #'
 #' @param pb a \code{\link[SingleCellExperiment]{SingleCellExperiment}}
 #'   containing pseudobulks as returned by \code{\link{aggregateData}}.
-#' @param design 
-#'   For edegR and limma, a design matrix with row and column names
-#'   created with \code{\link[stats]{model.matrix}}. 
-#'   For DESeq2, a formula containing variables in \code{colData(pb)}.
-#' @param contrast 
-#'   a matrix of contrasts created with \code{\link[limma]{makeContrasts}}.
-#' @param coef 
-#'   passed to \code{\link[edgeR]{glmQLFTest}}.
+#' @param design For methods \code{"edegR"} and \code{"limma"}, a design matrix 
+#'   with row & column names(!) created with \code{\link[stats]{model.matrix}}; 
+#'   For \code{"DESeq2"}, a formula with variables in \code{colData(pb)}.
+#'   Defaults to \code{~ group_id} or the corresponding \code{model.matrix}.
+#' @param contrast a matrix of contrasts to test for
+#'   created with \code{\link[limma]{makeContrasts}}.
+#' @param coef passed to \code{\link[edgeR]{glmQLFTest}}.
 #'   Ignored if \code{contrast} is not NULL.
-#' @param method 
-#'   a character string.
-#' @param min_cells a numeric. 
-#'   Specifies the minimum number of cells in a given cluster-sample 
-#'   required to consider the sample for differential testing.
-#' @param verbose 
-#'   logical. Should information on progress be reported?
-#'
-#' @details \code{run_edgeR} tests for cluster-specific 
-#'   differential expression by aggregating single-cell 
-#'   measurements. Depending on the selected \code{method},
-#'   differential testing is performed on pseudo-bulk data
-#'   obtained via...
-#'   \describe{
-#'   \item{\code{raw_counts}}{
-#'     summing, for every gene, raw counts for each cluster-sample.}
-#'   \item{\code{normed_counts}}{
-#'     summing, for every gene, normalized counts for each cluster-sample.}
-#'   \item{\code{scaled_cpm}}{
-#'     summing, for every gene, scaled CPM for each cluster-sample.
-#'     Scaled CPM are obtained by multiplying pseudo-bulk raw counts
-#'     by effective library sizes and dividing by 1M.}}
+#' @param method a character string.
+#' @param min_cells a numeric. Specifies the minimum number of cells in a given 
+#'   cluster-sample required to consider the sample for differential testing.
+#' @param verbose logical. Should information on progress be reported?
 #'
 #' @return a list containing 
 #' \itemize{
@@ -92,17 +73,14 @@ pbDS <- function(pb,
     design = NULL, coef = NULL, contrast = NULL, 
     method = c("edgeR", "DESeq2", "limma-trend", "limma-voom"),
     min_cells = 10, verbose = TRUE) {
-    
-    # check validty of input arguments
-    stopifnot(is.null(design) | is.matrix(design))
-    stopifnot(is.null(contrast) | is.matrix(contrast))
-    stopifnot(is.null(coef) | is.numeric(coef))
-    stopifnot(is.numeric(min_cells), length(min_cells) == 1)
-    stopifnot(is.logical(verbose), length(verbose) == 1)
+
+    # check validity of input arguments
     method <- match.arg(method)
+    .check_pbs(pb, check_by = TRUE)
+    .check_args_pbDS(as.list(environment()))
     
     if (missing("design")) {
-        formula <- as.formula(paste("~", names(colData(pb))[1]))
+        formula <- ~ group_id
         if (method == "DESeq2") {
             design <- formula
             contrast <- NA
@@ -114,11 +92,11 @@ pbDS <- function(pb,
     }
     
     if (!is.null(contrast)) {
-        ctype <- "contrast"
+        ct <- "contrast"
         cs <- colnames(contrast)
         names(cs) <- cs
     } else {
-        ctype <- "coef"
+        ct <- "coef"
         cs <- vapply(coef, function(i) 
             paste(colnames(design)[i], collapse = "-"),
             character(1))
@@ -138,12 +116,16 @@ pbDS <- function(pb,
         y <- y[, !rmv]
         if (method == "DESeq2") {
             mode(y) <- "integer"
+            d <- design[colnames(y), ]
             cd <- colData(pb)[!rmv, , drop = FALSE]
-            y <- DESeqDataSetFromMatrix(y, cd, design)
+            y <- DESeqDataSetFromMatrix(y, cd, d)
             y <- suppressMessages(DESeq(y))
-            res <- results(y, alpha = 0.05)
-            tt <- data.frame(gene = rownames(y), res, stringsAsFactors = FALSE)
-            tt <- rename(tt, p_val = "pvalue", p_adj.loc = "padj")
+            tt <- lapply(cs, function(c) {
+                res <- results(y, contrast = contrast[, c])
+                .res_df(k, res, ct, c) %>% 
+                    rename(logFC = "log2FoldChange",
+                        p_val = "pvalue", p_adj.loc = "padj")
+            })
         } else {
             d <- design[colnames(y), ]
             if (any(colSums(d) < 2)) 
@@ -156,7 +138,7 @@ pbDS <- function(pb,
                 tt <- lapply(cs, function(c) {
                     qlf <- glmQLFTest(fit, coef[[c]], contrast[, c])
                     tt <- topTags(qlf, n = Inf, sort.by = "none")
-                    res_df(k, tt, ctype, c) %>% 
+                    .res_df(k, tt, ct, c) %>% 
                         rename(p_val = "PValue", p_adj.loc = "FDR")
                 })
             } else {
@@ -174,7 +156,7 @@ pbDS <- function(pb,
                     cfit <- contrasts.fit(fit, contrast[, c], coef[[c]])
                     efit <- eBayes(cfit, trend = trend, robust = robust)
                     tt <- topTable(efit, number = Inf, sort.by = "none")  
-                    res_df(k, tt, ctype, c) %>% 
+                    .res_df(k, tt, ct, c) %>% 
                         rename(p_val = "P.Value", p_adj.loc = "adj.P.Val")
                 })
             }
