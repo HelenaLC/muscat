@@ -449,7 +449,7 @@
     fun(assay(x), show_progress = verbose)$y
 }
 # ------------------------------------------------------------------------------
-#' @importFrom DESeq2 vst
+#' @importFrom DESeq2 varianceStabilizingTransformation
 #' @importFrom scran computeSumFactors
 #' @importFrom SingleCellExperiment counts sizeFactors
 #' @importFrom utils getFromNamespace
@@ -464,7 +464,6 @@
     sizeFactors(y) <- sizeFactors(x)
     if (!blind) 
         y <- estimateDispersions(y)
-    fun <- getFromNamespace("vst", "DESeq2")
-    y <- fun(y, blind)
+    y <- varianceStabilizingTransformation(y, blind)
     assay(y)
 }
