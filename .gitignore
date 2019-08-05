@@ -1,3 +1,5 @@
+.DS_Store
+.Rhistory
 **/*.html
 **/*/.DS_Store
 vignettes/vignette_cache
