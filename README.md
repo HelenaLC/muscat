@@ -15,6 +15,10 @@ multi-sample multi-condition single-cell RNA sequencing data.
 
 ***
 
+**`muscat` is still work in progress. Any constructive feedback - feature requests, comments on documentation, issues or bug reports - is appreciated; therefor, please file a issue on GitHub rather then emailing, so that others may benifit from answers and discussions!**
+
+***
+
 Let `sce` be a [`SingleCellExperiment`](https://www.bioconductor.org/packages/SingleCellExperiment.html) object with cell metadata (`colData`) columns
 
 1. `"sample_id"` specifying unique sample identifiers (e.g., PeterPan1, Nautilus7, ...)
