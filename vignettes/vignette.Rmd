@@ -40,9 +40,11 @@ bibliography: "`r file.path(system.file('extdata', package = 'muscat'), 'refs.bi
 }
 </style>
 
+<!--
 ```{r setup, include = FALSE}
 knitr::opts_chunk$set(autodep = TRUE, cache = TRUE)
 ```
+-->
 
 ```{r echo = FALSE, message = FALSE, warning = FALSE}
 library(BiocStyle)
@@ -245,9 +247,9 @@ for (dr in c("TSNE", "UMAP")) {
 
 # Differential State (DS) analysis
 
-To test for state changes across conditions, we will consider two types of approaches: i) mixed models that act directly on cell-level measurements; and ii) aggregation-based methods that act on *pseudobulk* data. In each case, DS analysis will test each gene, in each cluster. Thus, a total of $\#(genes) \times \#(clusters)$ tests will be performed per comparison of interest. The following schematic summarizes the data representation considered by each of these approaches:
+To test for state changes across conditions, we will consider two types of approaches: i) mixed models that act directly on cell-level measurements; and ii) aggregation-based methods that act on *pseudobulk* data. For both approaches, each gene is tested for state changes in each cluster. Thus, a total of $\#(genes) \times \#(clusters)$ tests will be performed per comparison of interest. The following schematic summarizes the data representation considered by cell- and sample-level approaches, respectively:
 
-```{r echo = FALSE, out.width = 8, fig.cap = "Schematic overview of cell- and sample-level approaches for DS analysis. Top panels show a schematic of the data distributions or aggregates across samples (each violin is a group or sample; each dot is a sample) and conditions (blue or orange). The bottom panels highlight the data organization in sub-matrix slices of the original count table."}
+```{r echo = FALSE, out.width = 5, fig.cap = "Schematic overview of cell- and sample-level approaches for DS analysis. Top panels show a schematic of the data distributions or aggregates across samples (each violin is a group or sample; each dot is a sample) and conditions (blue or orange). The bottom panels highlight the data organization in sub-matrix slices of the original count table."}
 knitr::include_graphics(file.path(system.file(
   "extdata", package = "muscat"), "ds_approaches.png"))
 ```
