@@ -15,7 +15,7 @@ multi-sample multi-condition single-cell RNA sequencing data.
 
 ***
 
-**`muscat` is still work in progress. Any constructive feedback - feature requests, comments on documentation, issues or bug reports - is appreciated; therefor, please file a issue on GitHub rather then emailing, so that others may benifit from answers and discussions!**
+**`muscat` is still work in progress. Any constructive feedback (feature requests, comments on documentation, issues or bug reports) is appreciated; therefor, please file a issue on GitHub rather then emailing, so that others may benifit from answers and discussions!**
 
 ***
 
