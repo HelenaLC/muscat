@@ -41,7 +41,8 @@
 #' gs <- sample(nrow(sce), 100)
 #' sce <- sce[gs, ]
 #' 
-#' res <- mmDS(sce, method = "dream", verbose = FALSE)
+#' res <- mmDS(sce, method = "dream", 
+#'     n_threads = 1, verbose = FALSE)
 #' head(res$`B cells`)
 #' 
 #' @author Pierre-Luc Germain & Helena L Crowell
