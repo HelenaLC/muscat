@@ -69,10 +69,10 @@ res <- pbDS(pb)
 pbHeatmap(sce, res)
 
 # include only a single cluster
-pbHeatmap(sce, res, k = levels(sce$cluster_id)[1])
+pbHeatmap(sce, res, k = "B cells")
 
 # plot specific gene across all clusters
-pbHeatmap(sce, res, g = rownames(sce)[1])
+pbHeatmap(sce, res, g = "ISG20")
 
 # show sum of counts instead
 pbHeatmap(sce, res, assay = "counts", fun = sum)
