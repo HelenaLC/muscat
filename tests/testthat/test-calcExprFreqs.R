@@ -1,5 +1,9 @@
 context("Expression frequencies by cluster, sample & group")
-source("toySCE.R")
+
+# load packages
+suppressMessages({
+    library(SingleCellExperiment)
+})
 
 # generate toy dataset
 seed <- as.numeric(format(Sys.Date(), "%s"))

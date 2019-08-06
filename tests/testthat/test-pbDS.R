@@ -1,10 +1,10 @@
 context("DS analysis via pseudobulks")
-source("toySCE.R")
 
 # load packages
 suppressMessages({
     library(dplyr)
     library(purrr)
+    library(SingleCellExperiment)
 })
 
 # generate toy dataset

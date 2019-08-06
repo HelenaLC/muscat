@@ -54,6 +54,6 @@ test_that(".sample_cell_md", {
     
     ns <- apply(md, 2, table)
     ms <- vapply(ns, mean, numeric(1))
-    expect_true(all(vapply(1:3, function(i) 
+    expect_true(all(vapply(seq_len(3), function(i) 
         ms[[i]] == n / length(ids[[i]]), logical(1))))
 })
