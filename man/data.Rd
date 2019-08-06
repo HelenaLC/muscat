@@ -25,10 +25,10 @@ The original data has been filtered to
 Assay \code{logcounts} corresponds to log-normalized values 
 obtained from \code{\link[scater]{normalize}} with default parameters.
   
-The complete raw, gene, and cell metadata is available 
-through the NCBI GEO accession number \href{
-https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE96583}{GSE96583},
-and code to reproduce this example dataset from the original data 
+The complete raw measurement data, as well as gene and cell metadata 
+is available through the NCBI GEO accession number
+\href{https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE96583}{GSE96583};
+code to reproduce this example dataset from the original data 
 is provided in the examples section.
 }
 \examples{
