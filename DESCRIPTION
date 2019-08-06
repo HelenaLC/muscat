@@ -32,6 +32,7 @@ Suggests:
 	knitr, 
 	RColorBrewer,
 	rmarkdown, 
+	scater,
 	testthat, 
 	UpSetR
 biocViews: DifferentialExpression, SingleCell, Software, StatisticalMethod, Visualization
