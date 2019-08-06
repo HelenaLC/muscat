@@ -36,11 +36,10 @@
 #' sce <- sce[, sce$cluster_id == "B cells"]
 #' sce$cluster_id <- droplevels(sce$cluster_id)
 #' 
-#' # downsample to 100 genes & 50 cells per sample
-#' cells_by_sample <- split(colnames(sce), sce$sample_id)
-#' genes_keep <- sample(nrow(sce), 100)
-#' cells_keep <- sapply(cells_by_sample, sample, 50)
-#' sce <- sce[genes_keep, cells_keep]
+#' # downsample to 100 genes
+#' cs_by_s <- split(colnames(sce), sce$sample_id)
+#' gs <- sample(nrow(sce), 100)
+#' sce <- sce[gs, ]
 #' 
 #' res <- mmDS(sce, method = "dream", verbose = FALSE)
 #' head(res$`B cells`)
