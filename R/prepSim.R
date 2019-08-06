@@ -44,6 +44,8 @@
 #' 
 #' @examples
 #' data(sce)
+#' library(SingleCellExperiment)
+#' 
 #' sce2 <- prepSim(sce)
 #' 
 #' # nb. of genes/cells before vs. after

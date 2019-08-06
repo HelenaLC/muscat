@@ -58,6 +58,8 @@ For each gene \eqn{g}, \code{prepSim} fits a model to estimate
 }
 \examples{
 data(sce)
+library(SingleCellExperiment)
+
 sce2 <- prepSim(sce)
 
 # nb. of genes/cells before vs. after
