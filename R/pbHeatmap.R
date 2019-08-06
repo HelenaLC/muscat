@@ -50,9 +50,6 @@
 #' # plot specific gene across all clusters
 #' pbHeatmap(sce, res, g = "ISG20")
 #' 
-#' # show sum of counts instead
-#' pbHeatmap(sce, res, assay = "counts", fun = sum)
-#' 
 #' @author Helena L Crowell
 #' 
 #' @importFrom ComplexHeatmap Heatmap columnAnnotation rowAnnotation
