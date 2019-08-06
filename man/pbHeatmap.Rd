@@ -21,6 +21,9 @@ Defaults to \code{levels(x$cluster_id)}.}
 \item{g}{character vector; specifies which genes to retain.
 Defaults to considering all genes.}
 
+\item{c}{character string; specifies which contrast/coefficient to retain.
+Defaults to \code{names(y$table)[1]}.}
+
 \item{top_n}{single numeric; number of genes to retain per cluster.}
 
 \item{fdr, lfc}{single numeric; FDR and logFC cutoffs to filter results by.
@@ -48,9 +51,6 @@ argument \code{col} in \code{\link[ComplexHeatmap]{Heatmap}}
 
 \item{row_anno, col_anno}{logical; whether to render
 annotations of cluster and group IDs, respectively.}
-
-\item{k}{character string; specifies which contrast/coefficient to retain.
-Defaults to \code{names(y$table)[1]}.}
 }
 \value{
 a \code{\link{HeatmapList-class}} object.

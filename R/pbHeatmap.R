@@ -6,11 +6,11 @@
 #' @param x a \code{\link[SingleCellExperiment]{SingleCellExperiment}}.
 #' @param y a list of DS analysis results as returned by 
 #'   \code{\link{pbDS}} or \code{\link{mmDS}}.
-#' @param g character vector; specifies which genes to retain.
-#'   Defaults to considering all genes.
 #' @param k character vector; specifies which cluster ID(s) to retain.
 #'   Defaults to \code{levels(x$cluster_id)}.
-#' @param k character string; specifies which contrast/coefficient to retain.
+#' @param g character vector; specifies which genes to retain.
+#'   Defaults to considering all genes.
+#' @param c character string; specifies which contrast/coefficient to retain.
 #'   Defaults to \code{names(y$table)[1]}.
 #' @param top_n single numeric; number of genes to retain per cluster.
 #' @param fdr,lfc single numeric; FDR and logFC cutoffs to filter results by.
