@@ -2,7 +2,7 @@ Package: muscat
 Title: Multi-sample multi-group scRNA-seq data analysis tools
 Description: ...
 Type: Package
-Version: 0.99.12
+Version: 0.99.13
 Depends: R (>= 3.6)
 Authors@R: c(
 	person("Helena L.", "Crowell", role=c("aut", "cre"), 
