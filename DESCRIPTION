@@ -39,7 +39,7 @@ Suggests:
 	scater,
 	testthat, 
 	UpSetR
-biocViews: DifferentialExpression, SingleCell, Software, StatisticalMethod, Visualization
+biocViews: DifferentialExpression, Sequencing, SingleCell, Software, StatisticalMethod, Visualization
 License: GPL (>=2)
 VignetteBuilder: knitr
 RoxygenNote: 6.1.1
