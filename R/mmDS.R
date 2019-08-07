@@ -62,7 +62,6 @@
 #' @importFrom progress progress_bar
 #' @importFrom purrr map_depth
 #' @importFrom tibble add_column
-#' @importFrom scran computeSumFactors
 #' @importFrom sctransform vst
 #' @importFrom SingleCellExperiment counts counts<- 
 #'   colData sizeFactors sizeFactors<-

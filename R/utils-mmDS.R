@@ -38,7 +38,7 @@
 #' @importFrom magrittr set_rownames
 #' @importFrom matrixStats rowSds
 #' @importFrom parallel makeCluster stopCluster
-#' @importFrom scran computeSumFactors
+#' @importFrom scater computeLibraryFactors
 #' @importFrom SingleCellExperiment counts sizeFactors
 #' @importFrom stats as.formula model.matrix
 #' @importFrom variancePartition dream getContrast
@@ -49,8 +49,8 @@
     n_threads = 1, verbose = FALSE) {
     
     if (is.null(sizeFactors(x)))
-        x <- computeSumFactors(x)
-
+        x <- computeLibraryFactors(x)
+    
     ddf <- match.arg(ddf)
     x <- x[rowSds(as.matrix(counts(x))) > 0, ]
     y <- DGEList(counts(x), norm.factors = 1 / sizeFactors(x))
@@ -450,12 +450,11 @@
 }
 # ------------------------------------------------------------------------------
 #' @importFrom DESeq2 varianceStabilizingTransformation
-#' @importFrom scran computeSumFactors
 #' @importFrom SingleCellExperiment counts sizeFactors
 #' @importFrom utils getFromNamespace
 .vst_DESeq2 <- function(x, covs, blind) {
     if (is.null(sizeFactors(x)))
-        x <- computeSumFactors(x)
+        x <- computeLibraryFactors(x)
     covs <- paste(c(covs, "sample_id"), collapse = "+")
     formula <- as.formula(paste("~", covs))
     y <- counts(x)

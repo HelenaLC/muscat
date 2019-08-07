@@ -31,14 +31,11 @@
 #' 
 #' @examples
 #' \dontrun{
-#' # load packages
-#' library(ExperimentHub)
-#' library(SingleCellExperiment)
-#' 
 #' # set random seed for cell sampling
 #' set.seed(2929)
 #' 
 #' # load data
+#' library(ExperimentHub)
 #' eh <- ExperimentHub()
 #' sce <- eh[["EH2259"]]
 #' 
@@ -70,8 +67,9 @@
 #' sce <- sce[, unlist(cs)]
 #' 
 #' # compute logcounts
-#' sce <- scran::computeSumFactors(sce)
-#' sce <- scater::normalize(sce)
+#' library(scater)
+#' sce <- computeLibraryFactors(sce)
+#' sce <- logNormCounts(sce)
 #' 
 #' # re-format for 'muscat'
 #' sce <- prepSCE(sce, 
