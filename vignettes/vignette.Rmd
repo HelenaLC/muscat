@@ -207,18 +207,18 @@ sce <- runUMAP(sce, pca = 20)
 Using `r Biocpkg("scater")`'s `plotReducedDim` function, we here t-SNE and UMAP representations colored by cluster and group IDs, respectively. For our dataset, the t-SNE and UMAP colored by `cluster_id`s show that cell-populations are well-separated from one another. INF-$\beta$ stimulation manifests as a severe shift in the low-dimensional projection of cells when coloring by `group_id`s, indicating widespread, genome-scale transcriptiontal changes.
 
 ```{r eval = FALSE}
-# downsample to max. 500 cells per cluster
+# downsample to max. 200 cells per cluster
 cs_by_k <- split(colnames(sce), sce$cluster_id)
-cs500 <- unlist(sapply(cs_by_k, function(u) 
-  sample(u, min(length(u), 500))))
+cs200 <- unlist(sapply(cs_by_k, function(u) 
+  sample(u, min(length(u), 200))))
 
 # plot t-SNE & UMAP colored by cluster & group ID
 for (dr in c("TSNE", "UMAP"))
   for (col in c("cluster_id", "group_id"))
-    plotReducedDim(sce[, cs500], use_dimred = dr, colour_by = col)
+    plotReducedDim(sce[, cs200], use_dimred = dr, colour_by = col)
 ```
 
-```{r dr-ids, echo = FALSE, results = "asis", fig.height = 4, fig.width = 12, fig.cap = "Dimension reduction plots. Cells are colored by cluster ID (A) and group ID (B), respectively. For each cluster, at most 500 cells were sampled for plotting."}
+```{r dr-ids, echo = FALSE, results = "asis", fig.height = 4, fig.width = 12, fig.cap = "Dimension reduction plots. Cells are colored by cluster ID (A) and group ID (B), respectively. For each cluster, at most 200 cells were sampled for plotting."}
 .plot_dr <- function(sce, dr, col) {
   plotReducedDim(sce, use_dimred = dr, colour_by = col) +
     guides(fill = guide_legend(override.aes = list(alpha = 1, size = 3))) +
@@ -226,13 +226,13 @@ for (dr in c("TSNE", "UMAP"))
 }
 
 cs_by_k <- split(colnames(sce), sce$cluster_id)
-cs500 <- unlist(sapply(cs_by_k, function(u) 
-  sample(u, min(length(u), 500))))
+cs200 <- unlist(sapply(cs_by_k, function(u) 
+  sample(u, min(length(u), 200))))
 
 for (dr in c("TSNE", "UMAP")) {
   cat("#### ", dr, "{-}\n")
   ps <- lapply(c("cluster_id", "group_id"), 
-    function(col) .plot_dr(sce[, cs500], dr, col = col))
+    function(col) .plot_dr(sce[, cs200], dr, col = col))
   assign(paste0("ps_", tolower(dr)), ps)
   print(plot_grid(plotlist = ps, align = "vh", labels = c("A", "B")))
   cat("\n\n")
@@ -448,7 +448,7 @@ An upset plot as the one above tells us, for instance, that 185 genes are differ
 
 The code chunk generates a set of t-SNEs colored by gene expression for the top-8 DS genes. To match the affected cells to their cluster and experimental group, see the t-SNEs colored by cluster and group ID from above.
 
-```{r fig.width = 14, fig.height = 8, fig.cap = "t-SNE colored by gene expression. Show are t-SNE projections with cells colored by the expression of the top-8 DS genes. For each cluster, at most 500 cells were sampled for plotting."}
+```{r fig.width = 14, fig.height = 8, fig.cap = "t-SNE colored by gene expression. Show are t-SNE projections with cells colored by the expression of the top-8 DS genes. For each cluster, at most 200 cells were sampled for plotting."}
 # pull top-8 DS genes across all clusters
 top8 <- bind_rows(tbl_fil) %>% 
   top_n(8, dplyr::desc(p_adj.loc)) %>% 
@@ -456,7 +456,7 @@ top8 <- bind_rows(tbl_fil) %>%
 
 # for ea. gene in 'top8', plot t-SNE colored by its expression 
 ps <- lapply(top8, function(g)
-  .plot_dr(sce[, cs500], "TSNE", g) + 
+  .plot_dr(sce[, cs200], "TSNE", g) + 
     ggtitle(g) + theme(legend.position = "none"))
 
 # arrange plots
