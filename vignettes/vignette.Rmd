@@ -40,12 +40,6 @@ bibliography: "`r file.path(system.file('extdata', package = 'muscat'), 'refs.bi
 }
 </style>
 
-<!--
-```{r setup, include = FALSE}
-knitr::opts_chunk$set(autodep = TRUE, cache = TRUE)
-```
--->
-
 ```{r echo = FALSE, message = FALSE, warning = FALSE}
 library(BiocStyle)
 library(cowplot)
