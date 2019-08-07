@@ -57,7 +57,7 @@ at least \code{min_cells} must have a count >= \code{min_count}.}
 on progress and a progress bar should be displayed.}
 
 \item{dup_corr}{logical; whether to use
-\code{\link[limma]{duplicateCorrelation}}.}
+\code{\link[limma:dupcor]{duplicateCorrelation}}.}
 
 \item{trended}{logical; whether to use expression-dependent variance priors
 in \code{\link[limma]{eBayes}}.}
@@ -75,7 +75,7 @@ for \code{\link[DESeq2]{varianceStabilizingTransformation}}.}
 \item{ddf}{character string specifying the method for estimating
 the effective degrees of freedom. For \code{method = "dream"},
 either \code{"Satterthwaite"} (faster) or \code{"Kenward-Roger"}
-(more accurate); see \code{\link[variancePartition]{dream}}.
+(more accurate); see \code{\link[variancePartition:dream]{dream}}.
 For \code{method = "vst"}, method \code{"lme4"} is also valid;
 see \code{\link[lmerTest]{contest.lmerModLmerTest}}.}
 
@@ -94,7 +94,7 @@ Meant to be called by \code{mmDS} with \code{method = c("dream", "vst")} and
 \code{vst = c("sctransform", "DESeq2")} to be applied across all clusters.
 \describe{
 \item{\code{method = "dream"}}{
-  voom-lme4-implementation \code{\link[variancePartition]{dream}}
+  voom-lme4-implementation \code{\link[variancePartition:dream]{dream}}
   of mixed models for RNAseq data.}
 \item{\code{method = "vst"}}{
   \describe{
