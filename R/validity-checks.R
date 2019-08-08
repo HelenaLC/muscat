@@ -97,7 +97,7 @@
         is.numeric(u$n_cells), length(u$n_cells) == 1 | length(u$n_cells) == 2,
         is.numeric(u$p_dd), length(u$p_dd) == 6, sum(u$p_dd) == 1,
         is.numeric(u$p_type), length(u$p_type) == 1, u$p_type >= 0,
-        is.numeric(u$lfc), is.numeric(u$lfc), u$lfc > 1)
+        is.numeric(u$lfc), is.numeric(u$lfc), u$lfc >= 1)
     if (!is.null(u$rel_lfc)) {
         nk <- length(kids <- levels(u$cluster_id))
         stopifnot(is.numeric(u$rel_lfc), 
