@@ -36,13 +36,13 @@
 #' sce <- sce[, sce$cluster_id == "B cells"]
 #' sce$cluster_id <- droplevels(sce$cluster_id)
 #' 
-#' # downsample to 100 genes & 50 cells per sample
-#' cells_by_sample <- split(colnames(sce), sce$sample_id)
-#' genes_keep <- sample(nrow(sce), 100)
-#' cells_keep <- sapply(cells_by_sample, sample, 50)
-#' sce <- sce[genes_keep, cells_keep]
+#' # downsample to 100 genes
+#' cs_by_s <- split(colnames(sce), sce$sample_id)
+#' gs <- sample(nrow(sce), 100)
+#' sce <- sce[gs, ]
 #' 
-#' res <- mmDS(sce, method = "dream", verbose = FALSE)
+#' res <- mmDS(sce, method = "dream", 
+#'     n_threads = 1, verbose = FALSE)
 #' head(res$`B cells`)
 #' 
 #' @author Pierre-Luc Germain & Helena L Crowell
@@ -62,7 +62,6 @@
 #' @importFrom progress progress_bar
 #' @importFrom purrr map_depth
 #' @importFrom tibble add_column
-#' @importFrom scran computeSumFactors
 #' @importFrom sctransform vst
 #' @importFrom SingleCellExperiment counts counts<- 
 #'   colData sizeFactors sizeFactors<-

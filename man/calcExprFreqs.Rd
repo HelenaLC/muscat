@@ -15,7 +15,7 @@ calcExprFreqs(x, assay = "counts", th = 0)
 a gene should be considered to be expressed.}
 }
 \value{
-a \code{\link[SummarizedExperiment]{SummarizedExperiment}}
+a \code{\link[SingleCellExperiment]{SingleCellExperiment}}
   containing, for each cluster, an assay of dimensions #genes x #samples 
   giving the fraction of cells that express each gene in each sample. 
   If \code{colData(x)} contains a \code{"group_id"} column, the fraction 

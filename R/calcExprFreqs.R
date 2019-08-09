@@ -12,7 +12,7 @@
 #' @param th numeric threshold value above which
 #'   a gene should be considered to be expressed.
 #' 
-#' @return a \code{\link[SummarizedExperiment]{SummarizedExperiment}}
+#' @return a \code{\link[SingleCellExperiment]{SingleCellExperiment}}
 #'   containing, for each cluster, an assay of dimensions #genes x #samples 
 #'   giving the fraction of cells that express each gene in each sample. 
 #'   If \code{colData(x)} contains a \code{"group_id"} column, the fraction 

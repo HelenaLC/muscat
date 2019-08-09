@@ -3,13 +3,13 @@
 #' see details.
 #'
 #' @param dup_corr logical; whether to use
-#'   \code{\link[limma]{duplicateCorrelation}}.
+#'   \code{\link[limma:dupcor]{duplicateCorrelation}}.
 #' @param trended logical; whether to use expression-dependent variance priors
 #'  in \code{\link[limma]{eBayes}}.
 #' @param ddf character string specifying the method for estimating
 #'  the effective degrees of freedom. For \code{method = "dream"},
 #'  either \code{"Satterthwaite"} (faster) or \code{"Kenward-Roger"}
-#'  (more accurate); see \code{\link[variancePartition]{dream}}.
+#'  (more accurate); see \code{?variancePartition::dream} for details.
 #'  For \code{method = "vst"}, method \code{"lme4"} is also valid;
 #'  see \code{\link[lmerTest]{contest.lmerModLmerTest}}.
 #'
@@ -20,8 +20,8 @@
 #' \code{vst = c("sctransform", "DESeq2")} to be applied across all clusters.
 #' \describe{
 #' \item{\code{method = "dream"}}{
-#'   voom-lme4-implementation \code{\link[variancePartition]{dream}}
-#'   of mixed models for RNAseq data.}
+#'   \code{variancePartition}'s voom-lme4-implementation
+#'   of mixed models for RNA-seq data; function \code{dream}.}
 #' \item{\code{method = "vst"}}{
 #'   \describe{
 #'   \item{\code{vst = "sctransform"}}{
@@ -38,7 +38,7 @@
 #' @importFrom magrittr set_rownames
 #' @importFrom matrixStats rowSds
 #' @importFrom parallel makeCluster stopCluster
-#' @importFrom scran computeSumFactors
+#' @importFrom scater computeLibraryFactors
 #' @importFrom SingleCellExperiment counts sizeFactors
 #' @importFrom stats as.formula model.matrix
 #' @importFrom variancePartition dream getContrast
@@ -49,8 +49,8 @@
     n_threads = 1, verbose = FALSE) {
     
     if (is.null(sizeFactors(x)))
-        x <- computeSumFactors(x)
-
+        x <- computeLibraryFactors(x)
+    
     ddf <- match.arg(ddf)
     x <- x[rowSds(as.matrix(counts(x))) > 0, ]
     y <- DGEList(counts(x), norm.factors = 1 / sizeFactors(x))
@@ -450,12 +450,11 @@
 }
 # ------------------------------------------------------------------------------
 #' @importFrom DESeq2 varianceStabilizingTransformation
-#' @importFrom scran computeSumFactors
 #' @importFrom SingleCellExperiment counts sizeFactors
 #' @importFrom utils getFromNamespace
 .vst_DESeq2 <- function(x, covs, blind) {
     if (is.null(sizeFactors(x)))
-        x <- computeSumFactors(x)
+        x <- computeLibraryFactors(x)
     covs <- paste(c(covs, "sample_id"), collapse = "+")
     formula <- as.formula(paste("~", covs))
     y <- counts(x)

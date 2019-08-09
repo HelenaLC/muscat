@@ -121,13 +121,13 @@ cats <- factor(cats, levels = cats)
 # of dispersions ('size') and means ('mu')
 # ------------------------------------------------------------------------------
 #' @importFrom stats rnbinom
-.nb <- function(cs, d, m, lfc = NULL) {
+.nb <- function(cs, d, m, lfc = NULL, f = 1) {
     n_gs <- length(d)
     n_cs <- length(cs)
     if (is.null(lfc))
         lfc <- rep(0, n_gs)
     lfc[lfc < 0] <- 0
-    fc <- 2 ^ lfc
+    fc <- f * (2 ^ lfc)
     fc <- rep(fc, each = n_cs)
     ds <- rep(1/d, each = n_cs)
     ms <- c(t(m[, cs])) * fc 
@@ -200,7 +200,7 @@ cats <- factor(cats, levels = cats)
         db = {
             g2_hi <- sample(ng2, round(ng2 * 0.5))
             list(
-                .nb(cs_g1, d, m_g1, lfc/2),       # all g1 mi
+                .nb(cs_g1, d, m_g1, lfc, 0.5),    # all g1 mi
                 .nb(cs_g2[-g2_hi], d, m_g2),      # 50% g2 lo
                 .nb(cs_g2[ g2_hi], d, m_g2, lfc)) # 50% g2 hi
         }

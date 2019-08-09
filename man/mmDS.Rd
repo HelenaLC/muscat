@@ -57,7 +57,7 @@ at least \code{min_cells} must have a count >= \code{min_count}.}
 on progress and a progress bar should be displayed.}
 
 \item{dup_corr}{logical; whether to use
-\code{\link[limma]{duplicateCorrelation}}.}
+\code{\link[limma:dupcor]{duplicateCorrelation}}.}
 
 \item{trended}{logical; whether to use expression-dependent variance priors
 in \code{\link[limma]{eBayes}}.}
@@ -75,7 +75,7 @@ for \code{\link[DESeq2]{varianceStabilizingTransformation}}.}
 \item{ddf}{character string specifying the method for estimating
 the effective degrees of freedom. For \code{method = "dream"},
 either \code{"Satterthwaite"} (faster) or \code{"Kenward-Roger"}
-(more accurate); see \code{\link[variancePartition]{dream}}.
+(more accurate); see \code{?variancePartition::dream} for details.
 For \code{method = "vst"}, method \code{"lme4"} is also valid;
 see \code{\link[lmerTest]{contest.lmerModLmerTest}}.}
 
@@ -94,8 +94,8 @@ Meant to be called by \code{mmDS} with \code{method = c("dream", "vst")} and
 \code{vst = c("sctransform", "DESeq2")} to be applied across all clusters.
 \describe{
 \item{\code{method = "dream"}}{
-  voom-lme4-implementation \code{\link[variancePartition]{dream}}
-  of mixed models for RNAseq data.}
+  \code{variancePartition}'s voom-lme4-implementation
+  of mixed models for RNA-seq data; function \code{dream}.}
 \item{\code{method = "vst"}}{
   \describe{
   \item{\code{vst = "sctransform"}}{
@@ -118,13 +118,13 @@ data(sce)
 sce <- sce[, sce$cluster_id == "B cells"]
 sce$cluster_id <- droplevels(sce$cluster_id)
 
-# downsample to 100 genes & 50 cells per sample
-cells_by_sample <- split(colnames(sce), sce$sample_id)
-genes_keep <- sample(nrow(sce), 100)
-cells_keep <- sapply(cells_by_sample, sample, 50)
-sce <- sce[genes_keep, cells_keep]
+# downsample to 100 genes
+cs_by_s <- split(colnames(sce), sce$sample_id)
+gs <- sample(nrow(sce), 100)
+sce <- sce[gs, ]
 
-res <- mmDS(sce, method = "dream", verbose = FALSE)
+res <- mmDS(sce, method = "dream", 
+    n_threads = 1, verbose = FALSE)
 head(res$`B cells`)
 
 }

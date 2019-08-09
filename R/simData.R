@@ -49,7 +49,7 @@
 #' # unbalanced sample sizes
 #' sim <- simData(sce,
 #'   n_genes = 10, n_cells = 100,
-#'   probs = list(NULL, c(0.1, 0.3, 0.6), NULL))
+#'   probs = list(NULL, c(0.25, 0.75), NULL))
 #' table(sim$sample_id)
 #' 
 #' # one group only

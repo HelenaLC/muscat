@@ -79,16 +79,15 @@ pbDS <- function(pb,
     .check_pbs(pb, check_by = TRUE)
     .check_args_pbDS(as.list(environment()))
     
-    if (missing("design")) {
+    if (is.null(design)) {
         formula <- ~ group_id
-        if (method == "DESeq2") {
-            design <- formula
-            contrast <- NA
-            cs <- NULL
-        } else {
-            design <- model.matrix(formula, colData(pb))
-            coef <- ncol(design)
-        }
+        design <- model.matrix(formula, colData(pb))
+    }
+    
+    if (is.null(coef) & is.null(contrast)) {
+        coef <- ncol(design)
+        contrast <- matrix(c(1, rep(0, coef-2), -1))
+        colnames(contrast) <- colnames(design)[coef]
     }
     
     if (!is.null(contrast)) {

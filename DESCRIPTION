@@ -6,8 +6,8 @@ Description: `muscat` provides various methods and visualization tools
     aggregated “pseudobulk” data, as well as a flexible simulation platform 
     that mimics both single and multi-sample scRNA-seq data.
 Type: Package
-Version: 0.99.13
-Depends: R (>= 3.6)
+Version: 0.99.7
+Depends: R (>= 3.6), scater (>= 1.13)
 Authors@R: c(
 	person("Helena L.", "Crowell", role=c("aut", "cre"), 
 		email="helena.crowell@uzh.ch"),
@@ -25,7 +25,7 @@ Imports:
 	magrittr, Matrix, matrixStats, methods, 
 	parallel, progress, purrr, 
 	reshape2, 
-	scales, scran, sctransform, stats, SingleCellExperiment, SummarizedExperiment, S4Vectors, 
+	scales, scater, sctransform, stats, SingleCellExperiment, SummarizedExperiment, S4Vectors, 
 	tibble, 
 	utils, 
 	variancePartition, viridis
@@ -35,11 +35,10 @@ Suggests:
 	ExperimentHub, 
 	knitr, 
 	RColorBrewer,
-	rmarkdown, 
-	scater,
+	rmarkdown,
 	testthat, 
 	UpSetR
-biocViews: DifferentialExpression, SingleCell, Software, StatisticalMethod, Visualization
+biocViews: DifferentialExpression, Sequencing, SingleCell, Software, StatisticalMethod, Visualization
 License: GPL (>=2)
 VignetteBuilder: knitr
 RoxygenNote: 6.1.1

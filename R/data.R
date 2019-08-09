@@ -22,24 +22,20 @@
 #' Assay \code{logcounts} corresponds to log-normalized values 
 #' obtained from \code{\link[scater]{normalize}} with default parameters.
 #'   
-#' The complete raw, gene, and cell metadata is available 
-#' through the NCBI GEO accession number \href{
-#' https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE96583}{GSE96583},
-#' and code to reproduce this example dataset from the original data 
+#' The original measurement data, as well as gene and cell metadata 
+#' is available through the NCBI GEO accession number GSE96583;
+#' code to reproduce this example dataset from the original data 
 #' is provided in the examples section.
 #' 
 #' @return a \code{\link[SingleCellExperiment]{SingleCellExperiment}}.
 #' 
 #' @examples
 #' \dontrun{
-#' # load packages
-#' library(ExperimentHub)
-#' library(SingleCellExperiment)
-#' 
 #' # set random seed for cell sampling
 #' set.seed(2929)
 #' 
 #' # load data
+#' library(ExperimentHub)
 #' eh <- ExperimentHub()
 #' sce <- eh[["EH2259"]]
 #' 
@@ -71,8 +67,9 @@
 #' sce <- sce[, unlist(cs)]
 #' 
 #' # compute logcounts
-#' sce <- scran::computeSumFactors(sce)
-#' sce <- scater::normalize(sce)
+#' library(scater)
+#' sce <- computeLibraryFactors(sce)
+#' sce <- logNormCounts(sce)
 #' 
 #' # re-format for 'muscat'
 #' sce <- prepSCE(sce, 
