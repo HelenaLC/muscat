@@ -75,7 +75,7 @@ for \code{\link[DESeq2]{varianceStabilizingTransformation}}.}
 \item{ddf}{character string specifying the method for estimating
 the effective degrees of freedom. For \code{method = "dream"},
 either \code{"Satterthwaite"} (faster) or \code{"Kenward-Roger"}
-(more accurate); see \code{\link[variancePartition:dream]{dream}}.
+(more accurate); see \code{?variancePartition::dream} for details.
 For \code{method = "vst"}, method \code{"lme4"} is also valid;
 see \code{\link[lmerTest]{contest.lmerModLmerTest}}.}
 
@@ -94,8 +94,8 @@ Meant to be called by \code{mmDS} with \code{method = c("dream", "vst")} and
 \code{vst = c("sctransform", "DESeq2")} to be applied across all clusters.
 \describe{
 \item{\code{method = "dream"}}{
-  voom-lme4-implementation \code{\link[variancePartition:dream]{dream}}
-  of mixed models for RNAseq data.}
+  \code{variancePartition}'s voom-lme4-implementation
+  of mixed models for RNA-seq data; function \code{dream}.}
 \item{\code{method = "vst"}}{
   \describe{
   \item{\code{vst = "sctransform"}}{
