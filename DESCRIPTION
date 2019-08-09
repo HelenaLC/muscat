@@ -7,7 +7,7 @@ Description: `muscat` provides various methods and visualization tools
     that mimics both single and multi-sample scRNA-seq data.
 Type: Package
 Version: 0.99.6
-Depends: R (>= 3.6)
+Depends: R (>= 3.6), scater (>= 1.13)
 Authors@R: c(
 	person("Helena L.", "Crowell", role=c("aut", "cre"), 
 		email="helena.crowell@uzh.ch"),
