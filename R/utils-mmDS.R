@@ -38,7 +38,7 @@
 #' @importFrom magrittr set_rownames
 #' @importFrom matrixStats rowSds
 #' @importFrom parallel makeCluster stopCluster
-#' @importFrom scater computeLibraryFactors
+#' @importFrom scater librarySizeFactors
 #' @importFrom SingleCellExperiment counts sizeFactors
 #' @importFrom stats as.formula model.matrix
 #' @importFrom variancePartition dream getContrast
@@ -49,7 +49,7 @@
     n_threads = 1, verbose = FALSE) {
     
     if (is.null(sizeFactors(x)))
-        x <- computeLibraryFactors(x)
+        x <- librarySizeFactors(x)
     
     ddf <- match.arg(ddf)
     x <- x[rowSds(as.matrix(counts(x))) > 0, ]
@@ -454,7 +454,7 @@
 #' @importFrom utils getFromNamespace
 .vst_DESeq2 <- function(x, covs, blind) {
     if (is.null(sizeFactors(x)))
-        x <- computeLibraryFactors(x)
+        x <- librarySizeFactors(x)
     covs <- paste(c(covs, "sample_id"), collapse = "+")
     formula <- as.formula(paste("~", covs))
     y <- counts(x)

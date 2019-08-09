@@ -68,7 +68,7 @@
 #' 
 #' # compute logcounts
 #' library(scater)
-#' sce <- computeLibraryFactors(sce)
+#' sce <- librarySizeFactors(sce)
 #' sce <- logNormCounts(sce)
 #' 
 #' # re-format for 'muscat'
