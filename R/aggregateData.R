@@ -79,7 +79,7 @@ aggregateData <- function(x,
     md <- metadata(x)
     md$agg_pars <- list(assay = assay, by = by, fun = fun, scale = scale)
     md$n_cells <- table(as.data.frame(colData(x)[, by]))
-    
+
     # get aggregation function
     fun <- switch(fun,
         sum = "rowSums",
@@ -94,6 +94,19 @@ aggregateData <- function(x,
         pb <- lapply(seq_along(pb), function(i) pb[[i]] / 1e6 * ls[[i]])
         names(pb) <- names(ls)
     }
+    
+    # when clusters don't have cells for all samples
+    pb <- lapply(pb, function(ma){
+        .samples <- colnames(md$n_cells)
+        .is_missing <- setdiff(.samples, colnames(ma))
+        if (length(.is_missing) > 0){
+            .fill <- matrix(rep(0, length(.is_missing)*nrow(ma)),
+                            ncol = length(.is_missing))
+            colnames(.fill) <- .is_missing
+            ma <- cbind(ma, .fill)
+        }
+        ma[,.samples]
+    })
     
     # construct SCE
     pb <- SingleCellExperiment(pb, metadata = md)

@@ -33,6 +33,16 @@ pbMDS <- function(x) {
     .check_pbs(x, check_by = TRUE)
     
     y <- as.list(assays(x))
+    # remove samples without cells
+    y <- lapply(y, function(m){
+        rmv <- colSums(m) == 0
+        m <- m[,!rmv]
+        m
+    })
+    # get cluster_id column for data.frame
+    ns_by_c <- Map(ncol, y)
+    cluster_id<-unlist(sapply(names(ns_by_c), function(n) rep(n, ns_by_c[[n]])))
+    
     y <- do.call("cbind", y)
     rmv <- rowSums(y) == 0
     y <- y[!rmv, ]
@@ -43,8 +53,8 @@ pbMDS <- function(x) {
     nk <- length(kids <- assayNames(x))
     
     df <- data.frame(MDS1 = mds$x, MDS2 = mds$y, 
-        cluster_id = factor(rep(kids, each = ncol(x)), levels = kids),
-        group_id = rep(x$group_id, nk))
+        cluster_id = factor(cluster_id, levels = kids),
+        group_id = colData(x)[colnames(y),"group_id"])
     
     cols <- .cluster_colors
     if (nk > length(cols)) 
