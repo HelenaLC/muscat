@@ -83,13 +83,13 @@ pbDS <- function(pb,
         formula <- ~ 0 + group_id
         cd <- as.data.frame(colData(pb))
         design <- model.matrix(formula, cd)
-        print(design)
+        colnames(design) <- levels(pb$group_id)
     }
     
     if (missing("coef") && missing("contrast")) {
-        print(design)
-        contrast <- makeContrasts(levels = design,
-            c(1, rep(0, ncol(design) - 2), -1))
+        c <- colnames(design)[c(ncol(design), 1)]
+        c <- paste(c, collapse = "-")
+        contrast <- makeContrasts(contrasts = c, levels = design)
         colnames(contrast) <- last(colnames(design))
     }
     
