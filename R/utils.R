@@ -153,28 +153,19 @@
 # ------------------------------------------------------------------------------
 #' @importFrom SingleCellExperiment SingleCellExperiment
 .toySCE <- function() {
-    ngs <- 300
-    ncs <- 2e3
+    gs <- paste0("gene", seq_len(ngs <- 300))
+    cs <- paste0("cell", seq_len(ncs <- 2e3))
+
+    y <- rnbinom(ngs * ncs, size = 2, mu = 4)
+    y <- matrix(y, ngs, ncs, TRUE, list(gs, cs))
     
-    gs <- paste0("gene", seq_len(ngs))
-    cs <- paste0("cell", seq_len(ncs))
-    
-    y <- sample(seq(0, 100, 1), ngs * ncs, TRUE)
-    y <- matrix(y,
-        nrow = ngs, ncol = ncs,
-        dimnames = list(gs, cs))
-    
-    kids <- sample(paste0("k", seq_len(5)), ncs, TRUE)
-    sids <- sample(paste0("s", seq_len(4)), ncs, TRUE)
-    gids <- sample(paste0("g", seq_len(3)), ncs, TRUE)
-    sids <- paste(sids, gids, sep = ".")
-    
-    cd <- data.frame(
-        sample_id = sids,
-        group_id = gids,
-        cluster_id = kids)
+    cd <- data.frame(mapply(function(i, n) 
+        sample(paste0(i, seq_len(n)), ncs, TRUE),
+        i = c(cluster_id = "k", sample_id = "s", group_id = "g"), 
+        n = seq(5, 3, -1)))
+    cd$sample_id <- paste(cd$sample_id, cd$group_id, sep = ".")
     
     SingleCellExperiment(
-        assay = list(counts = y), colData = cd,
+        assay = list(counts = y), colData = cd, 
         metadata = list(experiment_info = .make_ei(cd)))
 }
