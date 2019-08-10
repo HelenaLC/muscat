@@ -19,10 +19,10 @@ ng <- length(gids <- levels(sce$group_id))
 g3 <- sce$group_id == "g3"
 g23 <- sce$group_id %in% c("g2", "g3")
 
-# sample 'nde' genes & multiply counts by 10 for 'g3'-cells
+# sample 'nde' genes & multiply counts by 10 for 'g2'- & 'g3'-cells
 foo <- sce
 degs <- sample(rownames(foo), (nde <- 5))
-assay(foo[degs, g3]) <- assay(foo[degs, g3]) * 10
+assay(foo[degs, g23]) <- assay(foo[degs, g23]) * 10
 pb <- aggregateData(foo, assay = "counts", fun = "sum")
 
 for (method in eval(as.list(args(pbDS))$method)) {
@@ -37,12 +37,6 @@ for (method in eval(as.list(args(pbDS))$method)) {
         expect_true(all(vapply(top, setequal, y = degs, logical(1))))
     })
 }
-
-# sample 'nde' genes & multiply counts by 10 for 'g2'- & 'g3'-cells
-foo <- sce
-degs <- sample(rownames(foo), (nde <- 5))
-assay(foo[degs, g23]) <- assay(foo[degs, g23]) * 10
-pb <- aggregateData(foo, assay = "counts", fun = "sum")
 
 # specify design & contrast matrix
 ei <- metadata(sce)$experiment_info
