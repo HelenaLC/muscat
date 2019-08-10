@@ -71,9 +71,8 @@
 #' @export
 
 pbDS <- function(pb, 
-    design = NULL, coef = NULL, contrast = NULL, 
     method = c("edgeR", "DESeq2", "limma-trend", "limma-voom"),
-    min_cells = 10, verbose = TRUE) {
+    design, coef, contrast, min_cells = 10, verbose = TRUE) {
 
     # check validity of input arguments
     method <- match.arg(method)
@@ -84,9 +83,11 @@ pbDS <- function(pb,
         formula <- ~ 0 + group_id
         cd <- as.data.frame(colData(pb))
         design <- model.matrix(formula, cd)
+        print(design)
     }
     
     if (missing("coef") && missing("contrast")) {
+        print(design)
         contrast <- makeContrasts(levels = design,
             c(1, rep(0, ncol(design) - 2), -1))
         colnames(contrast) <- last(colnames(design))
