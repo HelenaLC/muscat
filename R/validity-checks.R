@@ -118,7 +118,7 @@
 }
 
 .check_args_pbDS <- function(u) {
-    if (!is(u$design, "name"))
+    if (!is(u$design, "name") & !is(u$design, "formula"))
         stopifnot(is.matrix(u$design),
             !is.null(rownames(u$design)),
             !is.null(colnames(u$design)))
