@@ -82,13 +82,13 @@ pbDS <- function(pb,
     
     if (is.null(design)) {
         formula <- ~ 0 + group_id
-        cd <- as.data.frame(colData(pb))
+        cd <- data.frame(group_id = pb$group_id)
         design <- model.matrix(formula, cd)
     }
     
     if (is.null(coef) & is.null(contrast)) {
-        v <- c(1, rep(0, ncol(design) - 2), -1)
-        contrast <- makeContrasts(v, levels = design)
+        foo <- c(1, rep(0, ncol(design) - 2), -1)
+        contrast <- makeContrasts(foo, levels = design)
         colnames(contrast) <- last(colnames(design))
     }
     
