@@ -90,7 +90,7 @@ pbDS <- function(pb,
         c <- colnames(design)[c(ncol(design), 1)]
         c <- paste(c, collapse = "-")
         contrast <- makeContrasts(contrasts = c, levels = design)
-        colnames(contrast) <- last(colnames(design))
+        coef <- NULL
     }
     
     if (!is.null(contrast)) {
@@ -115,9 +115,9 @@ pbDS <- function(pb,
         y <- assays(pb)[[k]]
         rmv <- n_cells[k, ] < min_cells
         y <- y[, !rmv]
+        d <- design[colnames(y), ]
         if (method == "DESeq2") {
             mode(y) <- "integer"
-            d <- design[colnames(y), ]
             cd <- colData(pb)[!rmv, , drop = FALSE]
             y <- DESeqDataSetFromMatrix(y, cd, d)
             y <- suppressMessages(DESeq(y))
@@ -128,7 +128,6 @@ pbDS <- function(pb,
                         p_val = "pvalue", p_adj.loc = "padj")
             })
         } else {
-            d <- design[colnames(y), ]
             if (any(colSums(d) < 2)) 
                 return(NULL)
             if (method == "edgeR") {
