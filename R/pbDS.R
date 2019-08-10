@@ -63,8 +63,9 @@
 #' @importFrom DESeq2 DESeq results
 #' @importFrom edgeR calcNormFactors DGEList 
 #'   estimateDisp glmQLFit glmQLFTest topTags
-#' @importFrom dplyr rename
-#' @importFrom limma contrasts.fit eBayes lmFit topTable voom
+#' @importFrom dplyr last rename
+#' @importFrom limma makeContrasts contrasts.fit eBayes lmFit topTable voom
+#' @importFrom stats model.matrix
 #' @importFrom SummarizedExperiment colData
 #' @importFrom tibble add_column
 #' @export
@@ -80,20 +81,20 @@ pbDS <- function(pb,
     .check_args_pbDS(as.list(environment()))
     
     if (is.null(design)) {
-        formula <- ~ group_id
-        design <- model.matrix(formula, colData(pb))
+        formula <- ~ 0 + group_id
+        cd <- as.data.frame(colData(pb))
+        design <- model.matrix(formula, cd)
     }
     
     if (is.null(coef) & is.null(contrast)) {
-        coef <- ncol(design)
-        contrast <- matrix(c(1, rep(0, coef-2), -1))
-        colnames(contrast) <- colnames(design)[coef]
+        v <- c(1, rep(0, ncol(design) - 2), -1)
+        contrast <- makeContrasts(v, levels = design)
+        colnames(contrast) <- last(colnames(design))
     }
     
     if (!is.null(contrast)) {
         ct <- "contrast"
-        cs <- colnames(contrast)
-        names(cs) <- cs
+        names(cs) <- cs <- colnames(contrast)
     } else {
         ct <- "coef"
         cs <- vapply(coef, function(i) 
