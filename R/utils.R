@@ -158,12 +158,14 @@
 
     y <- rnbinom(ngs * ncs, size = 2, mu = 4)
     y <- matrix(y, ngs, ncs, TRUE, list(gs, cs))
-    
-    cd <- data.frame(mapply(function(i, n) 
+
+    cd <- mapply(function(i, n) 
         sample(paste0(i, seq_len(n)), ncs, TRUE),
-        i = c(cluster_id = "k", sample_id = "s", group_id = "g"), 
-        n = seq(5, 3, -1)))
-    cd$sample_id <- paste(cd$sample_id, cd$group_id, sep = ".")
+        i = c("k", "s", "g"), n = c(5, 4, 3))
+    
+    cd <- data.frame(cd)
+    cd$s <- factor(paste(cd$s, cd$g, sep = "."))
+    colnames(cd) <- paste(c("cluster", "sample", "group"), "id", sep = "_")
     
     SingleCellExperiment(
         assay = list(counts = y), colData = cd, 
