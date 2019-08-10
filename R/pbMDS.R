@@ -34,10 +34,8 @@ pbMDS <- function(x) {
     
     y <- as.list(assays(x))
     y <- do.call("cbind", y)
-    i <- rowSums(y) != 0
-    j <- c(t(metadata(x)$n_cells)) != 0
-    y <- y[i, j]
-    d <- suppressMessages(DGEList(y))
+    y <- y[, (j <- c(t(metadata(x)$n_cells)) != 0)]
+    d <- DGEList(unname(y), remove.zeros = TRUE)
     d <- calcNormFactors(d)
     
     mds <- plotMDS.DGEList(d, plot = FALSE)
