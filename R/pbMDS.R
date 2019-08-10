@@ -34,17 +34,28 @@ pbMDS <- function(x) {
     
     y <- as.list(assays(x))
     y <- do.call("cbind", y)
-    rmv <- rowSums(y) == 0
-    y <- y[!rmv, ]
+    i <- rowSums(y) != 0
+    j <- c(t(metadata(x)$n_cells)) != 0
+    y <- y[i, j]
     d <- suppressMessages(DGEList(y))
     d <- calcNormFactors(d)
     
     mds <- plotMDS.DGEList(d, plot = FALSE)
     nk <- length(kids <- assayNames(x))
+
+    ss <- rep(colnames(x), nk)
+    ks <- rep(kids, each = ncol(x))
     
-    df <- data.frame(MDS1 = mds$x, MDS2 = mds$y, 
-        cluster_id = factor(rep(kids, each = ncol(x)), levels = kids),
-        group_id = rep(x$group_id, nk))
+    if (any(!j)) {
+        txt <- paste(sQuote(ks[!j]), sQuote(ss[!j]), sep = "-")
+        message("Removing cluster-sample instances ", 
+            paste(txt, collapse = ", "))
+    }
+
+    df <- data.frame(
+        MDS1 = mds$x, MDS2 = mds$y, 
+        cluster_id = factor(ks[j], levels = kids), 
+        group_id = rep(x$group_id, nk)[j])
     
     cols <- .cluster_colors
     if (nk > length(cols)) 
