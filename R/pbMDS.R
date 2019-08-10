@@ -46,7 +46,7 @@ pbMDS <- function(x) {
     
     if (any(!j)) {
         txt <- paste(sQuote(ks[!j]), sQuote(ss[!j]), sep = "-")
-        message("Removing cluster-sample instances ", 
+        message("Removing cluster-sample instance(s) ", 
             paste(txt, collapse = ", "))
     }
 
