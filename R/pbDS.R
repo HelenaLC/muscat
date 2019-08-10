@@ -95,13 +95,14 @@ pbDS <- function(pb,
             c <- paste(c, collapse = "-")
         }
         contrast <- makeContrasts(contrasts = c, levels = design)
-        coef <- NULL
     }
     
     if (!is.null(contrast)) {
+        coef <- NULL
         ct <- "contrast"
         names(cs) <- cs <- colnames(contrast)
     } else {
+        contrast <- NULL
         ct <- "coef"
         cs <- vapply(coef, function(i) 
             paste(colnames(design)[i], collapse = "-"),
