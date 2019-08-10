@@ -12,17 +12,39 @@ seed <- as.numeric(format(Sys.time(), "%s"))
 set.seed(seed)
 sce <- .toySCE()
 
-kids <- sce$cluster_id
-sids <- sce$sample_id
-gids <- sce$group_id
+nk <- length(kids <- levels(sce$cluster_id))
+ns <- length(sids <- levels(sce$sample_id))
+ng <- length(gids <- levels(sce$group_id))
 
-# sample 'n_de' DS genes & multiply counts by 100 for group IDs "g2" and "g3"
-n_ds <- 5
-ds_gs <- sample(rownames(sce), n_ds)
-g23 <- gids %in% c("g2", "g3")
-assay(sce[ds_gs, g23]) <- assay(sce[ds_gs, g23]) * 100
+g3 <- sce$group_id == "g3"
+g23 <- sce$group_id %in% c("g2", "g3")
 
-pb <- aggregateData(sce, assay = "counts", fun = "sum")
+# sample 'nde' genes & multiply counts by 10 for 'g3'-cells
+foo <- sce
+degs <- sample(rownames(foo), (nde <- 5))
+assay(foo[degs, g3]) <- assay(foo[degs, g3]) * 10
+pb <- aggregateData(foo, assay = "counts", fun = "sum")
+
+for (method in eval(as.list(args(pbDS))$method)) {
+    test_that(paste("defaults - pbDS", method, sep = "."), {
+        res <- pbDS(pb, method = method, verbose = FALSE)
+        tbl <- res$table[[1]]
+        expect_identical(names(tbl), kids)
+        top <- map(tbl, function(u)
+            dplyr::arrange(u, p_adj.loc) %>% 
+                dplyr::slice(seq_len(5)) %>% 
+                pull("gene"))
+        expect_true(all(vapply(top, setequal, y = degs, logical(1))))
+    })
+}
+
+# sample 'nde' genes & multiply counts by 10 for 'g2'- & 'g3'-cells
+foo <- sce
+degs <- sample(rownames(foo), (nde <- 5))
+assay(foo[degs, g23]) <- assay(foo[degs, g23]) * 10
+pb <- aggregateData(foo, assay = "counts", fun = "sum")
+
+# specify design & contrast matrix
 ei <- metadata(sce)$experiment_info
 design <- model.matrix(~ 0 + ei$group_id)
 dimnames(design) <- list(ei$sample_id, levels(ei$group_id))
@@ -31,22 +53,22 @@ contrast <- limma::makeContrasts("g2-g1", "g3-g1", levels = design)
 for (method in eval(as.list(args(pbDS))$method)) {
     test_that(paste("pbDS", method, sep = "."), {
         res <- pbDS(pb, 
-            design = design, contrast = contrast,
-            method = method, verbose = FALSE)
-        
+            method = method, verbose = FALSE,
+            design = design, contrast = contrast)
+            
         expect_is(res, "list")
         expect_identical(length(res$table), ncol(contrast))
         expect_identical(names(res$table), colnames(contrast))
-        expect_true(all(vapply(map(res$table, names), "==", 
+        expect_true(all(vapply(map(res$table, names), "==",
             levels(kids), FUN.VALUE = logical(nlevels(kids)))))
         
-        # check that top genes equal 'ds_gs' in ea. comparison & cluster
+        # check that top genes equal 'degs' in ea. comparison & cluster
         top <- map_depth(res$table, 2, function(u) {
             dplyr::arrange(u, p_adj.loc) %>% 
-                dplyr::slice(seq_len(n_ds)) %>% 
+                dplyr::slice(seq_len(nde)) %>% 
                 pull("gene")
         }) %>% Reduce(f = "c")
-        expect_true(all(unlist(map(top, setequal, ds_gs))))
+        expect_true(all(unlist(map(top, setequal, degs))))
     })
 }
 
