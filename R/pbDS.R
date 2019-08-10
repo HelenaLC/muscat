@@ -80,13 +80,13 @@ pbDS <- function(pb,
     .check_pbs(pb, check_by = TRUE)
     .check_args_pbDS(as.list(environment()))
     
-    if (is.null(design)) {
+    if (missing("design")) {
         formula <- ~ 0 + group_id
         cd <- as.data.frame(colData(pb))
         design <- model.matrix(formula, cd)
     }
     
-    if (is.null(coef) && is.null(contrast)) {
+    if (missing("coef") && missing("contrast")) {
         contrast <- makeContrasts(levels = design,
             c(1, rep(0, ncol(design) - 2), -1))
         colnames(contrast) <- last(colnames(design))
