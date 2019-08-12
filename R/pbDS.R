@@ -80,7 +80,7 @@ pbDS <- function(pb,
     .check_args_pbDS(as.list(environment()))
     
     if (missing("design")) 
-        design <- ~ group_id
+        design <- ~ 0 + group_id
     if (is(design, "formula")) {
         cd <- as.data.frame(colData(pb))
         design <- model.matrix(design, cd)
