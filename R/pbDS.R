@@ -87,8 +87,9 @@ pbDS <- function(pb,
         colnames(design) <- levels(pb$group_id)
     }
     if (is.null(coef) & is.null(contrast)) {
-        c <- colnames(design)[c(ncol(design), 1)]
-        c <- paste(c, collapse = "-")
+        #c <- colnames(design)[c(ncol(design), 1)]
+        #c <- paste(c, collapse = "-")
+        c <- colnames(design)[ncol(design)]
         contrast <- makeContrasts(contrasts = c, levels = design)
     }
 
