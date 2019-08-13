@@ -4,26 +4,26 @@
 \alias{pbDS}
 \title{pseudobulk DS analysis}
 \usage{
-pbDS(pb, design = NULL, coef = NULL, contrast = NULL,
-  method = c("edgeR", "DESeq2", "limma-trend", "limma-voom"),
-  min_cells = 10, verbose = TRUE)
+pbDS(pb, method = c("edgeR", "DESeq2", "limma-trend", "limma-voom"),
+  design, contrast, coef, min_cells = 10, verbose = TRUE)
 }
 \arguments{
 \item{pb}{a \code{\link[SingleCellExperiment]{SingleCellExperiment}}
 containing pseudobulks as returned by \code{\link{aggregateData}}.}
+
+\item{method}{a character string.}
 
 \item{design}{For methods \code{"edegR"} and \code{"limma"}, a design matrix 
 with row & column names(!) created with \code{\link[stats]{model.matrix}}; 
 For \code{"DESeq2"}, a formula with variables in \code{colData(pb)}.
 Defaults to \code{~ group_id} or the corresponding \code{model.matrix}.}
 
-\item{coef}{passed to \code{\link[edgeR]{glmQLFTest}}.
-Ignored if \code{contrast} is not NULL.}
-
 \item{contrast}{a matrix of contrasts to test for
 created with \code{\link[limma]{makeContrasts}}.}
 
-\item{method}{a character string.}
+\item{coef}{passed to \code{\link[edgeR]{glmQLFTest}},
+\code{\link[limma]{contrasts.fit}}, \code{\link[DESeq2]{results}}
+for \code{method = "edgeR", "limma-x", "DESeq2"}, respectively.}
 
 \item{min_cells}{a numeric. Specifies the minimum number of cells in a given 
 cluster-sample required to consider the sample for differential testing.}
@@ -31,12 +31,10 @@ cluster-sample required to consider the sample for differential testing.}
 \item{verbose}{logical. Should information on progress be reported?}
 }
 \value{
-a list containing 
-\itemize{
+a list containing \itemize{
 \item a data.frame with differential testing results,
 \item a \code{\link[edgeR]{DGEList}} object of length nb.-clusters, and
-\item the \code{design} matrix, and \code{contrast} or \code{coef} used.
-}
+\item the \code{design} matrix, and \code{contrast} or \code{coef} used.}
 }
 \description{
 \code{pbDS} tests for DS after aggregating single-cell 
@@ -63,7 +61,7 @@ vapply(res$table$`stim-ctrl`, function(u)
 library(dplyr)
 lapply(res$table$`stim-ctrl`, function(u)
   filter(u, abs(logFC) > 1) \%>\% 
-    arrange(p_adj) \%>\% 
+    arrange(p_adj.loc) \%>\% 
     slice(seq_len(5)))
 
 }

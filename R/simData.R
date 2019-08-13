@@ -81,7 +81,7 @@
 
 simData <- function(x, n_genes = 500, n_cells = 300, 
     probs = NULL, p_dd = diag(6)[1, ], p_type = 0,
-    lfc = 1, rel_lfc = NULL) {
+    lfc = 2, rel_lfc = NULL) {
     
     # throughout this code...
     # k: cluster ID

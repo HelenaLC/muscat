@@ -7,25 +7,24 @@
 #'
 #' @param pb a \code{\link[SingleCellExperiment]{SingleCellExperiment}}
 #'   containing pseudobulks as returned by \code{\link{aggregateData}}.
+#' @param method a character string.
 #' @param design For methods \code{"edegR"} and \code{"limma"}, a design matrix 
 #'   with row & column names(!) created with \code{\link[stats]{model.matrix}}; 
 #'   For \code{"DESeq2"}, a formula with variables in \code{colData(pb)}.
 #'   Defaults to \code{~ group_id} or the corresponding \code{model.matrix}.
 #' @param contrast a matrix of contrasts to test for
 #'   created with \code{\link[limma]{makeContrasts}}.
-#' @param coef passed to \code{\link[edgeR]{glmQLFTest}}.
-#'   Ignored if \code{contrast} is not NULL.
-#' @param method a character string.
+#' @param coef passed to \code{\link[edgeR]{glmQLFTest}},
+#'   \code{\link[limma]{contrasts.fit}}, \code{\link[DESeq2]{results}}
+#'   for \code{method = "edgeR", "limma-x", "DESeq2"}, respectively.
 #' @param min_cells a numeric. Specifies the minimum number of cells in a given 
 #'   cluster-sample required to consider the sample for differential testing.
 #' @param verbose logical. Should information on progress be reported?
 #'
-#' @return a list containing 
-#' \itemize{
+#' @return a list containing \itemize{
 #' \item a data.frame with differential testing results,
 #' \item a \code{\link[edgeR]{DGEList}} object of length nb.-clusters, and
-#' \item the \code{design} matrix, and \code{contrast} or \code{coef} used.
-#' }
+#' \item the \code{design} matrix, and \code{contrast} or \code{coef} used.}
 #'
 #' @examples
 #' # simulate 5 clusters, 20% of DE genes
@@ -47,7 +46,7 @@
 #' library(dplyr)
 #' lapply(res$table$`stim-ctrl`, function(u)
 #'   filter(u, abs(logFC) > 1) %>% 
-#'     arrange(p_adj) %>% 
+#'     arrange(p_adj.loc) %>% 
 #'     slice(seq_len(5)))
 #'
 #' @author Helena L Crowell & Mark D Robinson
@@ -65,6 +64,7 @@
 #'   estimateDisp glmQLFit glmQLFTest topTags
 #' @importFrom dplyr last rename
 #' @importFrom limma makeContrasts contrasts.fit eBayes lmFit topTable voom
+#' @importFrom methods is
 #' @importFrom stats model.matrix
 #' @importFrom SummarizedExperiment colData
 #' @importFrom tibble add_column
@@ -83,10 +83,9 @@ pbDS <- function(pb,
     if (is.null(design)) {
         formula <- ~ group_id
         cd <- as.data.frame(colData(pb))
-        design <- model.matrix(formula, cd)
+        design <- model.matrix(design, cd)
         colnames(design) <- levels(pb$group_id)
     }
-
     if (is.null(coef) & is.null(contrast)) {
         c <- colnames(design)[c(ncol(design), 1)]
         c <- paste(c, collapse = "-")
@@ -94,6 +93,7 @@ pbDS <- function(pb,
     }
 
     if (!is.null(contrast)) {
+        coef <- NULL
         ct <- "contrast"
         names(cs) <- cs <- colnames(contrast)
     } else if (!is.null(coef)) {
