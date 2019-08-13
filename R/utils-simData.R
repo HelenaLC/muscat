@@ -68,16 +68,10 @@ cats <- factor(cats, levels = cats)
 #   > array of dim. #(categories) x #(clusters);
 #     ea. entry is a character vector of genes
 # ------------------------------------------------------------------------------
-.sample_gene_inds2 <- function(gs, ns) {
-    cluster_ids <- colnames(ns)
-    vapply(cluster_ids, function(k)
-        split(gs, rep.int(cats, ns[, k])),
-        vector("list", length(cats)))
-}
 .sample_gene_inds <- function(gs, ns) {
     cluster_ids <- colnames(ns)
     vapply(cluster_ids, function(k)
-        split(gs, rep.int(cats, ns[, k])),
+        split(sample(gs), rep.int(cats, ns[, k])),
         vector("list", length(cats)))
 }
 

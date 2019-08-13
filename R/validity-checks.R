@@ -118,13 +118,13 @@
 }
 
 .check_args_pbDS <- function(u) {
-    if (!is(u$design, "name"))
+    if (!is.null(u$design))
         stopifnot(is.matrix(u$design),
             !is.null(rownames(u$design)),
             !is.null(colnames(u$design)))
     stopifnot(
-        is(u$contrast, "name") | is.matrix(u$contrast),
-        is(u$coef, "name") | is.numeric(u$coef),
+        is.null(u$contrast) | is.matrix(u$contrast),
+        is.null(u$coef) | is.numeric(u$coef),
         is.numeric(u$min_cells), length(u$min_cells) == 1,
         is.logical(u$verbose), length(u$verbose) == 1)
 }

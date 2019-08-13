@@ -72,37 +72,40 @@
 
 pbDS <- function(pb, 
     method = c("edgeR", "DESeq2", "limma-trend", "limma-voom"),
-    design, coef, contrast, min_cells = 10, verbose = TRUE) {
+    design = NULL, coef  = NULL, contrast = NULL, 
+    min_cells = 10, verbose = TRUE) {
 
     # check validity of input arguments
     method <- match.arg(method)
     .check_pbs(pb, check_by = TRUE)
     .check_args_pbDS(as.list(environment()))
     
-    if (missing("design")) {
-        formula <- ~ 0 + group_id
+    if (is.null(design)) {
+        formula <- ~ group_id
         cd <- as.data.frame(colData(pb))
         design <- model.matrix(formula, cd)
         colnames(design) <- levels(pb$group_id)
     }
-    
-    if (missing("coef") && missing("contrast")) {
+
+    if (is.null(coef) & is.null(contrast)) {
         c <- colnames(design)[c(ncol(design), 1)]
         c <- paste(c, collapse = "-")
         contrast <- makeContrasts(contrasts = c, levels = design)
-        coef <- NULL
     }
-    
+
     if (!is.null(contrast)) {
         ct <- "contrast"
         names(cs) <- cs <- colnames(contrast)
-    } else {
+    } else if (!is.null(coef)) {
         ct <- "coef"
-        cs <- vapply(coef, function(i) 
+        cs <- vapply(coef, function(i)
             paste(colnames(design)[i], collapse = "-"),
             character(1))
         names(cs) <- names(coef) <- cs
     }
+    
+    # ct <- ifelse(!is.null(contrast), "contrast", "coef")
+    # if (is.null(contrast) & is.null(coef)) cs <- 1
     
     # compute cluster-sample counts
     n_cells <- metadata(pb)$n_cells
@@ -112,9 +115,8 @@ pbDS <- function(pb,
     # for ea. cluster, run DEA
     res <- lapply(kids, function (k) {
         if (verbose) cat(k, "..", sep = "")
-        y <- assays(pb)[[k]]
         rmv <- n_cells[k, ] < min_cells
-        y <- y[, !rmv]
+        y <- assays(pb)[[k]][, !rmv]
         d <- design[colnames(y), ]
         if (method == "DESeq2") {
             mode(y) <- "integer"
@@ -128,10 +130,12 @@ pbDS <- function(pb,
                         p_val = "pvalue", p_adj.loc = "padj")
             })
         } else {
-            if (any(colSums(d) < 2)) 
+            if (!is.null(d) & any(colSums(d) < 2)) 
                 return(NULL)
             if (method == "edgeR") {
-                y <- suppressMessages(DGEList(y, remove.zeros = TRUE))
+                y <- suppressMessages(DGEList(y, 
+                    group = pb$group_id[!rmv], 
+                    remove.zeros = TRUE))
                 y <- calcNormFactors(y)
                 y <- estimateDisp(y, d)
                 fit <- glmQLFit(y, d)
