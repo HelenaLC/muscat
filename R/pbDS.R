@@ -83,7 +83,7 @@ pbDS <- function(pb,
     if (is.null(design)) {
         formula <- ~ group_id
         cd <- as.data.frame(colData(pb))
-        design <- model.matrix(design, cd)
+        design <- model.matrix(formula, cd)
         colnames(design) <- levels(pb$group_id)
     }
     if (is.null(coef) & is.null(contrast)) {
