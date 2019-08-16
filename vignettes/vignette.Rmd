@@ -104,7 +104,7 @@ Finally, we load the data of interest into R via `[[` and the corresponding acce
 
 ## Preprocessing
 
-The `r Biocpkg("scater")` package [@McCarthy2017-scater] provides a variey of tools for preprocessing and quality control of single-cell transcriptomic data. For completeness, we will apply some minimal filtering steps to
+The `r Biocpkg("scater")` package [@McCarthy2017-scater] provides a variety of tools for preprocessing and quality control of single-cell transcriptomic data. For completeness, we will apply some minimal filtering steps to
 
 - remove undetected genes
 - remove cells with very few or many detected genes
@@ -146,7 +146,7 @@ sce <- computeLibraryFactors(sce)
 sce <- logNormCounts(sce)
 ```
 
-Alternatively, expression values could be obtained via `vst` (variance stabilizing transformation) from the `r CRANpkg("sctransfrom")` package [@Hafemeister2019-sctransform], which returns Pearson residuals from a regularized negative binomial regression model that can be interpreted as normalized expression values:
+Alternatively, expression values could be obtained via `vst` (variance stabilizing transformation) from the `r CRANpkg("sctransform")` package [@Hafemeister2019-sctransform], which returns Pearson residuals from a regularized negative binomial regression model that can be interpreted as normalized expression values:
 
 ```{r vst, eval = FALSE}
 library(sctransform)
@@ -200,7 +200,7 @@ The dimension reductions (DR) available within the SCE can be accessed via `redu
 sce <- runUMAP(sce, pca = 20)
 ```
 
-Using `r Biocpkg("scater")`'s `plotReducedDim` function, we here t-SNE and UMAP representations colored by cluster and group IDs, respectively. For our dataset, the t-SNE and UMAP colored by `cluster_id`s show that cell-populations are well-separated from one another. INF-$\beta$ stimulation manifests as a severe shift in the low-dimensional projection of cells when coloring by `group_id`s, indicating widespread, genome-scale transcriptiontal changes.
+Using `r Biocpkg("scater")`'s `plotReducedDim` function, we plot here t-SNE and UMAP representations colored by cluster and group IDs, respectively. For our dataset, the t-SNE and UMAP colored by `cluster_id`s show that cell-populations are well-separated from one another. IFN-$\beta$ stimulation manifests as a severe shift in the low-dimensional projection of cells when coloring by `group_id`s, indicating widespread, genome-scale transcriptiontal changes.
 
 ```{r eval = FALSE}
 # downsample to max. 200 cells per cluster
