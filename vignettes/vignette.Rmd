@@ -402,9 +402,9 @@ data.frame("#DS" = n_de, "%DS" = p_de, check.names = FALSE)
 
 Especially when testing multiple contrasts or coefficients, the results returned by `runDS` may become very complex and unhandy for exploration or exporting. Results can be formatted using `resDS`, which provides two alternative modes for formatting: `bind = "row"/"col"`.
 
-When `bind = "row"`, results from all comparisons will be merged vertically (analogouse to `do.call("rbind", ...)`) into a tidy format table, with column `contrast/coef` specifying the comparison.
+When `bind = "row"`, results from all comparisons will be merged vertically (analogous to `do.call("rbind", ...)`) into a tidy format table, with column `contrast/coef` specifying the comparison.
 
-Otherwise, `bind = "col"`, results will be merge horizontally into a single wide table where all results for a given gene and cluster are kept in one row. An identifier of the respective contrast of coefficient is then appended to the column names. This format is useful when wanting to view a specific gene's behavior across, for example, multiple treatments, but will become *messy* when many comparisons are included. 
+Otherwise, `bind = "col"`, results will be merged horizontally into a single wide table where all results for a given gene and cluster are kept in one row. An identifier of the respective contrast of coefficient is then appended to the column names. This format is useful when wanting to view a specific gene's behavior across, for example, multiple treatments, but will become *messy* when many comparisons are included. 
 
 Expression frequencies computed with `calcExprFreqs`, as well as cluster-sample level avg. CPM, can be included in the results by setting `frq/cpm = TRUE`. Alternatively, if the former have been pre-computed, they can be supplied directly as an input to `resDS` (see example below).
 
@@ -412,7 +412,7 @@ Expression frequencies computed with `calcExprFreqs`, as well as cluster-sample 
 # tidy format; attach pre-computed expression frequencies
 resDS(sce, res, bind = "row", frq = frq)
 
-# big-table format; attach CPMs
+# big-table (wide) format; attach CPMs
 resDS(sce, res, bind = "col", cpm = TRUE)
 ```
 
