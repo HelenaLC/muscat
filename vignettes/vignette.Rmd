@@ -429,7 +429,7 @@ resDS(sce, res, frq = TRUE)
 
 DS analysis aims at identifying population-specific changes in state (or expression) across conditions. In this setting, key questions of interest arise, e.g., which genes are DE in only a single (or very few) clusters? How many DE genes are shared between clusters? In summary, what is the general concordance in differential findings between clusters?
 
-To gain an impression of the between-cluster (dis-)agreement on DE genes, we generate an upset-plot that visualizas the number of DE genes that are shared across or unique to certain clusters:
+To gain an impression of the between-cluster (dis-)agreement on DE genes, we generate an UpSet-plot that visualizes the number of DE genes that are shared across or unique to certain clusters:
 
 ```{r upset, fig.width = 10, fig.cap = "Upset plot. Included are DS findings (FDR < 0.05, |logFC| > 1) across all clusters; shown are the 50 most frequent interactions."}
 library(UpSetR)
@@ -437,7 +437,7 @@ de_gs_by_k <- map(tbl_fil, "gene")
 upset(fromList(de_gs_by_k))
 ```
 
-An upset plot as the one above tells us, for instance, that 185 genes are differential for all subpopulations; 387 across both *Monocytes* clusters; and 159 only in the *B cells* cluster.
+An UpSet plot as the one above tells us, for instance, that 185 genes are differential for all subpopulations; 387 across both *Monocytes* clusters; and 159 only in the *B cells* cluster.
 
 ## DR colored by expression
 
@@ -449,7 +449,7 @@ top8 <- bind_rows(tbl_fil) %>%
   top_n(8, dplyr::desc(p_adj.loc)) %>% 
   pull("gene")
 
-# for ea. gene in 'top8', plot t-SNE colored by its expression 
+# for each gene in 'top8', plot t-SNE colored by its expression 
 ps <- lapply(top8, function(g)
   .plot_dr(sce[, cs200], "TSNE", g) + 
     ggtitle(g) + theme(legend.position = "none"))
@@ -460,7 +460,7 @@ plot_grid(plotlist = ps, ncol = 4, align = "vh")
 
 ## Cell-level viz.: Violin plots
 
-For changes of high interest, we can view the cell-level expression profiles of a specific gene across samples or groups using `plotExpression` (`r Biocpkg("scater")` package). Here, we generate violins plot for the top-12 DS genes (lowest adj. p-value) in the *B cells* cluster[^2].
+For changes of high interest, we can view the cell-level expression profiles of a specific gene across samples or groups using `plotExpression` (`r Biocpkg("scater")` package). Here, we generate violin plots for the top-12 DS genes (lowest adj. p-value) in the *B cells* cluster[^2].
 
 [^2]: Note that, as DS testing is done at the cluster-level, we need to subset the cells that have been assigned to the corresponding cluster for plotting. 
 
@@ -474,7 +474,7 @@ plotExpression(sce[, sce$cluster_id == "B cells"],
 
 ## Sample-level viz.: Pseudobulk heatmaps
 
-Especially when wanting to gain an overview of numerous DE testing results for many clusters, bothm dimension reduction and cell-level visualisations require a lot of space can become cumbersome to interpret. In this setting, it is thus recommendable to visualise aggregated measures, e.g., mean expressions by cluster sample.
+Especially when wanting to gain an overview of numerous DE testing results for many clusters, both dimension reduction and cell-level visualisations require a lot of space can become cumbersome to interpret. In this setting, it is thus recommended to visualise aggregated measures, e.g., mean expressions by cluster sample.
 
 ```{r pb-hm-1}
 # top-5 DS genes per cluster
