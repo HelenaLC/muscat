@@ -265,15 +265,15 @@ t(head(assay(pb)))
 
 Prior to conducting any formal testing, we can compute a multi-dimensional scaling (MDS) plot of aggregated signal to explore overall sample similarities. 
 
-`pbMDS` takes as input any SCE containg PB data as returned by `aggregateData`, and computes MDS dimensions using `r Biocpkg("edgeR")`. Ideally, such a represenation of the data should separate both clusters and groups from one another. Vice versa, samples from the same cluster or group should cluster together.
+`pbMDS` takes as input any SCE containg PB data as returned by `aggregateData`, and computes MDS dimensions using `r Biocpkg("edgeR")`. Ideally, such a representation of the data should separate both clusters and groups from one another. Vice versa, samples from the same cluster or group should cluster together.
 
-In our MDS plot on pseudo-bulk counts (Fig. \@ref(fig:pb-mds)), we can observe that the first dimension (MDS1) clearly separates cell-populations (clusters), while the second (MDS2) separates control and stimulated samples (groups). Furthermore, the two T-cell clusters fall close to each other. 
+In our MDS plot on pseudo-bulk counts (Fig. \@ref(fig:pb-mds)), we can observe that the first dimension (MDS1) clearly separates cell populations (clusters), while the second (MDS2) separates control and stimulated samples (groups). Furthermore, the two T-cell clusters fall close to each other. 
 
 ```{r pb-mds, fig.height = 4, fig.cap = "Pseudobulk-level multidimensional scaling (MDS) plot. Each point represents a cluster-sample instance; points are colored by cluster ID and shaped by group ID."}
 (pb_mds <- pbMDS(pb))
 ```
 
-If your not happy with how the plot looks, here's an example of how to modify the `ggplot`-object from above in various ways:
+If you're not happy with how the plot looks, here's an example of how to modify the `ggplot`-object from above in various ways:
 
 ```{r message = FALSE, fig.height = 4, fig.cap = "Pseudobulk-level MDS plot v2. Default plotting aesthetics were modified to change shaping of groups, coloring of clusters, as well as point size and transparency."}
 # use very distinctive shaping of groups & change cluster colors
@@ -288,7 +288,7 @@ pb_mds
 
 ## Sample-level analysis: Pseudobulk methods {#sec-pbDS}
 
-Once we have assembled the pseudobulk data, we can test for DS using `pbDS`. By default, a $~group_id$ model is fit, and the last coefficient of the linear model is tested to be equal to zero.
+Once we have assembled the pseudobulk data, we can test for DS using `pbDS`. By default, a $\sim group_{id}$ model is fit, and the last coefficient of the linear model is tested to be equal to zero.
 
 ```{r}
 # run DS analysis
@@ -302,7 +302,7 @@ k1 <- tbl[[1]]
 head(format(k1[, -ncol(k1)], digits = 2))
 ```
 
-Depening on the complexity of the experimental design (e.g., when there are more than two groups present), comparison(s) of interest may need to be specified explicitly. We can provide `pbDS` with a design matrix capturing the experimental design using `model.matrix` (package `r Rpackage("stats")`), and a contrast matrix that specifies our comparison of interesting using `makeContrasts` from the `r Biocpkg("limma")` package. Alternatively, the comparison(s) of interest (or a list thereof) can be specified with via `coefs` (see `?glmQLFTest` for details). For the @Kang2018-demuxlet dataset, we want to carry out a single comparison of stimulated against control samples, thus placing `"ctrl"` on the right-hand side as the reference condition:
+Depending on the complexity of the experimental design (e.g., when there are more than two groups present), comparison(s) of interest may need to be specified explicitly. We can provide `pbDS` with a design matrix capturing the experimental design using `model.matrix` (package `r Rpackage("stats")`), and a contrast matrix that specifies our comparison of interesting using `makeContrasts` from the `r Biocpkg("limma")` package. Alternatively, the comparison(s) of interest (or a list thereof) can be specified with via `coefs` (see `?glmQLFTest` for details). For the @Kang2018-demuxlet dataset, we want to carry out a single comparison of stimulated against control samples, thus placing `"ctrl"` on the right-hand side as the reference condition:
 
 ```{r eval = FALSE}
 # construct design & contrast matrix
@@ -315,7 +315,7 @@ contrast <- makeContrasts("stim-ctrl", levels = mm)
 pbDS(pb, design = mm, contrast = contrast)
 ```
 
-## Cell-levels analysis: Mixed models {#sec-mmDS}
+## Cell-level analysis: Mixed models {#sec-mmDS}
 
 Alternative to the above sample-level approach, we fit (for each gene) a mixed model (MM) to the cell-level measurement data. `muscat` provides implementations of MM that use 3 main approaches:
 
