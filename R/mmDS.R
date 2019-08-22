@@ -85,9 +85,11 @@ mmDS <- function(x, coef = NULL, covs = NULL,
     args$vst <- match.arg(vst)
     args$ddf <- match.arg(ddf)
 
-    if (!is.null(covs) && !all(covs %in% names(colData(x))))
-        stop(paste("Some of the specified covariates couldn't be found:",
-            paste(setdiff(covs, names(colData(x))), collapse=", ")))
+    if (!is.null(covs) && !all(covs %in% names(colData(x)))) {
+        txt <- paste(dQuote(setdiff(covs, names(colData(x)))), collapse = ", ")
+        stop("Some of the specified covariates couldn't be found: ", txt)
+            
+    }
     
     # counts cells per cluster-sample
     n_cells_by_ks <- table(x$cluster_id, x$sample_id)
@@ -97,7 +99,7 @@ mmDS <- function(x, coef = NULL, covs = NULL,
     m <- match(levels(x$sample_id), ei$sample_id)
     gids <- ei$group_id[m]
     ks_keep <- apply(n_cells_by_ks > n_cells, 1, 
-        function(u) all(table(gids[u]) >= n_samples))
+        function(u) all(tabulate(gids[u]) >= n_samples))
     if (sum(ks_keep) == 0) 
         stop(paste("No cluster has at least", n_samples, 
             "samples with at least", n_cells, "cells."))
@@ -126,11 +128,11 @@ mmDS <- function(x, coef = NULL, covs = NULL,
         vst_call <- switch(args$vst,
             sctransform = expression(.vst_sctransform(x, verbose)),
             DESeq2 = expression(.vst_DESeq2(x, covs, blind)))
-        if (!verbose) {
-            vst_call <- sprintf("suppressMessages(%s)", paste(vst_call))
-            vst_call <- parse(text = vst_call)
+        if (verbose) {
+            counts(x) <- eval(vst_call)
+        } else {
+            counts(x) <- suppressMessages(eval(vst_call))
         }
-        counts(x) <- eval(vst_call)
     }
     
     # get method function & construct correct call
@@ -144,9 +146,8 @@ mmDS <- function(x, coef = NULL, covs = NULL,
         y <- x[, cells_by_k[[k]]]
         y <- y[rowSums(counts(y) >= min_count[k]) > min_cells, ]
         if (verbose) 
-            message(sprintf(
-                "Testing %s genes across %s cells in cluster %s...", 
-                nrow(y), ncol(y), dQuote(k)))
+            message("Testing ", nrow(y), " genes across ", 
+                ncol(y), " cells in cluster ", dQuote(k), "...")
         
         # call to .mm_dream/.mm_vst
         args$x <- y
