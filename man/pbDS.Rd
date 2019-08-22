@@ -5,7 +5,8 @@
 \title{pseudobulk DS analysis}
 \usage{
 pbDS(pb, method = c("edgeR", "DESeq2", "limma-trend", "limma-voom"),
-  design, contrast, coef, min_cells = 10, verbose = TRUE)
+  design = NULL, coef = NULL, contrast = NULL, min_cells = 10,
+  verbose = TRUE)
 }
 \arguments{
 \item{pb}{a \code{\link[SingleCellExperiment]{SingleCellExperiment}}
@@ -18,12 +19,12 @@ with row & column names(!) created with \code{\link[stats]{model.matrix}};
 For \code{"DESeq2"}, a formula with variables in \code{colData(pb)}.
 Defaults to \code{~ group_id} or the corresponding \code{model.matrix}.}
 
-\item{contrast}{a matrix of contrasts to test for
-created with \code{\link[limma]{makeContrasts}}.}
-
 \item{coef}{passed to \code{\link[edgeR]{glmQLFTest}},
 \code{\link[limma]{contrasts.fit}}, \code{\link[DESeq2]{results}}
 for \code{method = "edgeR", "limma-x", "DESeq2"}, respectively.}
+
+\item{contrast}{a matrix of contrasts to test for
+created with \code{\link[limma]{makeContrasts}}.}
 
 \item{min_cells}{a numeric. Specifies the minimum number of cells in a given 
 cluster-sample required to consider the sample for differential testing.}

@@ -171,8 +171,9 @@ pbDS <- function(pb,
     # remove empty clusters
     skipped <- vapply(res, is.null, logical(1))
     if (any(skipped) & verbose)
-        message(paste("Cluster(s)", dQuote(kids[skipped]), "skipped due to an",
-            "insufficient number of cells in at least 2 samples per group."))
+        message("Cluster(s) ", paste(dQuote(kids[skipped]), collapse = ", "), 
+            " skipped due to an insufficient number of cells", 
+            " in at least 2 samples per group.")
     res <- res[!skipped]
     kids <- kids[names(res)]
     
