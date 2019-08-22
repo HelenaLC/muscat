@@ -27,7 +27,6 @@ Imports:
 	reshape2, 
 	scales, scater, sctransform, stats, SingleCellExperiment, SummarizedExperiment, S4Vectors, 
 	tibble, 
-	utils, 
 	variancePartition, viridis
 Suggests: 
 	BiocStyle,
