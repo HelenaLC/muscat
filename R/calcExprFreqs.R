@@ -37,7 +37,6 @@
 #' @importFrom methods is
 #' @importFrom purrr set_names
 #' @importFrom SummarizedExperiment assays colData SummarizedExperiment
-#' @importFrom utils getFromNamespace
 #' @export
     
 calcExprFreqs <- function(x, assay = "counts", th = 0) {
@@ -51,9 +50,9 @@ calcExprFreqs <- function(x, assay = "counts", th = 0) {
 
     # for each gene, compute fraction of cells 
     # w/ assay value above threshold in each sample
-    fun <- getFromNamespace("rowMeans", "Matrix")
+    y <- assays(x)[[assay]]
     fq <- lapply(cs_by_ks, vapply, function(i) 
-        fun(assays(x)[[assay]][, i, drop = FALSE] > th),
+        Matrix::rowMeans(y[, i, drop = FALSE] > th),
         numeric(nrow(x)))
 
     # same for ea. group (if colData column "group_id" exists)
