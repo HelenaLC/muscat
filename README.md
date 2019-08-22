@@ -19,6 +19,24 @@ multi-sample multi-condition single-cell RNA sequencing data.
 
 ***
 
+### Installation
+
+`muscat` can be installed from GitHub using the following commands:
+
+```{r}
+if (!requireNamespace("devtools", quietly = TRUE))
+    install.packages("devtools")
+    
+# for the stable release branch:
+devtools::install_github("HelenaLC/muscat", ref = "master")
+
+
+# for the current development version:
+devtools::install_github("HelenaLC/muscat", ref = "devel")
+```
+
+### Quick guide
+
 Let `sce` be a [`SingleCellExperiment`](https://www.bioconductor.org/packages/SingleCellExperiment.html) object with cell metadata (`colData`) columns
 
 1. `"sample_id"` specifying unique sample identifiers (e.g., PeterPan1, Nautilus7, ...)
@@ -43,4 +61,4 @@ Mixed models can be run directly on cell-level measurements, e.g.:
 ds_mm <- mmDS(sce, method = "dream")
 ```
 
-For details, see the package vignette.
+For details, please see the package vignette.
