@@ -78,7 +78,7 @@
         coef <- last(colnames(mm))
         if (verbose)
             message("Argument 'coef' not specified; ",
-                sprintf("testing for %s.", dQuote(coef)))
+                "testing for ", dQuote(coef), ".")
     }
 
     contrast <- getContrast(v, as.formula(formula), cd, coef)
@@ -129,7 +129,7 @@
         coef <- paste0("group_id", last(levels(x$group_id)))
         if (verbose)
             message("Argument 'coef' not specified; ",
-                sprintf("testing for %s.", dQuote(coef)))
+                "testing for ", dQuote(coef), ".")
     }
 
     # fit mixed models for ea. gene
@@ -161,10 +161,9 @@
 #' @importFrom lme4 .makeCC lmerControl
 #' @importFrom purrr map set_names
 #' @importFrom stats df.residual residuals sd
-#' @importFrom utils getFromNamespace
 .fit_lmer <- function(df, formula, coef, bayesian, REML, ddf) {
     # here we should do some handling of convergence/singularity
-    fun <- ifelse(bayesian, blmer, getFromNamespace("lmer", "lmerTest"))
+    fun <- ifelse(bayesian, blmer, lmerTest::lmer)
     mod <- tryCatch(fun(formula, df, REML, control = lmerControl(
         check.conv.singular = .makeCC(action = "ignore", tol = 1e-4))),
         error = function(e) e)
@@ -221,8 +220,8 @@
     if (is.null(coef)) {
         coef <- paste0("group_id", last(levels(x$group_id)))
         if (verbose) 
-            message("Argument 'coef' not specified; ", 
-                sprintf("testing for %s.", dQuote(coef)))
+            message("Argument 'coef' not specified; ",
+                "testing for ", dQuote(coef), ".")
     }
     
     # fit mixed model for ea. gene
@@ -312,8 +311,8 @@
     if (is.null(coef)) {
         coef <- paste0("group_id", last(levels(x$group_id)))
         if (verbose) 
-            message("Argument 'coef' not specified; ", 
-                sprintf("testing for %s.", dQuote(coef)))
+            message("Argument 'coef' not specified; ",
+                "testing for ", dQuote(coef), ".")
     }
     
     # pseudobulk analysis
@@ -443,15 +442,12 @@
 # ==============================================================================
 #' @importFrom sctransform vst
 #' @importFrom SingleCellExperiment counts
-#' @importFrom utils getFromNamespace
 .vst_sctransform <- function(x, verbose) {
-    fun <- getFromNamespace("vst", "sctransform")
-    fun(assay(x), show_progress = verbose)$y
+    sctransform::vst(counts(x), show_progress = verbose)$y
 }
 # ------------------------------------------------------------------------------
 #' @importFrom DESeq2 varianceStabilizingTransformation
 #' @importFrom SingleCellExperiment counts sizeFactors
-#' @importFrom utils getFromNamespace
 .vst_DESeq2 <- function(x, covs, blind) {
     if (is.null(sizeFactors(x)))
         x <- computeLibraryFactors(x)

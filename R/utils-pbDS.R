@@ -2,12 +2,12 @@
 #' @importFrom matrixStats rowMedians
 #' @importFrom purrr map_depth
 #' @importFrom SummarizedExperiment assays
-#' @importFrom utils getFromNamespace
 .pb <- function(x, cs, assay, fun) {
     fun <- switch(fun,
+        rowSums = Matrix::rowSums,
+        rowMeans = Matrix::rowMeans,
         rowMedians = function(u) 
-            matrixStats::rowMedians(as.matrix(u)),
-        getFromNamespace(fun, "Matrix"))
+            matrixStats::rowMedians(as.matrix(u)))
     pb <- map_depth(cs, -1, function(i) {
         if (length(i) == 0) return(numeric(nrow(x)))
         fun(assays(x)[[assay]][, i, drop = FALSE])
