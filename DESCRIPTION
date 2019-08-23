@@ -25,7 +25,7 @@ Imports:
 	magrittr, Matrix, matrixStats, methods, 
 	parallel, progress, purrr, 
 	reshape2, 
-	scales, scater, sctransform, stats, SingleCellExperiment, SummarizedExperiment, S4Vectors, 
+	scales, sctransform, stats, SingleCellExperiment, SummarizedExperiment, S4Vectors, 
 	tibble, 
 	variancePartition, viridis
 Suggests: 
@@ -38,7 +38,7 @@ Suggests:
 	testthat, 
 	UpSetR
 biocViews: DifferentialExpression, Sequencing, SingleCell, Software, StatisticalMethod, Visualization
-License: GPL (>=2)
+License: GPL (>= 2)
 VignetteBuilder: knitr
 RoxygenNote: 6.1.1
 Encoding: UTF-8
