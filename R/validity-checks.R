@@ -99,7 +99,7 @@
         is.numeric(u$p_type), length(u$p_type) == 1, u$p_type >= 0,
         is.numeric(u$lfc), is.numeric(u$lfc), u$lfc >= 1)
     if (!is.null(u$rel_lfc)) {
-        nk <- length(kids <- levels(u$cluster_id))
+        nk <- length(kids <- levels(u$x$cluster_id))
         stopifnot(is.numeric(u$rel_lfc), 
             length(u$rel_lfc) == nk, u$rel_lfc >= 0)
         if (!is.null(nms <- names(u$rel_lfc)))
