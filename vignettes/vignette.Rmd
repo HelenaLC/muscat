@@ -200,15 +200,19 @@ The dimension reductions (DR) available within the SCE can be accessed via `redu
 sce <- runUMAP(sce, pca = 20)
 ```
 
-Using `r Biocpkg("scater")`'s `plotReducedDim` function, we here t-SNE and UMAP representations colored by cluster and group IDs, respectively. For our dataset, the t-SNE and UMAP colored by `cluster_id`s show that cell-populations are well-separated from one another. IFN-$\beta$ stimulation manifests as a severe shift in the low-dimensional projection of cells when coloring by `group_id`s, indicating widespread, genome-scale transcriptiontal changes.
+Using `r Biocpkg("scater")`'s `plotReducedDim` function, we can plot t-SNE and UMAP representations colored by cluster and group IDs, respectively. We additionaly create a small wrapper function, `.plot_dr()`, to improve the readability of color legends and simplify the plotting theme:
 
-```{r eval = FALSE}
+```{r}
 # wrapper to prettify reduced dimension plots
 .plot_dr <- function(sce, dr, col)
   plotReducedDim(sce, dimred = dr, colour_by = col) +
     guides(fill = guide_legend(override.aes = list(alpha = 1, size = 3))) +
     theme_minimal() + theme(aspect.ratio = 1)
+```
 
+For our dataset, the t-SNE and UMAP colored by `cluster_id`s show that cell-populations are well-separated from one another. IFN-$\beta$ stimulation manifests as a severe shift in the low-dimensional projection of cells when coloring by `group_id`s, indicating widespread, genome-scale transcriptiontal changes.
+
+```{r eval = FALSE}
 # downsample to max. 100 cells per cluster
 cs_by_k <- split(colnames(sce), sce$cluster_id)
 cs100 <- unlist(sapply(cs_by_k, function(u) 
@@ -217,7 +221,7 @@ cs100 <- unlist(sapply(cs_by_k, function(u)
 # plot t-SNE & UMAP colored by cluster & group ID
 for (dr in c("TSNE", "UMAP"))
   for (col in c("cluster_id", "group_id"))
-    plotReducedDim(sce[, cs100], dimred = dr, colour_by = col)
+    .plot_dr(sce[, cs100], dr, col)
 ```
 
 ```{r dr-ids, echo = FALSE, results = "asis", fig.height = 4, fig.width = 12, fig.cap = "Dimension reduction plots. Cells are colored by cluster ID (A) and group ID (B), respectively. For each cluster, at most 100 cells were sampled for plotting."}
