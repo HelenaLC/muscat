@@ -86,6 +86,12 @@ aggregateData <- function(x,
         mean = "rowMeans",
         median = "rowMedians")
     
+    # assure 'by' colData columns are factors
+    # so that missing combinations aren't dropped
+    for (i in by)
+        if (!is.factor(x[[i]]))
+            x[[i]] <- factor(x[[i]])
+    
     # split cells & compute pseudo-bulks
     cs <- .split_cells(x, by)
     pb <- .pb(x, cs, assay, fun)

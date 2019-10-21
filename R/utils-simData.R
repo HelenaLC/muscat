@@ -118,9 +118,11 @@ cats <- factor(cats, levels = cats)
 .nb <- function(cs, d, m, lfc = NULL, f = 1) {
     n_gs <- length(d)
     n_cs <- length(cs)
-    if (is.null(lfc))
+    if (is.null(lfc)) {
         lfc <- rep(0, n_gs)
-    lfc[lfc < 0] <- 0
+    } else {
+        lfc[lfc < 0] <- 0
+    }
     fc <- f * (2 ^ lfc)
     fc <- rep(fc, each = n_cs)
     ds <- rep(1/d, each = n_cs)

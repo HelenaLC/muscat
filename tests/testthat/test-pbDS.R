@@ -48,8 +48,7 @@ for (method in eval(as.list(args(pbDS))$method)) {
         res <- pbDS(pb, 
             method = method, verbose = FALSE,
             design = design, contrast = contrast)
-            
-        expect_is(res, "list")
+
         expect_identical(length(res$table), ncol(contrast))
         expect_identical(names(res$table), colnames(contrast))
         expect_true(all(vapply(map(res$table, names), "==",
@@ -67,20 +66,17 @@ for (method in eval(as.list(args(pbDS))$method)) {
 
 # global p-value adjustment ----------------------------------------------------
 test_that(".p_adj_global", {
-    cs <- paste0("c", seq_len(5))
-    ks <- paste0("k", seq_len(8))
+    names(cs) <- cs <- paste0("c", seq_len(5))
+    names(ks) <- ks <- paste0("k", seq_len(8))
     ns <- sample(1e3, length(ks))
-    names(cs) <- cs
-    names(ks) <- ks
     names(ns) <- ks
-    df <- lapply(cs, function(c)
-        lapply(ks, function(k)
-            data.frame(
-                p_val = rgamma(ns[k], 0.1),
-                p_adj.loc = rgamma(ns[k], 0.1))))
-    df_adj <- .p_adj_global(df)
+    df <- lapply(ks, function(k) lapply(cs, function(c) {
+        df <- data.frame(p_val = rgamma(ns[k], 0.1))
+        df$p_adj.loc <- p.adjust(df$p_val)
+        return(df) 
+    })) %>% .p_adj_global
     for (c in cs)
         expect_identical(
             p.adjust(bind_rows(df[[c]])$p_val),
-            bind_rows(df_adj[[c]])$p_adj.glb)
+            bind_rows(df[[c]])$p_adj.glb)
 })

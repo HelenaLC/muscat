@@ -127,24 +127,29 @@
 # ------------------------------------------------------------------------------
 #   x: results table; a nested list w/ 
 #      1st level = comparisons and 2nd level = clusters
-# > adds 'p_adj.glb' column to the result table of ea. comparison & cluster
+# > adds 'p_adj.glb' column containing globally adjusted p-values
+#   to the result table of ea. cluster for each comparison
 # ------------------------------------------------------------------------------
+#' @importFrom stats p.adjust
+#' @importFrom tibble add_column
 .p_adj_global <- function(x) {
-    cs <- names(x)
-    ks <- names(x[[1]])
-    names(cs) <- cs
-    names(ks) <- ks
+    names(ks) <- ks <- names(x)
+    names(cs) <- cs <- names(x[[1]])
     lapply(cs, function(c) {
         # get p-values
-        p_val <- map(x[[c]], "p_val")
+        tbl <- map_depth(x, 1, c)
+        p_val <- map(tbl, "p_val")
         # adjust for each comparison
         p_adj <- p.adjust(unlist(p_val))
         # re-split by cluster
         ns <- vapply(p_val, length, numeric(1))
         p_adj <- split(p_adj, rep.int(ks, ns))
         # insert into results tables
-        lapply(ks, function(k) x[[c]][[k]] %>% add_column(
-            p_adj.glb = p_adj[[k]], .after = "p_adj.loc"))
+        lapply(ks, function(k) 
+            add_column(
+                x[[k]][[c]], 
+                p_adj.glb = p_adj[[k]], 
+                .after = "p_adj.loc"))
     })
 }
 

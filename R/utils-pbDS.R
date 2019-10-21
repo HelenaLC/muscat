@@ -21,12 +21,85 @@
 # wrapper to create output tables
 #   k:  cluster ID
 #   tt: topTable data.frame
-#   ct: comparison type; "contrast" or "coef"
-#   c:  character string specifying the comparison
-.res_df <- function(k, tt, ct, c) {
+#' @importFrom tibble add_column
+.res_df <- function(tbl, k, ct, c) {
     df <- data.frame(
-        gene = rownames(tt), cluster_id = k, tt,
+        gene = rownames(tbl), cluster_id = k, tbl,
         row.names = NULL, stringsAsFactors = FALSE)
-    df[[ct]] <- c
-    return(df)
+    df[[ct]] <- c; df
 }
+
+#' @importFrom DESeq2 DESeq results
+#' @importFrom dplyr rename
+#' @importFrom edgeR calcNormFactors DGEList estimateDisp
+#'   filterByExpr glmQLFit glmQLFTest topTags
+#' @importFrom scater isOutlier
+#' @importFrom SummarizedExperiment assay
+#' @importFrom S4Vectors metadata
+.edgeR <- function(x, k, design, coef, contrast, ct, cs) {
+    y <- assay(x, k)
+    y <- suppressMessages(DGEList(y, 
+        group = x$group_id[colnames(y)], 
+        remove.zeros = TRUE))
+    y <- calcNormFactors(y)
+    y <- estimateDisp(y, design)
+    fit <- glmQLFit(y, design)
+    tbl <- lapply(cs, function(c) {
+        res <- glmQLFTest(fit, coef[[c]], contrast[, c])
+        tbl <- topTags(res, n = Inf, sort.by = "none")
+        tbl <- .res_df(tbl, k, ct, c)
+        rename(tbl, p_val = "PValue", p_adj.loc = "FDR")
+    })
+    list(table = tbl, data = y, fit = fit)
+}
+
+#' @importFrom dplyr rename
+#' @importFrom edgeR calcNormFactors DGEList
+#' @importFrom limma contrasts.fit eBayes lmFit topTable voom
+#' @importFrom SummarizedExperiment assay
+#' @importFrom S4Vectors metadata
+.limma <- function(x, k, design, coef, contrast, ct, cs, method) {
+    y <- assay(x, k)
+    trend <- robust <- TRUE
+    if (method == "voom") {
+        trend <- robust <- FALSE
+        y <- suppressMessages(DGEList(y, remove.zeros = TRUE))
+        y <- calcNormFactors(y)
+        y <- voom(y, design)
+    } 
+    w <- metadata(x)$n_cells[k, colnames(x)]   
+    fit <- lmFit(y, design, weights = w)
+    tbl <- lapply(cs, function(c) {
+        fit <- contrasts.fit(fit, contrast[, c], coef[[c]])
+        fit <- eBayes(fit, trend = trend, robust = robust)
+        tbl <- topTable(fit, number = Inf, sort.by = "none")
+        tbl <- .res_df(tbl, k, ct, c)
+        rename(tbl, p_val = "P.Value", p_adj.loc = "adj.P.Val")
+    })
+    list(table = tbl, data = y, fit = fit)
+}
+
+.limma_trend <- function(x, k, design, coef, contrast, ct, cs)
+    .limma(x, k, design, coef, contrast, ct, cs, method = "trend")
+
+.limma_voom <- function(x, k, design, coef, contrast, ct, cs)
+    .limma(x, k, design, coef, contrast, ct, cs, method = "voom")
+  
+#' @importFrom dplyr rename
+#' @importFrom DESeq2 DESeq DESeqDataSetFromMatrix results 
+#' @importFrom SummarizedExperiment assay colData
+.DESeq2 <- function(x, k, design, contrast, ct, cs) {
+    cd <- colData(x)
+    y <- assay(x, k)
+    mode(y) <- "integer"
+    y <- DESeqDataSetFromMatrix(y, cd, design)
+    y <- suppressMessages(DESeq(y))
+    tbl <- lapply(cs, function(c) {
+        tbl <- results(y, contrast[, c])
+        tbl <- .res_df(tbl, k, ct, c)
+        rename(tbl, logFC = "log2FoldChange", 
+            p_val = "pvalue", p_adj.loc = "padj")
+    })
+    list(table = tbl, data = y)
+}
+

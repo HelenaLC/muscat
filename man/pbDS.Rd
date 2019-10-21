@@ -6,7 +6,7 @@
 \usage{
 pbDS(pb, method = c("edgeR", "DESeq2", "limma-trend", "limma-voom"),
   design = NULL, coef = NULL, contrast = NULL, min_cells = 10,
-  verbose = TRUE)
+  filter = c("both", "genes", "samples", "none"), verbose = TRUE)
 }
 \arguments{
 \item{pb}{a \code{\link[SingleCellExperiment]{SingleCellExperiment}}
