@@ -8,7 +8,7 @@
 #   dm = differential modality
 #   db = shift in mean & dm
 # ------------------------------------------------------------------------------
-cats <- c("ee", "ep", "de", "dp", "dm", "db")
+names(cats) <- cats <- c("ee", "ep", "de", "dp", "dm", "db")
 cats <- factor(cats, levels = cats)
 
 # ------------------------------------------------------------------------------
@@ -194,11 +194,21 @@ cats <- factor(cats, levels = cats)
                 .nb(cs_g2[ g2_hi], d, m_g2,  lfc)) # lfc > 0 => 50% g2 hi
         }, 
         db = {
-            g2_hi <- sample(ng2, round(ng2 * 0.5))
-            list(
-                .nb(cs_g1, d, m_g1, lfc, 0.5),    # all g1 mi
-                .nb(cs_g2[-g2_hi], d, m_g2),      # 50% g2 lo
-                .nb(cs_g2[ g2_hi], d, m_g2, lfc)) # 50% g2 hi
+            if (sample(c(TRUE, FALSE), 1)) {
+                # all g1 mi, 50% g2 hi
+                g2_hi <- sample(ng2, round(ng2 * 0.5))
+                list(
+                    .nb(cs_g1, d, m_g1, abs(lfc), 0.5),
+                    .nb(cs_g2[-g2_hi], d, m_g2, -lfc), 
+                    .nb(cs_g2[ g2_hi], d, m_g2,  lfc)) 
+            } else {
+                # all g2 mi, 50% g1 hi
+                g1_hi <- sample(ng1, round(ng1 * 0.5))
+                list(
+                    .nb(cs_g2, d, m_g2, abs(lfc), 0.5), 
+                    .nb(cs_g1[-g1_hi], d, m_g1, -lfc),  
+                    .nb(cs_g1[ g1_hi], d, m_g1,  lfc))  
+            }
         }
     )
     cs <- map(re, "counts")

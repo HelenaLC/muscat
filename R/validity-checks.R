@@ -93,18 +93,16 @@
 
 .check_args_simData <- function(u) {
     stopifnot(
-        is.numeric(u$n_genes), length(u$n_genes) == 1,
-        is.numeric(u$n_cells), length(u$n_cells) == 1 | length(u$n_cells) == 2,
-        is.numeric(u$p_dd), length(u$p_dd) == 6, sum(u$p_dd) == 1,
-        is.numeric(u$p_type), length(u$p_type) == 1, u$p_type >= 0,
-        is.numeric(u$lfc), is.numeric(u$lfc), u$lfc >= 1)
-    if (!is.null(u$rel_lfc)) {
-        nk <- length(kids <- levels(u$x$cluster_id))
+        is.numeric(u$ng), length(u$ng) == 1, u$ng > 0, as.integer(u$ng) == u$ng,
+        is.numeric(u$nc), length(u$nc) == 1, u$nc > 0, as.integer(u$nc) == u$nc,
+        is.numeric(u$nk), length(u$nk) == 1, u$nk > 0, as.integer(u$nk) == u$nk,
+        is.numeric(u$ns), length(u$ns) %in% c(1, 2), u$ns > 0, as.integer(u$ns) == u$ns,
+        is.numeric(u$p_dd), length(u$p_dd) == 6, sum(u$p_dd) == 1, u$p_dd >= 0, u$p_dd <= 1,
+        is.numeric(u$p_type), length(u$p_type) == 1, u$p_type >= 0, u$p_type <= 1,
+        is.numeric(u$lfc), is.numeric(u$lfc), length(u$lfc) == 1, u$lfc >= 1)
+    if (!is.null(u$rel_lfc))
         stopifnot(is.numeric(u$rel_lfc), 
-            length(u$rel_lfc) == nk, u$rel_lfc >= 0)
-        if (!is.null(nms <- names(u$rel_lfc)))
-            stopifnot(setequal(nms, kids))
-    }
+            length(u$rel_lfc) == u$nk, u$rel_lfc >= 0)
 }
 
 #' @importFrom SummarizedExperiment colData

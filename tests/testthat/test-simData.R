@@ -1,5 +1,10 @@
 context("Simulation of 'complex' scRNA-seq data")
 
+suppressMessages({
+    library(dplyr)
+    library(SingleCellExperiment)
+})
+
 k <- paste0("cluster", seq_len(5))
 s <- paste0("sample", seq_len(4))
 g <- paste0("group", seq_len(3))
@@ -51,9 +56,47 @@ test_that(".sample_cell_md", {
     n <- 1e3
     ids <- list(k, s, g)
     md <- .sample_cell_md(n, ids)
-    
     ns <- apply(md, 2, table)
     ms <- vapply(ns, mean, numeric(1))
     expect_true(all(vapply(seq_len(3), function(i) 
-        ms[[i]] == n / length(ids[[i]]), logical(1))))
+        ms[[i]] == n/length(ids[[i]]), logical(1))))
 })
+
+data(sce)
+sce <- prepSim(sce, verbose = FALSE)
+ng <- 200; nc <- 2e3; ns <- 3; nk <- 2
+
+test_that("pbDS() gets at least 50% right for 10% DE genes", {
+    replicate(5, {
+        sim <- simData(sce, ng, nc, ns, nk, p_dd = c(0.9,0,0.1,0,0,0))
+        gi <- metadata(sim)$gene_info
+        pb <- aggregateData(sim)
+        re <- pbDS(pb, verbose = FALSE)
+        re <- bind_rows(re$table[[1]])
+        re <- arrange(re, p_adj.loc)
+        gi$id <- with(gi, paste0(gene, cluster_id))
+        re$id <- with(re, paste0(gene, cluster_id))
+        n_de <- sum(de <- gi$category == "de")
+        expect_gte(sum(re$id[seq_len(n_de)] %in% gi$id[de]), round(n_de/2))
+    })
+})
+test_that("Pure simulations give single DD category", {
+    for (c in cats) {
+        sim <- simData(sce, ng, nc, ns, nk, p_dd = as.numeric(cats == c))
+        gi <- metadata(sim)$gene_info
+        expect_equal(table(gi$category)[[c]], ng*nk)
+    }
+})
+# test_that("EE & DB simulation means are approximately equal", {
+#     for (c in c("ee", "db")) {
+#         sim <- simData(sce, 800, 4e3, ns, nk, p_dd = as.numeric(cats == c))
+#         gi <- metadata(sim)$gene_info
+#         lfc <- log2(gi$sim_mean.B/gi$sim_mean.A)
+#         lfc[is.na(lfc)] <- 0
+#         qs <- quantile(lfc, c(0.1, 0.9))
+#         lfc[lfc < qs[1]] <- qs[1]
+#         lfc[lfc > qs[2]] <- qs[2]
+#         print(range(lfc))
+#         expect_true(max(abs(lfc)) < 1)
+#     }
+# })

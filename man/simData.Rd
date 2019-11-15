@@ -4,16 +4,13 @@
 \alias{simData}
 \title{simData}
 \usage{
-simData(x, n_genes = 500, n_cells = 300, probs = NULL,
+simData(x, ng = nrow(x), nc = 2000, ns = 3, nk = 3, probs = NULL,
   p_dd = diag(6)[1, ], p_type = 0, lfc = 2, rel_lfc = NULL)
 }
 \arguments{
 \item{x}{a \code{\link[SingleCellExperiment]{SingleCellExperiment}}.}
 
-\item{n_genes}{# of genes to simulate.}
-
-\item{n_cells}{# of cells to simulate. 
-Either a single numeric or a range to sample from.}
+\item{ng, nc, ns, nk}{# of genes, cells, samples and clusters to simulate.}
 
 \item{probs}{a list of length 3 containing probabilities of a cell belonging
 to each cluster, sample, and group, respectively. List elements must be 
