@@ -122,8 +122,7 @@
 
     cd <- .prep_cd(x, covs)
 
-    formula <- paste0("~", paste(c(covs, "group_id"),
-                                 "(1|sample_id)", collapse = "+"))
+    formula <- paste0(c("~(1|sample_id)", covs, "group_id"),collapse = "+")
 
     if (n_threads > 1) {
         bp <- MulticoreParam(n_threads)
@@ -135,14 +134,14 @@
     formula <- as.formula(formula)
 
     if (is.null(coef)) {
-        coef <- last(colnames(mm))
+        coef <- paste0("group_id",last(levels(x$group_id)))
         if (verbose)
             message("Argument 'coef' not specified; ",
                     "testing for ", dQuote(coef), ".")
     }
 
-    v <- voomWithDreamWeights( y, formula, cd, BPPARAM=bp )
-    res <- dream(v, formula, cd, BPPARAM=bp, ddf=ddf)
+    v <- voomWithDreamWeights( y, formula, cd, BPPARAM=bp, verbose=verbose )
+    res <- dream(v, formula, cd, BPPARAM=bp, ddf=ddf, verbose=verbose)
     topTable(res, coef=coef, Inf, sort.by="none") %>%
         rename(p_val = "P.Value", p_adj.loc = "adj.P.Val")
 }
