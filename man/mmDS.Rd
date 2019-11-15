@@ -3,11 +3,12 @@
 \name{mmDS}
 \alias{mmDS}
 \alias{.mm_dream}
+\alias{.mm_dream2}
 \alias{.mm_vst}
 \title{DS analysis using mixed-models (MM)}
 \usage{
-mmDS(x, coef = NULL, covs = NULL, method = c("dream", "vst",
-  "poisson", "nbinom", "hybrid"), n_cells = 10, n_samples = 2,
+mmDS(x, coef = NULL, covs = NULL, method = c("dream2", "dream",
+  "vst", "poisson", "nbinom", "hybrid"), n_cells = 10, n_samples = 2,
   min_count = 1, min_cells = 20, n_threads = 8, verbose = TRUE,
   dup_corr = FALSE, trended = FALSE, vst = c("sctransform",
   "DESeq2"), bayesian = FALSE, blind = TRUE, REML = TRUE,
@@ -17,6 +18,9 @@ mmDS(x, coef = NULL, covs = NULL, method = c("dream", "vst",
   trended = FALSE, ddf = c("Satterthwaite", "Kenward-Roger"),
   n_threads = 1, verbose = FALSE)
 
+.mm_dream2(x, coef = NULL, covs = NULL, ddf = c("Satterthwaite",
+  "Kenward-Roger"), n_threads = 1, verbose = FALSE)
+
 .mm_vst(x, vst = c("sctransform", "DESeq2"), coef = NULL,
   covs = NULL, bayesian = FALSE, blind = TRUE, REML = TRUE,
   ddf = c("Satterthwaite", "Kenward-Roger", "lme4"), n_threads = 1,
@@ -25,27 +29,28 @@ mmDS(x, coef = NULL, covs = NULL, method = c("dream", "vst",
 \arguments{
 \item{x}{a \code{\link[SingleCellExperiment]{SingleCellExperiment}}.}
 
-\item{coef}{character specifying the coefficient to test. 
+\item{coef}{character specifying the coefficient to test.
 If NULL (default), will test the last level of \code{"group_id"}.}
 
-\item{covs}{character vector of \code{colData(x)} 
+\item{covs}{character vector of \code{colData(x)}
 column names to use as covariates.}
 
-\item{method}{a character string. 
-Either \code{"dream"} (default, lme4 with voom-weights), 
-\code{"vst"} (variance-stabilizing transformation), 
-\code{"poisson"} (poisson GLM-MM), 
-\code{"nbinom"} (negative binomial GLM-MM), 
+\item{method}{a character string.
+Either \code{"dream2"} (default, lme4 with voom-weights),
+\code{"dream"} (previous implementation of the dream method),
+\code{"vst"} (variance-stabilizing transformation),
+\code{"poisson"} (poisson GLM-MM),
+\code{"nbinom"} (negative binomial GLM-MM),
 \code{"hybrid"} (combination of pseudobulk and poisson methods)
 or a function accepting the same arguments.}
 
-\item{n_cells}{number of cells per cluster-sample 
+\item{n_cells}{number of cells per cluster-sample
 required to consider a sample for testing.}
 
-\item{n_samples}{number of samples per group 
+\item{n_samples}{number of samples per group
 required to consider a cluster for testing.}
 
-\item{min_count}{numeric. For a gene to be tested in a given cluster, 
+\item{min_count}{numeric. For a gene to be tested in a given cluster,
 at least \code{min_cells} must have a count >= \code{min_count}.}
 
 \item{min_cells}{number (or fraction, if < 1) of cells with a count >
@@ -53,7 +58,7 @@ at least \code{min_cells} must have a count >= \code{min_count}.}
 
 \item{n_threads}{number of threads to use.}
 
-\item{verbose}{logical specifying whether messages 
+\item{verbose}{logical specifying whether messages
 on progress and a progress bar should be displayed.}
 
 \item{dup_corr}{logical; whether to use
@@ -63,7 +68,7 @@ on progress and a progress bar should be displayed.}
 in \code{\link[limma]{eBayes}}.}
 
 \item{vst}{method to use as variance-stabilizing transformations.
-\code{"sctransform"} for \code{\link[sctransform]{vst}}; \code{"DESeq2"} 
+\code{"sctransform"} for \code{\link[sctransform]{vst}}; \code{"DESeq2"}
 for \code{\link[DESeq2]{varianceStabilizingTransformation}}.}
 
 \item{bayesian}{logical; whether to use bayesian mixed models.}
@@ -88,13 +93,16 @@ a data.frame
 Performs cluster-wise DE analysis by fitting cell-level models.
 }
 \details{
-\code{.mm_dream} and \code{.mm_vst} expect cells from a single cluster,
-and do not perform filtering or handle incorrect parameters well.
+The \code{.mm_*} functions (e.g. \code{.mm_dream}) expect cells from a single
+ cluster, and do not perform filtering or handle incorrect parameters well.
 Meant to be called by \code{mmDS} with \code{method = c("dream", "vst")} and
 \code{vst = c("sctransform", "DESeq2")} to be applied across all clusters.
 \describe{
+\item{\code{method = "dream2"}}{
+  \code{variancePartition}'s (>=1.14.1) voom-lme4-implementation
+  of mixed models for RNA-seq data; function \code{dream}.}
 \item{\code{method = "dream"}}{
-  \code{variancePartition}'s voom-lme4-implementation
+  \code{variancePartition}'s older voom-lme4-implementation
   of mixed models for RNA-seq data; function \code{dream}.}
 \item{\code{method = "vst"}}{
   \describe{
@@ -108,6 +116,8 @@ Meant to be called by \code{mmDS} with \code{method = c("dream", "vst")} and
 \section{Functions}{
 \itemize{
 \item \code{.mm_dream}: see details.
+
+\item \code{.mm_dream2}: see details.
 
 \item \code{.mm_vst}: see details.
 }}
@@ -123,17 +133,17 @@ cs_by_s <- split(colnames(sce), sce$sample_id)
 gs <- sample(nrow(sce), 100)
 sce <- sce[gs, ]
 
-res <- mmDS(sce, method = "dream", 
+res <- mmDS(sce, method = "dream",
     n_threads = 1, verbose = FALSE)
 head(res$`B cells`)
 
 }
 \references{
-Crowell, HL, Soneson, C, Germain, P-L, Calini, D, 
-Collin, L, Raposo, C, Malhotra, D & Robinson, MD: 
-On the discovery of population-specific state transitions from 
-multi-sample multi-condition single-cell RNA sequencing data. 
-\emph{bioRxiv} \strong{713412} (2018). 
+Crowell, HL, Soneson, C, Germain, P-L, Calini, D,
+Collin, L, Raposo, C, Malhotra, D & Robinson, MD:
+On the discovery of population-specific state transitions from
+multi-sample multi-condition single-cell RNA sequencing data.
+\emph{bioRxiv} \strong{713412} (2018).
 doi: \url{https://doi.org/10.1101/713412}
 }
 \author{
