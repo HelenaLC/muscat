@@ -163,8 +163,7 @@ simData <- function(x, n_genes = 500, n_cells = 300,
         b <- exp(rowData(x)[[k]])
         vapply(o, "*", b, FUN.VALUE = numeric(nrow(x))) %>% 
             set_rownames(rownames(x)) %>% 
-            set_colnames(colnames(x)) %>% 
-            round
+            set_colnames(colnames(x))
     })
     d <- rowData(x)$dispersion %>% 
         set_names(rownames(x))
