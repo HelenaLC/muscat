@@ -96,9 +96,13 @@ mmDS <- function(x, coef = NULL, covs = NULL,
     n_cells_by_ks <- table(x$cluster_id, x$sample_id)
 
     # filter clusters w/ >= n_cells in >= n_samples
-    ei <- metadata(x)$experiment_info
-    m <- match(levels(x$sample_id), ei$sample_id)
-    gids <- ei$group_id[m]
+    if(!is.null(metadata(x)$experiment_info$group_id)){
+        ei <- metadata(x)$experiment_info
+        m <- match(levels(x$sample_id), ei$sample_id)
+        gids <- ei$group_id[m]
+    }else{
+        gids <- x$group_id
+    }
     ks_keep <- apply(n_cells_by_ks > n_cells, 1,
         function(u) all(tabulate(gids[u]) >= n_samples))
     if (sum(ks_keep) == 0)
