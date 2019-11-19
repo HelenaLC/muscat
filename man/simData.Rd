@@ -4,8 +4,21 @@
 \alias{simData}
 \title{simData}
 \usage{
-simData(x, ng = nrow(x), nc = 2000, ns = 3, nk = 3, probs = NULL,
-  p_dd = diag(6)[1, ], p_type = 0, lfc = 2, rel_lfc = NULL)
+simData(
+  x,
+  ng = nrow(x),
+  nc = 2000,
+  ns = 3,
+  nk = 3,
+  probs = NULL,
+  p_dd = diag(6)[1, ],
+  p_ep = 0.5,
+  p_dp = 0.3,
+  p_dm = 0.5,
+  p_type = 0,
+  lfc = 2,
+  rel_lfc = NULL
+)
 }
 \arguments{
 \item{x}{a \code{\link[SingleCellExperiment]{SingleCellExperiment}}.}
@@ -19,6 +32,9 @@ NULL (equal probabilities) or numeric values in [0, 1] that sum to 1.}
 \item{p_dd}{numeric vector of length 6.
 Specifies the probability of a gene being
 EE, EP, DE, DP, DM, or DB, respectively.}
+
+\item{p_ep, p_dp, p_dm}{numeric specifying the proportion of cells
+to be shifted to a different expression state in one group (see details).}
 
 \item{p_type}{numeric. Probaility of EE/EP gene being a type-gene.
 If a gene is of class "type" in a given cluster, a unique mean 

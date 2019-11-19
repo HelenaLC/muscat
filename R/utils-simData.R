@@ -148,34 +148,34 @@ cats <- factor(cats, levels = cats)
 # ------------------------------------------------------------------------------
 .sim <- function(
     cat = c("ee", "ep", "de", "dp", "dm", "db"),
-    cs_g1, cs_g2, m_g1, m_g2, d, lfc) {
+    cs_g1, cs_g2, m_g1, m_g2, d, lfc, ep, dp, dm) {
     
     cat <- match.arg(cat)
     ng1 <- length(cs_g1)
     ng2 <- length(cs_g2)
     
     re <- switch(cat,
-        ee = {
+        "ee" = {
             list(
                 .nb(cs_g1, d, m_g1),
                 .nb(cs_g2, d, m_g2))
         },
-        ep = {
-            g1_hi <- sample(ng1, round(ng1 * 0.5))
-            g2_hi <- sample(ng2, round(ng2 * 0.5))
+        "ep" = {
+            g1_hi <- sample(ng1, round(ng1 * ep))
+            g2_hi <- sample(ng2, round(ng2 * ep))
             list(
                 .nb(cs_g1[-g1_hi], d, m_g1),
                 .nb(cs_g1[ g1_hi], d, m_g1, lfc), # 50% g1 hi
                 .nb(cs_g2[-g2_hi], d, m_g2),
                 .nb(cs_g2[ g2_hi], d, m_g2, lfc)) # 50% g2 hi
         },
-        de = {
+        "de" = {
             list(
                 .nb(cs_g1, d, m_g1, -lfc), # lfc < 0 => all g1 hi
                 .nb(cs_g2, d, m_g2,  lfc)) # lfc > 0 => all g2 hi
         },
-        dp = {
-            props <- sample(c(0.3, 0.7), 2)
+        "dp" = {
+            props <- sample(c(dp, 1 - dp), 2)
             g1_hi <- sample(ng1, round(ng1 * props[1]))
             g2_hi <- sample(ng2, round(ng2 * props[2]))
             list(                           
@@ -184,16 +184,16 @@ cats <- factor(cats, levels = cats)
                 .nb(cs_g2[-g2_hi], d, m_g2), 
                 .nb(cs_g2[ g2_hi], d, m_g2, -lfc)) # lfc < 0 => 70/30% up
         },
-        dm = {
-            g1_hi <- sample(ng1, round(ng1 * 0.5))
-            g2_hi <- sample(ng2, round(ng2 * 0.5))
+        "dm" = {
+            g1_hi <- sample(ng1, round(ng1 * ep))
+            g2_hi <- sample(ng2, round(ng2 * ep))
             list(
                 .nb(cs_g1[-g1_hi], d, m_g1),
                 .nb(cs_g1[ g1_hi], d, m_g1, -lfc), # lfc < 0 => 50% g1 hi
                 .nb(cs_g2[-g2_hi], d, m_g2),
                 .nb(cs_g2[ g2_hi], d, m_g2,  lfc)) # lfc > 0 => 50% g2 hi
         }, 
-        db = {
+        "db" = {
             if (sample(c(TRUE, FALSE), 1)) {
                 # all g1 mi, 50% g2 hi
                 g2_hi <- sample(ng2, round(ng2 * 0.5))

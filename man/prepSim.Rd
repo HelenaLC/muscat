@@ -4,8 +4,15 @@
 \alias{prepSim}
 \title{SCE preparation for \code{\link{simData}}}
 \usage{
-prepSim(x, min_count = 1, min_cells = 10, min_genes = 100,
-  min_size = 100, group_keep = NULL, verbose = TRUE)
+prepSim(
+  x,
+  min_count = 1,
+  min_cells = 10,
+  min_genes = 100,
+  min_size = 100,
+  group_keep = NULL,
+  verbose = TRUE
+)
 }
 \arguments{
 \item{x}{a \code{\link[SingleCellExperiment]{SingleCellExperiment}}.}

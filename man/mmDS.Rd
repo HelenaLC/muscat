@@ -7,24 +7,58 @@
 \alias{.mm_vst}
 \title{DS analysis using mixed-models (MM)}
 \usage{
-mmDS(x, coef = NULL, covs = NULL, method = c("dream2", "dream",
-  "vst", "poisson", "nbinom", "hybrid"), n_cells = 10, n_samples = 2,
-  min_count = 1, min_cells = 20, n_threads = 8, verbose = TRUE,
-  dup_corr = FALSE, trended = FALSE, vst = c("sctransform",
-  "DESeq2"), bayesian = FALSE, blind = TRUE, REML = TRUE,
-  ddf = c("Satterthwaite", "Kenward-Roger", "lme4"))
+mmDS(
+  x,
+  coef = NULL,
+  covs = NULL,
+  method = c("dream2", "dream", "vst", "poisson", "nbinom", "hybrid"),
+  n_cells = 10,
+  n_samples = 2,
+  min_count = 1,
+  min_cells = 20,
+  n_threads = 8,
+  verbose = TRUE,
+  dup_corr = FALSE,
+  trended = FALSE,
+  vst = c("sctransform", "DESeq2"),
+  bayesian = FALSE,
+  blind = TRUE,
+  REML = TRUE,
+  ddf = c("Satterthwaite", "Kenward-Roger", "lme4")
+)
 
-.mm_dream(x, coef = NULL, covs = NULL, dup_corr = FALSE,
-  trended = FALSE, ddf = c("Satterthwaite", "Kenward-Roger"),
-  n_threads = 1, verbose = FALSE)
+.mm_dream(
+  x,
+  coef = NULL,
+  covs = NULL,
+  dup_corr = FALSE,
+  trended = FALSE,
+  ddf = c("Satterthwaite", "Kenward-Roger"),
+  n_threads = 1,
+  verbose = FALSE
+)
 
-.mm_dream2(x, coef = NULL, covs = NULL, ddf = c("Satterthwaite",
-  "Kenward-Roger"), n_threads = 1, verbose = FALSE)
+.mm_dream2(
+  x,
+  coef = NULL,
+  covs = NULL,
+  ddf = c("Satterthwaite", "Kenward-Roger"),
+  n_threads = 1,
+  verbose = FALSE
+)
 
-.mm_vst(x, vst = c("sctransform", "DESeq2"), coef = NULL,
-  covs = NULL, bayesian = FALSE, blind = TRUE, REML = TRUE,
-  ddf = c("Satterthwaite", "Kenward-Roger", "lme4"), n_threads = 1,
-  verbose = FALSE)
+.mm_vst(
+  x,
+  vst = c("sctransform", "DESeq2"),
+  coef = NULL,
+  covs = NULL,
+  bayesian = FALSE,
+  blind = TRUE,
+  REML = TRUE,
+  ddf = c("Satterthwaite", "Kenward-Roger", "lme4"),
+  n_threads = 1,
+  verbose = FALSE
+)
 }
 \arguments{
 \item{x}{a \code{\link[SingleCellExperiment]{SingleCellExperiment}}.}

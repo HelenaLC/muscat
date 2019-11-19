@@ -13,6 +13,8 @@
 #' @param p_dd numeric vector of length 6.
 #'   Specifies the probability of a gene being
 #'   EE, EP, DE, DP, DM, or DB, respectively.
+#' @param p_ep,p_dp,p_dm numeric specifying the proportion of cells
+#'   to be shifted to a different expression state in one group (see details).
 #' @param p_type numeric. Probaility of EE/EP gene being a type-gene.
 #'   If a gene is of class "type" in a given cluster, a unique mean 
 #'   will be used for that gene in the respective cluster.
@@ -78,8 +80,9 @@
 #' @export
 
 simData <- function(x, ng = nrow(x), nc = 2e3, ns = 3, nk = 3,
-    probs = NULL, p_dd = diag(6)[1, ], p_type = 0,
-    lfc = 2, rel_lfc = NULL) {
+    probs = NULL, p_dd = diag(6)[1, ], 
+    p_ep = 0.5, p_dp = 0.3, p_dm = 0.5,
+    p_type = 0, lfc = 2, rel_lfc = NULL) {
     
     # throughout this code...
     # k: cluster ID
@@ -201,7 +204,7 @@ simData <- function(x, ng = nrow(x), nc = 2e3, ns = 3, nk = 3,
                 d_kc <- d[gs0]
                 lfc_kc <- lfc[[c, k]]
                 
-                re <- .sim(c, cs_g1, cs_g2, m_g1, m_g2, d_kc, lfc_kc)
+                re <- .sim(c, cs_g1, cs_g2, m_g1, m_g2, d_kc, lfc_kc, p_ep, p_dp, p_dm)
                 y[gi, ci] <- re$cs
                 
                 for (g in gids) sim_mean[[k]][[g]][gi] <- ifelse(
