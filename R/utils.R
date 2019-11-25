@@ -31,8 +31,7 @@
     cd <- mutate_if(cd, is.factor, droplevels) 
     colData(sce) <- DataFrame(cd, row.names = colnames(sce))
     # update metadata
-    if(!is.null(metadata(sce)$experiment_info)){
-        ei <- metadata(sce)$experiment_info
+    if(!is.null(ei <- metadata(sce)$experiment_info)){
         ei <- ei[ei$sample_id %in% levels(sce$sample_id), ]
         ei <- mutate_if(ei, is.factor, droplevels)
         metadata(sce)$experiment_info <- ei

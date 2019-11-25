@@ -104,8 +104,9 @@ cats <- factor(cats, levels = cats)
     # sample cluster-specific genes for ea. cluster & type-gene
     for (k in kids) {
         type_gs <- class[[k]]$type$gene
-        gs_by_k[type_gs, k] <- apply(gs_by_k[type_gs, kids != k], 
-            1, function(ex) sample(setdiff(rownames(x), ex), 1))
+        gs_by_k[type_gs, k] <- apply(
+            gs_by_k[type_gs, kids != k, drop = FALSE], 1,
+            function(ex) sample(setdiff(rownames(x), ex), 1))
     }
     return(gs_by_k)
 }
