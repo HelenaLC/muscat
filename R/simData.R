@@ -36,8 +36,7 @@
 #' sce <- prepSim(sce)
 #' 
 #' # simulate data
-#' (sim <- simData(sce,
-#'   n_genes = 100, n_cells = 10,
+#' (sim <- simData(sce, ng = 100, nc = 10,
 #'   p_dd = c(0.9, 0, 0.1, 0, 0, 0)))
 #' 
 #' # simulation metadata
@@ -47,14 +46,12 @@
 #' table(gi$category)
 #' 
 #' # unbalanced sample sizes
-#' sim <- simData(sce,
-#'   n_genes = 10, n_cells = 100,
+#' sim <- simData(sce, ng = 10, nc = 100,
 #'   probs = list(NULL, c(0.25, 0.75), NULL))
 #' table(sim$sample_id)
 #' 
 #' # one group only
-#' sim <- simData(sce,
-#'   n_genes = 10, n_cells = 100,
+#' sim <- simData(sce, ng = 10, nc = 100,
 #'   probs = list(NULL, NULL, c(1, 0)))
 #' levels(sim$group_id)
 #'     
@@ -236,6 +233,7 @@ simData <- function(x, ng = nrow(x), nc = 2e3, ns = 3, nk = 3,
     gi <- set_rownames(gi[o, ], NULL)
     
     # construct SCE
+    cd$group_id <- droplevels(cd$group_id)
     cd$sample_id <- factor(paste(cd$sample_id, cd$group_id, sep = "."))
     m <- match(levels(cd$sample_id), cd$sample_id)
     gids <- cd$group_id[m]

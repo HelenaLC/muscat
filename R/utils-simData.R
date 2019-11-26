@@ -58,7 +58,8 @@ cats <- factor(cats, levels = cats)
     vapply(seq_along(probs), function(i) 
         sample(ids[[i]], n, TRUE, probs[[i]]), 
         character(n)) %>% data.frame(row.names = NULL) %>% 
-        set_colnames(c("cluster_id", "sample_id", "group_id"))
+        set_colnames(c("cluster_id", "sample_id", "group_id")) %>% 
+        mutate_at("group_id", factor, levels = c("A", "B"))
 }
 
 # ------------------------------------------------------------------------------
