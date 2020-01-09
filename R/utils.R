@@ -171,3 +171,46 @@
         assay = list(counts = y), colData = cd, 
         metadata = list(experiment_info = .make_ei(cd)))
 }
+
+
+#' flattenPB
+#'
+#' Flattens a pseudo-bulk \code{\link[SingleCellExperiment]{SingleCellExperiment}}
+#' as produced by \code{\link[muscat]{aggregateData}} so that all cell types are 
+#' represented in a single assay.
+#'
+#' @param pb a pseudo-bulk \code{\link[SingleCellExperiment]{SingleCellExperiment}}
+#' as produced by \code{\link[muscat]{aggregateData}}, with different 
+#' celltypes/clusters are assays.
+#' @param do.norm Logical; whether to compute a `logcpm` assay.
+#'
+#' @return A \code{\link[SingleCellExperiment]{SingleCellExperiment}}
+#' @importFrom edgeR cpm calcNormFactors DGEList
+#' @importFrom S4Vectors DataFrame metadata metadata<- as.list
+#' @importFrom SingleCellExperiment SingleCellExperiment
+#' @importFrom SummarizedExperiment colData rowData assayNames assays
+#' @export
+flattenPB <- function(pb, do.norm=TRUE){
+    a <- do.call(cbind, as.list(assays(pb)))
+    v.samples <- rep(colnames(pb),length(assays(pb)))
+    v.clusters <- rep(assayNames(pb),each=ncol(pb))
+    colnames(a) <- paste( v.samples, v.clusters, sep="." )
+    pb$sample_id <- colnames(pb)
+    cd <- do.call(rbind, lapply(seq_along(assays(pb)),
+                                FUN=function(x) colData(pb)) )
+    row.names(cd) <- colnames(a)
+    cd$cluster_id <- v.clusters
+    se <- SingleCellExperiment( list(counts=a), colData=cd, rowData=rowData(pb))
+    se$metadata <- pb$metadata
+    if(do.norm) assays(se)$logcpm <- 
+        log1p(edgeR::cpm(calcNormFactors(DGEList(assay(se)))))
+    if(!is.null(metadata(pb)$n_cells)){
+        n_cells <- tryCatch({
+            mapply( as.character(v.clusters), as.character(v.samples),
+                    FUN=function(x,y) metadata(pb)$n_cells[x,y] )
+        }, error=function(e){ warning(e); NULL} )
+        if(!is.null(n_cells)) se$n_cells <- as.numeric(n_cells)
+    }
+    se
+}
+
