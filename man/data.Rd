@@ -48,12 +48,12 @@ sce <- sce[, sce$multiplets == "singlet"]
 sce$id <- paste0(sce$stim, sce$ind)
 inds <- sample(sce$ind, 4)
 ids <- paste0(levels(sce$stim), rep(inds, each = 2))
-sce <- sce[, sce$id %in% ids]
+sce <- sce[, sce$id \%in\% ids]
 
 # keep 5 clusters
 kids <- c("B cells", "CD4 T cells", "CD8 T cells",
     "CD14+ Monocytes", "FCGR3A+ Monocytes")
-sce <- sce[, sce$cell %in% kids]
+sce <- sce[, sce$cell \%in\% kids]
 sce$cell <- droplevels(sce$cell)
 
 # basic filtering on  genes & cells

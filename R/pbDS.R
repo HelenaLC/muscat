@@ -19,6 +19,10 @@
 #'   for \code{method = "edgeR", "limma-x", "DESeq2"}, respectively.
 #' @param min_cells a numeric. Specifies the minimum number of cells in a given 
 #'   cluster-sample required to consider the sample for differential testing.
+#' @param treat logical specifying whether empirical Bayes moderated-t 
+#'   p-values should be computed relative to a minimum fold-change threshold. 
+#'   Only applicable for methods \code{"limma-x"} (\code{\link[limma]{treat}})
+#'   and \code{"edgeR"} (\code{\link[edgeR]{glmTreat}}), and ignored otherwise.
 #' @param verbose logical. Should information on progress be reported?
 #'
 #' @return a list containing \itemize{
@@ -72,7 +76,8 @@
 pbDS <- function(pb, 
     method = c("edgeR", "DESeq2", "limma-trend", "limma-voom"),
     design = NULL, coef  = NULL, contrast = NULL, min_cells = 10, 
-    filter = c("both", "genes", "samples", "none"), verbose = TRUE) {
+    filter = c("both", "genes", "samples", "none"), 
+    treat = FALSE, verbose = TRUE) {
     
     # check validity of input arguments
     method <- match.arg(method)
@@ -86,7 +91,6 @@ pbDS <- function(pb,
         design <- model.matrix(formula, cd)
         colnames(design) <- levels(pb$group_id)
     }
-    
     if (is.null(coef) & is.null(contrast)) {
         c <- colnames(design)[ncol(design)]
         contrast <- makeContrasts(contrasts = c, levels = design)
@@ -137,11 +141,10 @@ pbDS <- function(pb,
             return(NULL)
         if (filter %in% c("genes", "both"))
             y <- y[filterByExpr(assay(y, k)), ]
-        args <- list(
-            x = y, k = k, design = d, coef = coef, 
-            contrast = contrast, ct = ct, cs = cs)
+        args <- list(x = y, k = k, design = d, coef = coef, 
+            contrast = contrast, ct = ct, cs = cs, treat = treat)
         args <- args[intersect(names(args), fun_args)]
-        do.call(fun, args)
+        suppressWarnings(do.call(fun, args))
     })
     
     # remove empty clusters

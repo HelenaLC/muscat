@@ -98,6 +98,7 @@
         is.numeric(u$nk), length(u$nk) == 1, u$nk > 0, as.integer(u$nk) == u$nk,
         is.numeric(u$ns), length(u$ns) %in% c(1, 2), u$ns > 0, as.integer(u$ns) == u$ns,
         is.numeric(u$p_dd), length(u$p_dd) == 6, sum(u$p_dd) == 1, u$p_dd >= 0, u$p_dd <= 1,
+        is.logical(u$paired), length(u$paired) == 1,
         is.numeric(u$p_ep), length(u$p_ep) == 1, u$p_ep > 0, u$p_ep < 1,
         is.numeric(u$p_dp), length(u$p_dp) == 1, u$p_dp > 0, u$p_dp < 1,
         is.numeric(u$p_dm), length(u$p_dm) == 1, u$p_dm > 0, u$p_dm < 1,
@@ -127,7 +128,8 @@
         is.null(u$contrast) | is.matrix(u$contrast),
         is.null(u$coef) | is.numeric(u$coef),
         is.numeric(u$min_cells), length(u$min_cells) == 1,
-        is.logical(u$verbose), length(u$verbose) == 1)
+        is.logical(u$verbose), length(u$verbose) == 1,
+        is.logical(u$treat), length(u$treat) == 1)
 }
 
 .check_args_pbHeatmap <- function(u) {

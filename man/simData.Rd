@@ -12,6 +12,7 @@ simData(
   nk = 3,
   probs = NULL,
   p_dd = diag(6)[1, ],
+  paired = FALSE,
   p_ep = 0.5,
   p_dp = 0.3,
   p_dm = 0.5,
@@ -32,6 +33,10 @@ NULL (equal probabilities) or numeric values in [0, 1] that sum to 1.}
 \item{p_dd}{numeric vector of length 6.
 Specifies the probability of a gene being
 EE, EP, DE, DP, DM, or DB, respectively.}
+
+\item{paired}{logial specifying whether a paired design should 
+be simulated (both groups use the same set of reference samples) 
+or not (reference samples are drawn at random).}
 
 \item{p_ep, p_dp, p_dm}{numeric specifying the proportion of cells
 to be shifted to a different expression state in one group (see details).}
@@ -67,8 +72,7 @@ library(SingleCellExperiment)
 sce <- prepSim(sce)
 
 # simulate data
-(sim <- simData(sce,
-  n_genes = 100, n_cells = 10,
+(sim <- simData(sce, ng = 100, nc = 10,
   p_dd = c(0.9, 0, 0.1, 0, 0, 0)))
 
 # simulation metadata
@@ -78,14 +82,12 @@ head(gi <- metadata(sim)$gene_info)
 table(gi$category)
 
 # unbalanced sample sizes
-sim <- simData(sce,
-  n_genes = 10, n_cells = 100,
+sim <- simData(sce, ng = 10, nc = 100,
   probs = list(NULL, c(0.25, 0.75), NULL))
 table(sim$sample_id)
 
 # one group only
-sim <- simData(sce,
-  n_genes = 10, n_cells = 100,
+sim <- simData(sce, ng = 10, nc = 100,
   probs = list(NULL, NULL, c(1, 0)))
 levels(sim$group_id)
     

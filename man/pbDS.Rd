@@ -12,6 +12,7 @@ pbDS(
   contrast = NULL,
   min_cells = 10,
   filter = c("both", "genes", "samples", "none"),
+  treat = FALSE,
   verbose = TRUE
 )
 }
@@ -35,6 +36,11 @@ created with \code{\link[limma]{makeContrasts}}.}
 
 \item{min_cells}{a numeric. Specifies the minimum number of cells in a given 
 cluster-sample required to consider the sample for differential testing.}
+
+\item{treat}{logical specifying whether empirical Bayes moderated-t 
+p-values should be computed relative to a minimum fold-change threshold. 
+Only applicable for methods \code{"limma-x"} (\code{\link[limma]{treat}})
+and \code{"edgeR"} (\code{\link[edgeR]{glmTreat}}), and ignored otherwise.}
 
 \item{verbose}{logical. Should information on progress be reported?}
 }

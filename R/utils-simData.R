@@ -59,7 +59,7 @@ cats <- factor(cats, levels = cats)
         sample(ids[[i]], n, TRUE, probs[[i]]), 
         character(n)) %>% data.frame(row.names = NULL) %>% 
         set_colnames(c("cluster_id", "sample_id", "group_id")) %>% 
-        mutate_at("group_id", factor, levels = c("A", "B"))
+        mutate_at("group_id", factor)
 }
 
 # ------------------------------------------------------------------------------

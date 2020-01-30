@@ -13,6 +13,9 @@
 #' @param p_dd numeric vector of length 6.
 #'   Specifies the probability of a gene being
 #'   EE, EP, DE, DP, DM, or DB, respectively.
+#' @param paired logial specifying whether a paired design should 
+#'   be simulated (both groups use the same set of reference samples) 
+#'   or not (reference samples are drawn at random).
 #' @param p_ep,p_dp,p_dm numeric specifying the proportion of cells
 #'   to be shifted to a different expression state in one group (see details).
 #' @param p_type numeric. Probaility of EE/EP gene being a type-gene.
@@ -77,7 +80,7 @@
 #' @export
 
 simData <- function(x, ng = nrow(x), nc = 2e3, ns = 3, nk = 3,
-    probs = NULL, p_dd = diag(6)[1, ], 
+    probs = NULL, p_dd = diag(6)[1, ], paired = FALSE,
     p_ep = 0.5, p_dp = 0.3, p_dm = 0.5,
     p_type = 0, lfc = 2, rel_lfc = NULL) {
     
@@ -103,15 +106,24 @@ simData <- function(x, ng = nrow(x), nc = 2e3, ns = 3, nk = 3,
     
     # sample reference clusters & samples
     ref_kids <- setNames(sample(kids0, nk, nk > nk0), kids)
-    ref_sids <- vapply(gids, function(g)
-        setNames(sample(sids0, ns, ns > ns0), 
-            paste0("sample", seq_len(ns))),
-        character(ns))
+    if (paired) { 
+        # use same set of reference samples for both groups
+        ref_sids <- sample(sids0, ns, ns > ns0)
+        ref_sids <- replicate(length(gids), ref_sids)
+    } else {
+        # draw reference samples at random for each group
+        ref_sids <- replicate(length(gids), 
+            sample(sids0, ns, ns > ns0))
+    }
+    dimnames(ref_sids) <- list(sids, gids)
     
     if (is.null(rel_lfc)) 
         rel_lfc <- rep(1, nk)
-    if (is.null(names(rel_lfc))) 
+    if (is.null(names(rel_lfc))) {
         names(rel_lfc) <- kids
+    } else {
+        stopifnot(names(rel_lfc) %in% kids0)
+    }
     
     # initialize count matrix
     gs <- paste0("gene", seq_len(ng))
@@ -245,7 +257,9 @@ simData <- function(x, ng = nrow(x), nc = 2e3, ns = 3, nk = 3,
     md <- list(
         experiment_info = ei,
         n_cells = table(cd$sample_id),
-        gene_info = gi)
+        gene_info = gi,
+        ref_sids = ref_sids,
+        ref_kids = ref_kids)
     
     SingleCellExperiment(
         assays = list(counts = as.matrix(y)),

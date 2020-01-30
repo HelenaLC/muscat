@@ -34,13 +34,12 @@
 #'     \code{\link[DESeq2]{varianceStabilizingTransformation}}
 #'     followed by \code{lme4} mixed models.}}}}
 #'
+#' @importFrom BiocParallel MulticoreParam SerialParam
 #' @importFrom edgeR DGEList
-#' @importFrom doParallel registerDoParallel
 #' @importFrom dplyr %>% last mutate_at rename
 #' @importFrom limma duplicateCorrelation eBayes topTable voom
 #' @importFrom magrittr set_rownames
 #' @importFrom matrixStats rowSds
-#' @importFrom parallel makeCluster stopCluster
 #' @importFrom scater computeLibraryFactors
 #' @importFrom SingleCellExperiment counts sizeFactors
 #' @importFrom stats as.formula model.matrix
@@ -56,7 +55,7 @@
 
     ddf <- match.arg(ddf)
     x <- x[rowSds(as.matrix(counts(x))) > 0, ]
-    y <- DGEList(counts(x), norm.factors = 1 / sizeFactors(x))
+    y <- DGEList(counts(x), norm.factors = 1/sizeFactors(x))
 
     cd <- .prep_cd(x, covs)
 
@@ -70,8 +69,9 @@
     }
 
     if (n_threads > 1) {
-        cl <- makeCluster(n_threads)
-        registerDoParallel(cl)
+        bp <- MulticoreParam(n_threads, progressbar = verbose)
+    } else {
+        bp <- SerialParam(progressbar = verbose)
     }
 
     formula <- paste0(formula, "+(1|sample_id)")
@@ -85,10 +85,9 @@
     }
 
     contrast <- getContrast(v, as.formula(formula), cd, coef)
-    fit <- dream(v, formula, cd, contrast,
-        ddf = ddf, suppressWarnings = !verbose)
+    fit <- dream(v, formula, cd, contrast, ddf = ddf, 
+        BPPARAM = bp, suppressWarnings = !verbose)
     fit <- eBayes(fit, trend = trended, robust = TRUE)
-    if (n_threads > 1) stopCluster(cl)
 
     topTable(fit, number = Inf, sort.by = "none") %>%
         rename(p_val = "P.Value", p_adj.loc = "adj.P.Val")
@@ -100,14 +99,13 @@
 #'
 #' @importFrom edgeR DGEList
 #' @importFrom BiocParallel MulticoreParam SerialParam
-#' @importFrom dplyr %>% last mutate_at rename
+#' @importFrom dplyr %>% last rename
 #' @importFrom limma topTable
-#' @importFrom magrittr set_rownames
 #' @importFrom matrixStats rowSds
 #' @importFrom scater computeLibraryFactors
 #' @importFrom SingleCellExperiment counts sizeFactors
 #' @importFrom stats as.formula
-#' @importFrom variancePartition voomWithDreamWeights getContrast
+#' @importFrom variancePartition dream voomWithDreamWeights
 .mm_dream2 <- function(x, coef = NULL, covs = NULL,
     ddf = c("Satterthwaite", "Kenward-Roger"),
     n_threads = 1, verbose = FALSE) {
@@ -123,9 +121,9 @@
     formula <- paste0(c("~(1|sample_id)", covs, "group_id"), collapse = "+")
 
     if (n_threads > 1) {
-        bp <- MulticoreParam(n_threads)
-    }else{
-        bp <- SerialParam()
+        bp <- MulticoreParam(n_threads, progressbar = verbose)
+    } else {
+        bp <- SerialParam(progressbar = verbose)
     }
 
     if (verbose) print(formula)

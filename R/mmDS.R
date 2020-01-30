@@ -38,12 +38,11 @@
 #' sce$cluster_id <- droplevels(sce$cluster_id)
 #'
 #' # downsample to 100 genes
-#' cs_by_s <- split(colnames(sce), sce$sample_id)
 #' gs <- sample(nrow(sce), 100)
 #' sce <- sce[gs, ]
 #'
 #' res <- mmDS(sce, method = "dream",
-#'     n_threads = 1, verbose = FALSE)
+#'     n_threads = 2, verbose = FALSE)
 #' head(res$`B cells`)
 #'
 #' @author Pierre-Luc Germain & Helena L Crowell

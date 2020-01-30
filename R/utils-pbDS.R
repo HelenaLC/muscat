@@ -36,7 +36,7 @@
 #' @importFrom scater isOutlier
 #' @importFrom SummarizedExperiment assay
 #' @importFrom S4Vectors metadata
-.edgeR <- function(x, k, design, coef, contrast, ct, cs) {
+.edgeR <- function(x, k, design, coef, contrast, ct, cs, treat) {
     y <- assay(x, k)
     y <- suppressMessages(DGEList(y, 
         group = x$group_id[colnames(y)], 
@@ -44,26 +44,15 @@
     y <- calcNormFactors(y)
     y <- estimateDisp(y, design)
     fit <- glmQLFit(y, design)
-    # tests <- list(
-    #     qlt = glmQLFTest, # genewise NB GLM with quasi-likelihood test
-    #     treat = glmTreat) # test for DE relative to logFC threshold
-    # tbl <- lapply(cs, function(c) {
-    #     fits <- lapply(tests, function(fun) fun(fit, coef[[c]], contrast[, c]))
-    #     tbls <- lapply(fits, topTags, n = Inf, sort.by = "none")
-    #     # combine tables & reformat
-    #     tbl_qlt <- tbls$qlt$table; tbl_treat <- tbls$treat$table
-    #     tbl <- rename(tbl_qlt, p_val.qlt = "PValue", p_adj.qlt = "FDR")
-    #     tbl$p_val.treat <- tbl_treat$PValue
-    #     tbl$p_adj.treat <- tbl_treat$FDR
-    #     tbl <- add_column(tbl, .after = "logFC", 
-    #         unshrunk.logFC = tbl_treat$unshrunk.logFC)
-    #     tbl <- .res_df(tbl, k, ct, c)
-    # })
+    # treat: test for DE relative to logFC threshold
+    # else:  genewise NB GLM with quasi-likelihood test
+    .fun <- ifelse(treat, glmTreat, glmQLFTest)
     tbl <- lapply(cs, function(c) {
-        fit <- glmQLFTest(fit, coef[[c]], contrast[, c], )
-        tbl <- topTags(fit, number = Inf, sort.by = "none")
+        fit <- .fun(fit, coef[[c]], contrast[, c])
+        tbl <- topTags(fit, n = Inf, sort.by = "none")
+        # combine tables & reformat
+        tbl <- rename(tbl$table, p_val = "PValue", p_adj.loc = "FDR")
         tbl <- .res_df(tbl, k, ct, c)
-        rename(tbl, p_val = "PValue", p_adj.loc = "FDR")
     })
     list(table = tbl, data = y, fit = fit)
 }
@@ -73,7 +62,7 @@
 #' @importFrom limma contrasts.fit eBayes lmFit topTable voom
 #' @importFrom SummarizedExperiment assay
 #' @importFrom S4Vectors metadata
-.limma <- function(x, k, design, coef, contrast, ct, cs, method) {
+.limma <- function(x, k, design, coef, contrast, ct, cs, method, treat) {
     y <- assay(x, k)
     trend <- robust <- TRUE
     if (method == "voom") {
@@ -84,37 +73,25 @@
     } 
     w <- metadata(x)$n_cells[k, colnames(x)]   
     fit <- lmFit(y, design, weights = w)
-    # tests <- list(
-    #     bayes = eBayes, # eBayes moderated t-stat testing each contrast equal to 0
-    #     treat = treat)  # eBayes moderated-t p-val relative to min logFC threshold
-    # tbl <- lapply(cs, function(c) {
-    #     fit <- contrasts.fit(fit, contrast[, c], coef[[c]])
-    #     fits <- lapply(tests, function(fun) 
-    #         fun(fit, trend = trend, robust = robust))
-    #     tbls <- list(
-    #         bayes = topTable(fits$bayes, number = Inf, sort.by = "none"),
-    #         treat = topTreat(fits$treat, number = Inf, sort.by = "none"))
-    #     tbl <- rename(tbls$bayes, t.bayes = "t",
-    #         p_val.bayes = "P.Value", p_adj.bayes = "adj.P.Val")
-    #     tbl$p_val.treat <- tbls$treat$P.Value
-    #     tbl$p_adj.treat <- tbls$treat$adj.P.Val
-    #     tbl$t.treat <- tbls$treat$t
-    #     tbl <- .res_df(tbl, k, ct, c)
-    # })
+    # treat: eBayes moderated-t p-val relative to min logFC threshold
+    # else:  eBayes moderated t-stat testing each contrast equal to 0 
+    .fun <- ifelse(treat, treat, eBayes)
+    .tbl <- ifelse(treat, topTreat, topTable)
     tbl <- lapply(cs, function(c) {
         fit <- contrasts.fit(fit, contrast[, c], coef[[c]])
-        fit <- topTable(fit, number = Inf, sort.by = "none")
+        fit <- .fun(fit, trend = trend, robust = robust)
+        tbl <- .tbl(fit, number = Inf, sort.by = "none")
+        tbl <- rename(tbl, p_val = "P.Value", p_adj.loc = "adj.P.Val")
         tbl <- .res_df(tbl, k, ct, c)
-        rename(tbl, p_val = "P.Value", p_adj.loc = "adj.P.Val")
     })
     list(table = tbl, data = y, fit = fit)
 }
 
-.limma_trend <- function(x, k, design, coef, contrast, ct, cs)
-    .limma(x, k, design, coef, contrast, ct, cs, method = "trend")
+.limma_trend <- function(x, k, design, coef, contrast, ct, cs, treat)
+    .limma(x, k, design, coef, contrast, ct, cs, method = "trend", treat)
 
-.limma_voom <- function(x, k, design, coef, contrast, ct, cs)
-    .limma(x, k, design, coef, contrast, ct, cs, method = "voom")
+.limma_voom <- function(x, k, design, coef, contrast, ct, cs, treat)
+    .limma(x, k, design, coef, contrast, ct, cs, method = "voom", treat)
   
 #' @importFrom dplyr rename
 #' @importFrom DESeq2 DESeq DESeqDataSetFromMatrix results 

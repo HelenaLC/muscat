@@ -131,6 +131,7 @@
 # > adds 'p_adj.glb' column containing globally adjusted p-values
 #   to the result table of ea. cluster for each comparison
 # ------------------------------------------------------------------------------
+#' @importFrom purrr map map_depth
 #' @importFrom stats p.adjust
 #' @importFrom tibble add_column
 .p_adj_global <- function(x) {
