@@ -18,7 +18,9 @@ simData(
   p_dm = 0.5,
   p_type = 0,
   lfc = 2,
-  rel_lfc = NULL
+  rel_lfc = NULL,
+  cells_phylo = NULL,
+  params_dist = c(0.2, 3)
 )
 }
 \arguments{
@@ -52,6 +54,22 @@ for DE, DP, DM, and DB type of genes.}
 Should be of length \code{nlevels(x$cluster_id)} with 
 \code{levels(x$cluster_id)} as names. 
 Defaults to factor of 1 for all clusters.}
+
+\item{cells_phylo}{newick tree text representing cluster relations 
+and their relative distance. If a tree is given, the distance between 
+the clusters will be translated in the number of shared genes 
+(this relation is controlled with \code{params_dist}). The distance 
+between two clusters is defined as the sum of the branches lengths 
+separating them.}
+
+\item{params_dist}{numeric vector of length 2. Defines the number of shared 
+genes as an adaptation of the exponential's PDF:
+N = Ngenes x gamma1 * e^(-gamma2 x dist) ,
+where gamma1 is the parameter that controls the percentage of shared genes. 
+By default, it corresponds to \code{p_type} but it's advised to tune it 
+depending on the input prep_sce. gamma2 is the 'penalty' of increasing 
+the distance between clusters, applied on the number of shared genes. 
+Default to -3.}
 }
 \value{
 a \code{\link[SingleCellExperiment]{SingleCellExperiment}}
@@ -90,7 +108,24 @@ table(sim$sample_id)
 sim <- simData(sce, ng = 10, nc = 100,
   probs = list(NULL, NULL, c(1, 0)))
 levels(sim$group_id)
-    
+
+
+# Hierarchical cell-type relations: 
+# we first define a phylogram representing the relations between 3 clusters
+cells_phylo <- "(('cluster1':0.1, 'cluster2':0.1):0.4,'cluster3':0.5);"
+# to verify the syntax and the relation, we can plot it
+library(phylogram)
+dend <- read.dendrogram(text = cells_phylo)
+plot(dend)
+# More complex relations are also possible
+cells_phylo2 <- "(('cluster1':0.4, 'cluster2':0.4):0.4, ('cluster3':0.5,('cluster4':0.2,'cluster5':0.2,'cluster6':0.2):0.4):0.4);"
+dend2 <- read.dendrogram(text = cells_phylo2)
+plot(dend2)
+# simulate clusters based on these distances
+sim <- simData(sce_, nk = 3, cells_phylo = cells_phylo)
+# the information about the shared 'type' genes are also kept in the metadata
+table(metadata(sim)$gene_info$shared_class)
+
 }
 \references{
 Crowell, HL, Soneson, C, Germain, P-L, Calini, D, 

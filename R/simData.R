@@ -27,6 +27,20 @@
 #'   Should be of length \code{nlevels(x$cluster_id)} with 
 #'   \code{levels(x$cluster_id)} as names. 
 #'   Defaults to factor of 1 for all clusters.
+#' @param cells_phylo newick tree text representing cluster relations 
+#'   and their relative distance. If a tree is given, the distance between 
+#'   the clusters will be translated in the number of shared genes 
+#'   (this relation is controlled with \code{params_dist}). The distance 
+#'   between two clusters is defined as the sum of the branches lengths 
+#'   separating them. 
+#' @param params_dist numeric vector of length 2. Defines the number of shared 
+#'   genes as an adaptation of the exponential's PDF:
+#'   N = Ngenes x gamma1 * e^(-gamma2 x dist) ,
+#'   where gamma1 is the parameter that controls the percentage of shared genes. 
+#'   By default, it corresponds to \code{p_type} but it's advised to tune it 
+#'   depending on the input prep_sce. gamma2 is the 'penalty' of increasing 
+#'   the distance between clusters, applied on the number of shared genes. 
+#'   Default to -3. 
 #'   
 #' @return a \code{\link[SingleCellExperiment]{SingleCellExperiment}}
 #'   containing multiple clusters & samples across 2 groups.
@@ -57,7 +71,24 @@
 #' sim <- simData(sce, ng = 10, nc = 100,
 #'   probs = list(NULL, NULL, c(1, 0)))
 #' levels(sim$group_id)
-#'     
+#' 
+#' 
+#' # Hierarchical cell-type relations: 
+#' # we first define a phylogram representing the relations between 3 clusters
+#' cells_phylo <- "(('cluster1':0.1, 'cluster2':0.1):0.4,'cluster3':0.5);"
+#' # to verify the syntax and the relation, we can plot it
+#' library(phylogram)
+#' dend <- read.dendrogram(text = cells_phylo)
+#' plot(dend)
+#' # More complex relations are also possible
+#' cells_phylo2 <- "(('cluster1':0.4, 'cluster2':0.4):0.4, ('cluster3':0.5,('cluster4':0.2,'cluster5':0.2,'cluster6':0.2):0.4):0.4);"
+#' dend2 <- read.dendrogram(text = cells_phylo2)
+#' plot(dend2)
+#' # simulate clusters based on these distances
+#' sim <- simData(sce_, nk = 3, cells_phylo = cells_phylo)
+#' # the information about the shared 'type' genes are kept in the metadata
+#' table(metadata(sim)$gene_info$shared_class)
+#' 
 #' @author Helena L Crowell
 #' 
 #' @references 
@@ -82,7 +113,8 @@
 simData <- function(x, ng = nrow(x), nc = 2e3, ns = 3, nk = 3,
     probs = NULL, p_dd = diag(6)[1, ], paired = FALSE,
     p_ep = 0.5, p_dp = 0.3, p_dm = 0.5,
-    p_type = 0, lfc = 2, rel_lfc = NULL) {
+    p_type = 0, lfc = 2, rel_lfc = NULL, 
+    cells_phylo = NULL, params_dist = c(0.2, 3) ) {
     
     # throughout this code...
     # k: cluster ID
@@ -151,9 +183,45 @@ simData <- function(x, ng = nrow(x), nc = 2e3, ns = 3, nk = 3,
     gs_by_k <- setNames(sample(rownames(x), ng, TRUE), gs)
     gs_by_k <- set_colnames(replicate(nk, gs_by_k), kids)
 
+    if (length(cells_phylo) > 0) {                                  
+        out <- .impute_shared_type_genes(x, gs_by_k, gs_idx, cells_phylo, 
+                                         params_dist)
+        gs_by_k <- out[[1]]
+        used_tg <- out[[2]]
+        shared  <- out[[3]]
+        
+        if (p_type != 0) {
+            
+            ## update gs_idx to avoid having type genes in the shared type genes
+            gs_idx_red <- gs_idx
+            ee_ep_id <- seq(1, 6 * length(kids) - 5, 6)
+            ee_ep_id <- c(ee_ep_id, ee_ep_id + 1)
+            for (i in ee_ep_id) gs_idx_red[[i]] <- (gs_idx[[i]])[-which(gs_idx[[i]] %in% used_tg)]
+            type_info <- gs_by_k
+            gs_by_k <- .impute_type_genes(x, gs_by_k, gs_idx_red, p_type)
+            
+            ## keep gene type info 
+            type_info[type_info == gs_by_k] <- NA
+            type_info[!is.na(type_info)] <- "type"
+            type_info[is.na(type_info)] <- "state"
+            
+        } else {
+            type_info <- matrix("state", ng, nk)
+        }
+    } else {
+        shared <- matrix("state", ng, nk)
+    }
+    
     # impute type-genes
-    if (p_type != 0)
+    if (p_type != 0 & length(cells_phylo) == 0)  {
+        type_info <- gs_by_k
         gs_by_k <- .impute_type_genes(x, gs_by_k, gs_idx, p_type)
+        
+        ## keep gene type info 
+        type_info[type_info == gs_by_k] <- NA
+        type_info[!is.na(type_info)] <- "type"
+        type_info[is.na(type_info)] <- "state"
+    }                       
 
     # split by cluster & categroy
     gs_by_k <- split(gs_by_k, col(gs_by_k))
@@ -164,6 +232,7 @@ simData <- function(x, ng = nrow(x), nc = 2e3, ns = 3, nk = 3,
             gs_by_k[[k]][gs_idx[[c, k]]])) 
     
     # sample logFCs
+    lfc0 <- lfc 
     lfc <- vapply(kids, function(k) 
         lapply(unfactor(cats), function(c) { 
             n <- n_dd[c, k]
@@ -243,6 +312,23 @@ simData <- function(x, ng = nrow(x), nc = 2e3, ns = 3, nk = 3,
     # reorder
     o <- order(as.numeric(gsub("[a-z]", "", gi$gene)))
     gi <- set_rownames(gi[o, ], NULL)
+    # add gene infos                          
+    gi$class <- c(t(type_info))
+    gi$shared_class <- c(t(shared))
+    # parameters                           
+    params <- list(
+        ng = ng, 
+        nc = nc, 
+        ns = ns, 
+        nk = nk, 
+        probs = probs, 
+        p_dd = p_dd, 
+        p_type = p_type, 
+        lfc = lfc0, 
+        rel_lfc = rel_lfc, 
+        cells_phylo = cells_phylo, 
+        params_dist = params_dist
+    )
     
     # construct SCE
     cd$group_id <- droplevels(cd$group_id)
@@ -259,7 +345,8 @@ simData <- function(x, ng = nrow(x), nc = 2e3, ns = 3, nk = 3,
         n_cells = table(cd$sample_id),
         gene_info = gi,
         ref_sids = ref_sids,
-        ref_kids = ref_kids)
+        ref_kids = ref_kids, 
+        parameters = params)
     
     SingleCellExperiment(
         assays = list(counts = as.matrix(y)),
