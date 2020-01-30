@@ -9,16 +9,14 @@ Type: Package
 Version: 1.1.0
 Depends: R (>= 3.6), scater (>= 1.13)
 Authors@R: c(
-	person("Helena L.", "Crowell", role=c("aut", "cre"), 
-		email="helena.crowell@uzh.ch"),
+	person("Helena L.", "Crowell", role=c("aut", "cre"), email="helena.crowell@uzh.ch"),
 	person("Charlotte", "Soneson", role="aut"),
 	person("Pierre-Luc", "Germain", role="aut"),
-	person("Mark D.", "Robinson", role=c("aut", "fnd"), 
-		email="mark.robinson@imls.uzh.ch"))
+	person("Mark D.", "Robinson", role=c("aut", "fnd"), email="mark.robinson@imls.uzh.ch"))
 Imports: 
 	BiocParallel, blme, 
 	ComplexHeatmap, 
-	data.table, DESeq2, doParallel, dplyr, 
+	data.table, DESeq2, dplyr, 
 	edgeR, 
 	ggplot2, glmmTMB, grDevices, grid, 
 	limma, lmerTest, lme4, 
@@ -40,6 +38,8 @@ Suggests:
 biocViews: DifferentialExpression, Sequencing, SingleCell, Software, StatisticalMethod, Visualization
 License: GPL (>= 2)
 VignetteBuilder: knitr
-RoxygenNote: 7.0.0
+RoxygenNote: 7.0.2
 Encoding: UTF-8
 LazyData: TRUE
+URL: http://bioconductor.org/packages/muscat
+BugReports: https://support.bioconductor.org
