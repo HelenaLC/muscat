@@ -77,6 +77,103 @@ cats <- factor(cats, levels = cats)
 }
 
 # ------------------------------------------------------------------------------
+#  Read the nodes of a phylogram to create a table of state/ type 
+#  that corresponds to the relations between clusters. 
+#  Recursively calls itself at each node to update the class_tbl with shared 
+#  category among the relevant clusters. 
+# ------------------------------------------------------------------------------
+#   cells_phylo  = input cell phylogram (see also ?simData)
+#   class_tbl    = class of gene category (type/state)
+#   used_tg      = genes already used as 'type' in previous recursions
+#   params_dist  = distance parameters for the nbr of share genes. 
+#       see ?simData. 
+#   > returns 1) the updated class_tbl for the current node (if in recursion) or 
+#   the updated class_tbl for the whole tree (if all nodes were read), 2) the 
+#   genes already used as 'shared' type in the previous recursions. 
+# ------------------------------------------------------------------------------
+#' @importFrom dplyr %>%
+.read_branch <- function(cells_phylo, class_tbl, used_tg, params_dist){
+    # decompose groups from the phylogram syntax
+    phylo_grps <- gsub("^\\(|\\);$", "", cells_phylo) 
+    phylo_grps <- strsplit( phylo_grps, split = '\\([^)]+,(*SKIP)(*FAIL)|,\\s*', perl=TRUE)[[1]]
+    # grep distance and remove it from the groups
+    dist <- lapply(phylo_grps, function(x) as.numeric(gsub(".*:", "", x)) )
+    phylo_grps <- lapply(phylo_grps, function(x) gsub("\\:[0-9]*\\.[0-9]*$", ";", x))
+    # identify clusters to assign type genes
+    k_shared <- unlist(phylo_grps) %>% 
+        regmatches(., gregexpr("(?<=').*?(?=')", ., perl = TRUE)) %>%
+        unlist() %>% grep("cluster[0-9]*", ., value = TRUE)
+    # N shared genes btw these clusters
+    nshared <- ceiling(params_dist[1] * nrow(class_tbl) *  exp(-params_dist[2]*dist[[1]]) )
+    if (length(used_tg)>0) g_avail <- rownames(class_tbl)[-which(rownames(class_tbl) %in% used_tg)] else g_avail <- rownames(class_tbl)
+    typeg <- sample(g_avail, nshared)
+    used_tg <- c(used_tg, typeg)
+    # fill in shared types in class table
+    class_tbl[typeg, k_shared] <- "type"
+    # remove phylo groups that already reached the end leaf
+    # --> recognized by missing ","
+    phylo_grps <- phylo_grps[lapply(phylo_grps, function(x) length(grep("\\,", x))) > 0]
+    ## Stop if no node left, else recursive on further node 
+    if(length(phylo_grps) == 0) {
+        return(list(class_tbl, used_tg))
+    } else {
+        for (subnode in phylo_grps){
+            out <- .read_branch(subnode, class_tbl, used_tg, params_dist)
+            class_tbl <- out[[1]]
+            used_tg <- out[[2]]
+        }
+        return(list(class_tbl, used_tg))
+    }
+}
+
+# ------------------------------------------------------------------------------
+# sample marker classes based on a cell phylogram by calling .read_branch
+# ------------------------------------------------------------------------------
+#   x           = input SingleCellExperiment
+#   gs_by_k     = n_genes x n_clusters matrix of 'x' genes to use for sim.
+#   gs_idx      = n_category x n_clusters matrix of output gene indices
+#   cells_phylo = input cell phylogram (see also ?simData)
+#   params_dist = parameters to define the number of shared genes, based on 
+#     branch distance (see also ?simData)
+#
+# > Returns a list of 1) an updated marker class matrix, 2) a vector of the genes
+# that were already used as 'type' (to avoid reuse with .impute_type_genes), 
+# 3) a gene information matrix that can be integrated in the `gi` output.
+# ------------------------------------------------------------------------------
+#' @importFrom dplyr %>%
+.impute_shared_type_genes <- function(x, gs_by_k, gs_idx, cells_phylo, 
+                                      params_dist) {
+    kids <- colnames(gs_idx)
+    names(kids) <- kids
+    # sample gene-classes for genes of categroy EE & EP
+    non_de <- c("ee", "ep")
+    # temp copy of gs_by_k, filled with class category
+    class_tbl <- gs_by_k
+    class_tbl[1:nrow(class_tbl), 1:ncol(class_tbl)] <- "state"
+    # memory of type-genes that are already used when looping
+    used_tg <- c()
+    out <- .read_branch(cells_phylo, class_tbl, used_tg, params_dist)
+    used_tg <- out[[2]]
+    class_tbl <- out[[1]]
+    # sample genes that were defined as type (same across related clusters)
+    for(g in used_tg) {
+        k <- kids[class_tbl[g,] == "type"]
+        gs_by_k[g, k] <- sample(setdiff(rownames(x), gs_by_k[g, -which(kids %in% k)]), 1)
+    }
+    ##shared gene info 
+    shared <- apply(class_tbl, 1, function(z) {
+        a <- z[z == "type"] 
+        z1 <- z
+        if (length(a) == 0) rep("state", ncol(class_tbl)) else {
+            k_shared <- paste(names(a), collapse = ".")
+            z1[z1 == "type"] <- k_shared
+            z1
+        } 
+    }) %>% t()
+    return(list(gs_by_k, used_tg, shared))
+}
+
+# ------------------------------------------------------------------------------
 # for ea. cluster, sample marker classes
 #   x       = input SingleCellExperiment
 #   gs_by_k = n_genes x n_clusters matrix of 'x' genes to use for sim.
