@@ -23,7 +23,8 @@ are represented as a single assay.
 }
 \examples{
 data(sce)
-pb <- aggregateData(sce)
-pbFlatten(pb)
+pb_stack <- aggregateData(sce)
+(pb_flat <- pbFlatten(pb_stack))
+ncol(pb_flat) == ncol(pb_stack)*length(assays(pb_stack))
 
 }

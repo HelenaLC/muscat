@@ -21,13 +21,13 @@
 #' @importFrom edgeR cpm calcNormFactors DGEList
 #' @importFrom S4Vectors DataFrame metadata as.list
 #' @importFrom SingleCellExperiment SingleCellExperiment
-#' @importFrom SummarizedExperiment assay assay<- colData rowData
+#' @importFrom SummarizedExperiment assay assay<- assays colData rowData
 #' @export
 
 pbFlatten <- function(pb, normalize = TRUE){
     # check validity of input arguments
-    stopifnot(is(pb, "SingleCellExperiment"),
-        is.logical(normalize), length(normalize) == 1)
+    stopifnot(is.logical(normalize), length(normalize) == 1,
+        is(pb, "SingleCellExperiment"), length(assays(pb)) > 1)
     # concatenate assay data
     as <- assays(pb)
     a <- do.call(cbind, as.list(as))

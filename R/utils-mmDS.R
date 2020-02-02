@@ -38,7 +38,6 @@
 #' @importFrom edgeR DGEList
 #' @importFrom dplyr %>% last mutate_at rename
 #' @importFrom limma duplicateCorrelation eBayes topTable voom
-#' @importFrom magrittr set_rownames
 #' @importFrom matrixStats rowSds
 #' @importFrom scater computeLibraryFactors
 #' @importFrom SingleCellExperiment counts sizeFactors
@@ -157,7 +156,6 @@
 #' @importFrom dplyr last
 #' @importFrom purrr set_names
 #' @importFrom SingleCellExperiment counts
-#' @importFrom tibble add_column
 .mm_vst <- function(x,
     vst = c("sctransform", "DESeq2"),
     coef = NULL, covs = NULL,
@@ -191,19 +189,21 @@
 
     if (verbose) message("Applying empirical Bayes moderation..")
     fits <- .mm_eBayes(fits, coef)
-    add_column(fits, .after = "p_val", p_adj.loc = p.adjust(fits$p_val))
+    i <- which(colnames(fits) == "p_val")
+    fits[["p_adj.loc"]] <- p.adjust(fits$p_val)
+    fits[, c(seq_len(i), ncol(fits), seq(i+1, ncol(fits)-1))]
 }
 
 # helper to prepare colData for .mm_dream/vst
 #' @importFrom dplyr %>% mutate_at mutate_if
-#' @importFrom magrittr set_rownames
 #' @importFrom SummarizedExperiment colData
 .prep_cd <- function(x, covs) {
-    colData(x)[c("sample_id", "group_id", covs)] %>%
-        data.frame(check.names = FALSE) %>%
-        mutate_if(is.factor, droplevels) %>%
-        mutate_at(covs, function(u) if (is.numeric(u)) scale(u)) %>%
-        set_rownames(colnames(x))
+    cd <- colData(x)[c("sample_id", "group_id", covs)]
+    cd <- data.frame(cd, check.names = FALSE)
+    cd <- mutate_if(cd, is.factor, droplevels)
+    cd <- mutate_at(covs, function(u) if (is.numeric(u)) scale(u))
+    rownames(cd) <- colnames(x)
+    return(cd)
 }
 
 # fits mixed models and returns fit information required for eBayes
@@ -245,11 +245,8 @@
 #' @importFrom purrr set_names
 #' @importFrom SingleCellExperiment counts
 #' @importFrom SummarizedExperiment assay
-#' @importFrom tibble add_column
-.mm_glmm <- function(x,
-    coef, covs, n_threads,
-    family = c("poisson","nbinom"),
-    verbose=TRUE, moderate=TRUE) {
+.mm_glmm <- function(x, coef = NULL, covs = NULL, n_threads = 1,
+    family = c("poisson","nbinom"), verbose = TRUE, moderate = TRUE) {
 
     family <- match.arg(family)
     cd <- .prep_cd(x, covs)
@@ -306,16 +303,18 @@
         fits <- as.data.frame(t(bind_rows(fits)))
         colnames(fits) <- c("beta", "SE", "stat", "p_val")
     }
-    add_column(fits, .after = "p_val", p_adj.loc = p.adjust(fits$p_val))
+    i <- which(colnames(fits) == "p_val")
+    fits[["p_adj.loc"]] <- p.adjust(fits$p_val)
+    fits[, c(seq_len(i), ncol(fits), seq(i+1, ncol(fits)-1))]
 }
 
-.mm_poisson <- function(x, coef, covs,
-    n_threads, verbose = TRUE, moderate = TRUE)
+.mm_poisson <- function(x, coef = NULL, covs = NULL,
+    n_threads = 1, verbose = TRUE, moderate = TRUE)
     .mm_glmm(x, coef, covs, n_threads, family = "poisson",
         verbose = verbose, moderate = moderate)
 
-.mm_nbinom <- function(x, coef, covs,
-    n_threads, verbose = TRUE, moderate = TRUE)
+.mm_nbinom <- function(x, coef = NULL, covs = NULL,
+    n_threads = 1, verbose = TRUE, moderate = TRUE)
     .mm_glmm(x, coef, covs, n_threads, family = "nbinom",
         verbose = verbose, moderate = moderate)
 
@@ -327,10 +326,8 @@
 #' @importFrom SingleCellExperiment counts sizeFactors
 #' @importFrom stats model.matrix
 #' @importFrom SummarizedExperiment colData
-#' @importFrom tibble add_column
-.mm_hybrid <- function(x,
-    coef, covs, n_threads, verbose = TRUE,
-    fam = c("nbinom","poisson"), th = 0.1) {
+.mm_hybrid <- function(x, coef = NULL, covs = NULL, n_threads = 1, 
+    verbose = TRUE, fam = c("nbinom","poisson"), th = 0.1) {
 
     fam <- match.arg(fam)
     x$cluster_id <- droplevels(x$cluster_id)
@@ -403,7 +400,9 @@
     res[gs, "p_val"] <- res[gs, "p_val.glmm"]
 
     res <- res[, -c(1, 2)]
-    add_column(res, .after = "p_val", p_adj.loc = p.adjust(res$p_val))
+    i <- which(colnames(res) == "p_val")
+    res[["p_adj.loc"]] <- p.adjust(res$p_val)
+    res[, c(seq_len(i), ncol(res), seq(i+1, ncol(res)-1))]
 }
 
 # fits negative binomial mixed models and
@@ -459,7 +458,6 @@
 # an eBayes compatible list & performs moderation
 #' @importFrom dplyr %>% bind_cols pull
 #' @importFrom limma eBayes
-#' @importFrom magrittr set_colnames
 #' @importFrom purrr map set_names
 .mm_eBayes <- function(fits, coef, trended = TRUE) {
     rmv <- vapply(fits, inherits, what = "error", logical(1))
@@ -477,9 +475,9 @@
             map(as.data.frame) %>% map(pull, coef) %>%
             data.frame(row.names = names(f))
     } else {
-        res <- matrix(NA, nrow = 0, ncol = 4) %>%
-            set_colnames(c("beta", "stat", "p_val0", "p_val")) %>%
-            as.data.frame
+        res <- matrix(NA, nrow = 0, ncol = 4) 
+        colnames(res) <- c("beta", "stat", "p_val0", "p_val")
+        as.data.frame(res)
     }
     if (any(rmv)) {
         res[names(which(rmv)), "error"] <-

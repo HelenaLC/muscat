@@ -21,7 +21,6 @@
 # wrapper to create output tables
 #   k:  cluster ID
 #   tt: topTable data.frame
-#' @importFrom tibble add_column
 .res_df <- function(tbl, k, ct, c) {
     df <- data.frame(
         gene = rownames(tbl), cluster_id = k, tbl,

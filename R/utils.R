@@ -133,7 +133,6 @@
 # ------------------------------------------------------------------------------
 #' @importFrom purrr map map_depth
 #' @importFrom stats p.adjust
-#' @importFrom tibble add_column
 .p_adj_global <- function(x) {
     names(ks) <- ks <- names(x)
     names(cs) <- cs <- names(x[[1]])
@@ -147,11 +146,12 @@
         ns <- vapply(p_val, length, numeric(1))
         p_adj <- split(p_adj, rep.int(ks, ns))
         # insert into results tables
-        lapply(ks, function(k) 
-            add_column(
-                x[[k]][[c]], 
-                p_adj.glb = p_adj[[k]], 
-                .after = "p_adj.loc"))
+        lapply(ks, function(k) {
+            u <- x[[k]][[c]]
+            i <- which(colnames(u) == "p_adj.loc")
+            u[["p_adj.glb"]] <- p_adj[[k]]
+            u[, c(seq_len(i), ncol(u), seq(i+1, ncol(u)-1))]
+        })
     })
 }
 

@@ -39,11 +39,11 @@ cats <- factor(cats, levels = cats)
 # generate a randomized data.frame/colData of cell metadata
 # (cluster IDs, sample IDs, and group IDs)
 # ------------------------------------------------------------------------------
-#   n:     nb. of cells
-#   ids:   list of IDs to sample from
-#   probs: list of probabilities for ea. set of IDs
+#   n     = nb. of cells
+#   ids   = list of IDs to sample from
+#   probs = list of probabilities for ea. set of IDs
+#           (in order of cluster, sample, group)
 # ------------------------------------------------------------------------------
-#' @importFrom magrittr set_colnames
 .sample_cell_md <- function(n, ids, probs = NULL) {
     ns <- vapply(ids, length, numeric(1))
     if (is.null(probs)) 
@@ -55,11 +55,13 @@ cats <- factor(cats, levels = cats)
             rep(1 / ns[i], ns[i])
         }
     })
-    vapply(seq_along(probs), function(i) 
+    cd <- vapply(seq_along(probs), function(i) 
         sample(ids[[i]], n, TRUE, probs[[i]]), 
-        character(n)) %>% data.frame(row.names = NULL) %>% 
-        set_colnames(c("cluster_id", "sample_id", "group_id")) %>% 
-        mutate_at("group_id", factor)
+        character(n))
+    cd <- data.frame(cd, row.names = NULL)
+    colnames(cd) <- c("cluster_id", "sample_id", "group_id")
+    cd$group_id <- factor(cd$group_id, levels = ids[[3]])
+    return(cd)
 }
 
 # ------------------------------------------------------------------------------
@@ -76,108 +78,119 @@ cats <- factor(cats, levels = cats)
         vector("list", length(cats)))
 }
 
+# helper to extract cluster IDs as "clusterN" from phylogeny
+.get_clusters_from_phylo <- function(u) {
+    pat <- "(?<=').*?(?=')"
+    v <- gregexpr(pat, u, perl = TRUE)
+    u <- unlist(regmatches(u, v))
+    grep("cluster[0-9]+", u, value = TRUE)
+}
+
 # ------------------------------------------------------------------------------
 #  Read the nodes of a phylogram to create a table of state/ type 
 #  that corresponds to the relations between clusters. 
 #  Recursively calls itself at each node to update the class_tbl with shared 
 #  category among the relevant clusters. 
 # ------------------------------------------------------------------------------
-#   cells_phylo  = input cell phylogram (see also ?simData)
-#   class_tbl    = class of gene category (type/state)
+#   phylo_tree   = input cell phylogram (see '?simData')
+#   class_tbl    = class of gene category (type or state)
 #   used_tg      = genes already used as 'type' in previous recursions
-#   params_dist  = distance parameters for the nbr of share genes. 
-#       see ?simData. 
-#   > returns 1) the updated class_tbl for the current node (if in recursion) or 
-#   the updated class_tbl for the whole tree (if all nodes were read), 2) the 
-#   genes already used as 'shared' type in the previous recursions. 
+#   params_dist  = distance parameters for the number of 
+#                  genes shared b/w branches (see '?simData')
+#   > i) updated 'class_tbl' for the current node (if in recursion) or 
+#     updated 'class_tbl' for the whole tree (if all nodes were read);
+#     ii) genes already used as 'shared' in previous recursions
 # ------------------------------------------------------------------------------
 #' @importFrom dplyr %>%
-.read_branch <- function(cells_phylo, class_tbl, used_tg, params_dist){
-    # decompose groups from the phylogram syntax
-    phylo_grps <- gsub("^\\(|\\);$", "", cells_phylo) 
-    phylo_grps <- strsplit( phylo_grps, split = '\\([^)]+,(*SKIP)(*FAIL)|,\\s*', perl=TRUE)[[1]]
-    # grep distance and remove it from the groups
-    dist <- lapply(phylo_grps, function(x) as.numeric(gsub(".*:", "", x)) )
-    phylo_grps <- lapply(phylo_grps, function(x) gsub("\\:[0-9]*\\.[0-9]*$", ";", x))
+.read_branch <- function(phylo_tree, class_tbl, used, params_dist) {
+    # assure there's no linebreaks
+    phylo <- gsub("\n", "", phylo_tree)
+    phygs <- gsub("^\\(|\\);$", "", phylo_tree) 
+    # decompose groups from phylogram
+    phygs <- strsplit(phygs, "\\([^)]+,(*SKIP)(*FAIL)|,\\s*", perl = TRUE)[[1]]
+    # grep distances & remove them from groups
+    ds <- lapply(phygs, function(u) as.numeric(gsub(".*:", "", u)))
+    phygs <- lapply(phygs, function(u) gsub("\\:[0-9]*\\.[0-9]*$", ";", u))
     # identify clusters to assign type genes
-    k_shared <- unlist(phylo_grps) %>% 
-        regmatches(., gregexpr("(?<=').*?(?=')", ., perl = TRUE)) %>%
-        unlist() %>% grep("cluster[0-9]*", ., value = TRUE)
-    # N shared genes btw these clusters
-    nshared <- ceiling(params_dist[1] * nrow(class_tbl) *  exp(-params_dist[2]*dist[[1]]) )
-    if (length(used_tg)>0) g_avail <- rownames(class_tbl)[-which(rownames(class_tbl) %in% used_tg)] else g_avail <- rownames(class_tbl)
-    typeg <- sample(g_avail, nshared)
-    used_tg <- c(used_tg, typeg)
-    # fill in shared types in class table
-    class_tbl[typeg, k_shared] <- "type"
-    # remove phylo groups that already reached the end leaf
-    # --> recognized by missing ","
-    phylo_grps <- phylo_grps[lapply(phylo_grps, function(x) length(grep("\\,", x))) > 0]
-    ## Stop if no node left, else recursive on further node 
-    if(length(phylo_grps) == 0) {
-        return(list(class_tbl, used_tg))
-    } else {
-        for (subnode in phylo_grps){
-            out <- .read_branch(subnode, class_tbl, used_tg, params_dist)
-            class_tbl <- out[[1]]
-            used_tg <- out[[2]]
+    k_shared <- .get_clusters_from_phylo(unlist(phygs))
+    # compute number of shared genes b/w these clusters as 
+    # Exp w/ intercept nb. genes x theta1 & rate distance x theta2
+    ng <- nrow(class_tbl)
+    n_shared <- ceiling(ng*params_dist[1]*ds[[1]]*exp(-params_dist[2])) 
+    if (length(used) != 0) {
+        gs <- rownames(class_tbl)
+        gs <- gs[!gs %in% used]
+    } else gs <- rownames(class_tbl)
+    type_gs <- sample(gs, n_shared)
+    used <- c(used, type_gs)
+    # update class table
+    class_tbl[type_gs, k_shared] <- "type"
+    # remove phylogeny groups that reached leaf (recognized by missing ",")
+    is_not_leaf <- vapply(phygs, function(u) 
+        length(grep("\\,", u)) > 0, logical(1))
+    phygs <- phygs[is_not_leaf]
+    # stop if no nodes left, otherwise recursion on further nodes
+    if (length(phygs) != 0) 
+        for (node in phygs) {
+            res <- .read_branch(node, class_tbl, used, params_dist)
+            class_tbl <- res$class_tbl; used <- res$used
         }
-        return(list(class_tbl, used_tg))
-    }
+    list(class_tbl = class_tbl, used = used)
 }
 
 # ------------------------------------------------------------------------------
 # sample marker classes based on a cell phylogram by calling .read_branch
 # ------------------------------------------------------------------------------
-#   x           = input SingleCellExperiment
+#   x           = input SCE
 #   gs_by_k     = n_genes x n_clusters matrix of 'x' genes to use for sim.
 #   gs_idx      = n_category x n_clusters matrix of output gene indices
-#   cells_phylo = input cell phylogram (see also ?simData)
-#   params_dist = parameters to define the number of shared genes, based on 
-#     branch distance (see also ?simData)
-#
-# > Returns a list of 1) an updated marker class matrix, 2) a vector of the genes
-# that were already used as 'type' (to avoid reuse with .impute_type_genes), 
-# 3) a gene information matrix that can be integrated in the `gi` output.
+#   phylo_tree  = input cell phylogram (see also '?simData')
+#   params_dist = parameters to define the number of shared genes, 
+#                 based on branch distance (see also '?simData')
+#   > returns a list of 
+#   1 an updated marker class matrix
+#   2 a vector of genes already used as 'type' 
+#     to avoid re-use by '.impute_type_genes()'
+#   3 a gene information matrix to be returned as part of the
+#     simulation metadata stored in `metadata(x)$gene_info`
 # ------------------------------------------------------------------------------
-#' @importFrom dplyr %>%
-.impute_shared_type_genes <- function(x, gs_by_k, gs_idx, cells_phylo, 
-                                      params_dist) {
-    kids <- colnames(gs_idx)
-    names(kids) <- kids
-    # sample gene-classes for genes of categroy EE & EP
-    non_de <- c("ee", "ep")
-    # temp copy of gs_by_k, filled with class category
+.impute_shared_type_genes <- function(x, gs_by_k, gs_idx, phylo_tree, params_dist) {
+    names(kids) <- kids <- colnames(gs_idx)
+    # initialize temporary copy of 'gs_by_k' 
+    # such that all genes are of class "state"
     class_tbl <- gs_by_k
-    class_tbl[1:nrow(class_tbl), 1:ncol(class_tbl)] <- "state"
-    # memory of type-genes that are already used when looping
-    used_tg <- c()
-    out <- .read_branch(cells_phylo, class_tbl, used_tg, params_dist)
-    used_tg <- out[[2]]
-    class_tbl <- out[[1]]
-    # sample genes that were defined as type (same across related clusters)
-    for(g in used_tg) {
-        k <- kids[class_tbl[g,] == "type"]
-        gs_by_k[g, k] <- sample(setdiff(rownames(x), gs_by_k[g, -which(kids %in% k)]), 1)
+    ij <- lapply(dim(gs_by_k), seq_len)
+    class_tbl[ij[[1]], ij[[2]]] <- "state"
+    # track type-genes already used while looping
+    res <- .read_branch(phylo_tree, class_tbl, used = c(), params_dist)
+    class_tbl <- res$class_tbl; used <- res$used
+    # sample genes that were defined as type 
+    # (same across related clusters)
+    for (g in used) {
+        k <- kids[class_tbl[g, ] == "type"]
+        gs <- setdiff(rownames(x), gs_by_k[g, !kids %in% k])
+        gs_by_k[g, k] <- sample(gs, 1)
     }
-    ##shared gene info 
-    shared <- apply(class_tbl, 1, function(z) {
-        a <- z[z == "type"] 
-        z1 <- z
-        if (length(a) == 0) rep("state", ncol(class_tbl)) else {
-            k_shared <- paste(names(a), collapse = ".")
-            z1[z1 == "type"] <- k_shared
-            z1
-        } 
-    }) %>% t()
-    return(list(gs_by_k, used_tg, shared))
+    # split classes by gene
+    cs_by_g <- split(class_tbl, row(class_tbl))
+    names(cs_by_g) <- rownames(gs_by_k)
+    # get gene specificities
+    specs <- lapply(cs_by_g, function(u) {
+        if (all(u == "state")) return(NA)
+        unname(kids[u == "type"])
+    })
+    # get gene classes
+    class <- vapply(specs, function(u)
+        ifelse(isTRUE(is.na(u)), "state", "shared"),
+        character(1))
+    list(gs_by_k = gs_by_k, used = used, class = class, specs = specs)
 }
 
 # ------------------------------------------------------------------------------
 # for ea. cluster, sample marker classes
-#   x       = input SingleCellExperiment
-#   gs_by_k = n_genes x n_clusters matrix of 'x' genes to use for sim.
-#   gs_idx  =  n_category x n_clusters matrix of output gene indices
+#   x       = input 'SingleCellExperiment'
+#   gs_by_k = n_genes x n_clusters matrix of 'x' genes to use for sim
+#   gs_idx  = n_category x n_clusters matrix of output gene indices
 #   p_type  = prob. of EE/EP gene being of class "type"
 #   > type-genes may only be of categroy EE & EP type of genes,
 #     and use a cluster-specific mean in the NB count simulation
@@ -186,11 +199,10 @@ cats <- factor(cats, levels = cats)
 #' @importFrom dplyr %>%
 #' @importFrom purrr map
 .impute_type_genes <- function(x, gs_by_k, gs_idx, p_type) {
-    kids <- colnames(gs_idx)
-    names(kids) <- kids
+    names(kids) <- kids <- colnames(gs_idx)
     # sample gene-classes for genes of categroy EE & EP
     non_de <- c("ee", "ep")
-    class <- lapply(kids, function(k) {
+    class_tbl <- lapply(kids, function(k) {
         gs <- unlist(gs_idx[non_de, k])
         n <- length(gs)
         data.table(
@@ -201,12 +213,28 @@ cats <- factor(cats, levels = cats)
     }) %>% map(split, by = "class", flatten = FALSE)
     # sample cluster-specific genes for ea. cluster & type-gene
     for (k in kids) {
-        type_gs <- class[[k]]$type$gene
+        type_gs <- class_tbl[[k]]$type$gene
         gs_by_k[type_gs, k] <- apply(
             gs_by_k[type_gs, kids != k, drop = FALSE], 1,
             function(ex) sample(setdiff(rownames(x), ex), 1))
     }
-    return(gs_by_k)
+    ng <- nrow(gs_by_k)
+    gs <- rownames(gs_by_k)
+    is_type <- map(class_tbl, "type")
+    type_gs <- unlist(map(is_type, "gene"))
+    shared_gs <- setdiff(gs, unlist(gs_idx))
+    stopifnot(!any(shared_gs %in% type_gs))
+    # get gene classes
+    class <- rep("state", ng)
+    names(class) <- gs
+    class[shared_gs] <- "shared"
+    class[unique(type_gs)] <- "type" 
+    # get gene specificities
+    specs <- rep(NA, ng)
+    names(specs) <- gs
+    ns <- vapply(is_type, nrow, numeric(1))
+    specs[unique(type_gs)] <- split(rep.int(kids, ns), type_gs)
+    return(list(gs_by_k = gs_by_k, class = class, specs = specs))
 }
 
 # ------------------------------------------------------------------------------
@@ -322,13 +350,23 @@ cats <- factor(cats, levels = cats)
     ms <- switch(cat, 
         ee = ms,
         de = ms,
-        db = cbind(
-            ms[, 1],
-            rowMeans(ms[, c(2, 3)])),
-        cbind(
-            rowMeans(ms[, c(1, 2)]),
-            rowMeans(ms[, c(3, 4)])))
+        db = if (ng2 == 0) {
+            as.matrix(
+                ms[, 1])
+        } else {
+            cbind(
+                ms[, 1],
+                rowMeans(ms[, c(2, 3)]))
+        }, if (ng2 == 0) {
+            as.matrix(
+                rowMeans(ms[, c(1, 2)]))
+        } else {
+            cbind(
+                rowMeans(ms[, c(1, 2)]),
+                rowMeans(ms[, c(3, 4)]))
+        })
     ms <- split(ms, col(ms))
     names(ms) <- c("A", "B")[c(ng1, ng2) != 0]
     list(cs = cs, ms = ms)
 }
+

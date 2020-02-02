@@ -93,7 +93,6 @@
 
 .check_args_simData <- function(u) {
     stopifnot(
-        is.numeric(u$ng), length(u$ng) == 1, u$ng > 0, as.integer(u$ng) == u$ng,
         is.numeric(u$nc), length(u$nc) == 1, u$nc > 0, as.integer(u$nc) == u$nc,
         is.numeric(u$nk), length(u$nk) == 1, u$nk > 0, as.integer(u$nk) == u$nk,
         is.numeric(u$ns), length(u$ns) %in% c(1, 2), u$ns > 0, as.integer(u$ns) == u$ns,
@@ -103,7 +102,9 @@
         is.numeric(u$p_dp), length(u$p_dp) == 1, u$p_dp > 0, u$p_dp < 1,
         is.numeric(u$p_dm), length(u$p_dm) == 1, u$p_dm > 0, u$p_dm < 1,
         is.numeric(u$p_type), length(u$p_type) == 1, u$p_type >= 0, u$p_type <= 1,
-        is.numeric(u$lfc), is.numeric(u$lfc), length(u$lfc) == 1, u$lfc >= 1)
+        is.numeric(u$lfc), is.numeric(u$lfc), length(u$lfc) == 1, u$lfc >= 1,
+        is.numeric(u$ng), length(u$ng) == 1, u$ng > 0, as.integer(u$ng) == u$ng,
+        is.logical(u$force), length(u$force) == 1)
     if (!is.null(u$rel_lfc))
         stopifnot(is.numeric(u$rel_lfc), 
             length(u$rel_lfc) == u$nk, u$rel_lfc >= 0)
