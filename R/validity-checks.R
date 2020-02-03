@@ -29,16 +29,16 @@
 #' @importFrom S4Vectors metadata
 #' @importFrom SummarizedExperiment assayNames
 .check_pbs <- function(pbs, sce = NULL, check_by = TRUE) {
-    stopifnot(is(pbs, "SingleCellExperiment"))
-    stopifnot(!is.null(ei <- metadata(pbs)$experiment_info))
-    stopifnot(!is.null(agg_pars <- metadata(pbs)$agg_pars))
-    stopifnot(!is.null(n_cells <- metadata(pbs)$n_cells))
-    stopifnot(identical(assayNames(pbs), rownames(n_cells)))
-    stopifnot(identical(colnames(pbs), colnames(n_cells)))
+    stopifnot(is(pbs, "SingleCellExperiment"),
+        !is.null(ei <- metadata(pbs)$experiment_info),
+        !is.null(agg_pars <- metadata(pbs)$agg_pars),
+        !is.null(n_cells <- metadata(pbs)$n_cells),
+        identical(assayNames(pbs), rownames(n_cells)),
+        identical(colnames(pbs), colnames(n_cells)))
     if (!is.null(sce)) {
-        stopifnot(identical(ei, metadata(sce)$experiment_info))
-        stopifnot(identical(rownames(pbs), rownames(sce)))
-        stopifnot(identical(assayNames(pbs), levels(sce[[agg_pars$by[1]]])))
+        stopifnot(identical(ei, metadata(sce)$experiment_info),
+            identical(assayNames(pbs), levels(sce[[agg_pars$by[1]]])),
+            identical(rownames(pbs), rownames(sce)))
         if (length(agg_pars$by == 2))
             stopifnot(identical(colnames(pbs), levels(sce[[agg_pars$by[2]]])))
     }

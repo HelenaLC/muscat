@@ -159,7 +159,7 @@ simData <- function(x, nc = 2e3, ns = 3, nk = 3,
             stop("Some clusters appear to be missing from 'phylo_tree';\n",
                 "please make sure all clusters up to ", 
                 dQuote(kids_phylo[which.max(ns_phylo)]), " are present.")
-        if (nk_phylo != nk) nk <- nk_phylo
+        if (nk_phylo != nk) args$nk <- nk <- nk_phylo
     }
     
     # simulation IDs
@@ -212,7 +212,8 @@ simData <- function(x, nc = 2e3, ns = 3, nk = 3,
     
     # for ea. cluster, sample set of genes to simulate from
     gs_by_k <- setNames(sample(rownames(x), ng, TRUE), gs)
-    gs_by_k <- set_colnames(replicate(nk, gs_by_k), kids)
+    gs_by_k <- replicate(nk, gs_by_k)
+    colnames(gs_by_k) <- kids
 
     # when 'phylo_tree' is specified, induce hierarchical cluster structure
     if (!is.null(phylo_tree)) {                                  
@@ -343,7 +344,7 @@ simData <- function(x, nc = 2e3, ns = 3, nk = 3,
         rename("sim_mean.A" = "A", "sim_mean.B" = "B")
     # reorder
     o <- order(as.numeric(gsub("[a-z]", "", gi$gene)))
-    gi <- set_rownames(gi[o, ], NULL)
+    gi <- gi[o, ]; rownames(gi) <- NULL
     
     # construct SCE ------------------------------------------------------------
     # cell metadata including group, sample, cluster IDs

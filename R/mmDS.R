@@ -164,7 +164,7 @@ mmDS <- function(x, coef = NULL, covs = NULL,
     p_adj.glb <- p.adjust(res$p_val)
     i <- which(colnames(res) == "p_adj.loc")
     res[["p_adj.glb"]] <- p_adj.glb
-    res <- res[, c(seq_len(i), ncol(res), seq(i+1, ncol(res)-1))]
+    res <- res[, c(seq_len(i), ncol(res), seq_len(ncol(res)-1)[-seq_len(i)])]
     # re-split by cluster
     split(res, res$cluster_id)
 }

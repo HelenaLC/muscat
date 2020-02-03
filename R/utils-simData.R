@@ -95,17 +95,17 @@ cats <- factor(cats, levels = cats)
 #   phylo_tree   = input cell phylogram (see '?simData')
 #   class_tbl    = class of gene category (type or state)
 #   used_tg      = genes already used as 'type' in previous recursions
-#   params_dist  = distance parameters for the number of 
+#   phylo_pars   = distance parameters for the number of 
 #                  genes shared b/w branches (see '?simData')
 #   > i) updated 'class_tbl' for the current node (if in recursion) or 
 #     updated 'class_tbl' for the whole tree (if all nodes were read);
 #     ii) genes already used as 'shared' in previous recursions
 # ------------------------------------------------------------------------------
 #' @importFrom dplyr %>%
-.read_branch <- function(phylo_tree, class_tbl, used, params_dist) {
+.read_branch <- function(phylo_tree, class_tbl, used, phylo_pars) {
     # assure there's no linebreaks
     phylo <- gsub("\n", "", phylo_tree)
-    phygs <- gsub("^\\(|\\);$", "", phylo_tree) 
+    phygs <- gsub("^\\(|\\);$", "", phylo) 
     # decompose groups from phylogram
     phygs <- strsplit(phygs, "\\([^)]+,(*SKIP)(*FAIL)|,\\s*", perl = TRUE)[[1]]
     # grep distances & remove them from groups
@@ -116,11 +116,13 @@ cats <- factor(cats, levels = cats)
     # compute number of shared genes b/w these clusters as 
     # Exp w/ intercept nb. genes x theta1 & rate distance x theta2
     ng <- nrow(class_tbl)
-    n_shared <- ceiling(ng*params_dist[1]*ds[[1]]*exp(-params_dist[2])) 
+    n_shared <- ceiling(phylo_pars[1]*ng*exp(-phylo_pars[2]*ds[[1]])) 
     if (length(used) != 0) {
         gs <- rownames(class_tbl)
         gs <- gs[!gs %in% used]
     } else gs <- rownames(class_tbl)
+    if (n_shared > length(gs)) stop("Ran out of genes to sample from;",
+        "\n  please simulate more genes or adjust 'phylo_pars'.")
     type_gs <- sample(gs, n_shared)
     used <- c(used, type_gs)
     # update class table
@@ -132,7 +134,7 @@ cats <- factor(cats, levels = cats)
     # stop if no nodes left, otherwise recursion on further nodes
     if (length(phygs) != 0) 
         for (node in phygs) {
-            res <- .read_branch(node, class_tbl, used, params_dist)
+            res <- .read_branch(node, class_tbl, used, phylo_pars)
             class_tbl <- res$class_tbl; used <- res$used
         }
     list(class_tbl = class_tbl, used = used)
@@ -145,7 +147,7 @@ cats <- factor(cats, levels = cats)
 #   gs_by_k     = n_genes x n_clusters matrix of 'x' genes to use for sim.
 #   gs_idx      = n_category x n_clusters matrix of output gene indices
 #   phylo_tree  = input cell phylogram (see also '?simData')
-#   params_dist = parameters to define the number of shared genes, 
+#   phylo_pars  = parameters to define the number of shared genes, 
 #                 based on branch distance (see also '?simData')
 #   > returns a list of 
 #   1 an updated marker class matrix
@@ -154,7 +156,7 @@ cats <- factor(cats, levels = cats)
 #   3 a gene information matrix to be returned as part of the
 #     simulation metadata stored in `metadata(x)$gene_info`
 # ------------------------------------------------------------------------------
-.impute_shared_type_genes <- function(x, gs_by_k, gs_idx, phylo_tree, params_dist) {
+.impute_shared_type_genes <- function(x, gs_by_k, gs_idx, phylo_tree, phylo_pars) {
     names(kids) <- kids <- colnames(gs_idx)
     # initialize temporary copy of 'gs_by_k' 
     # such that all genes are of class "state"
@@ -162,7 +164,7 @@ cats <- factor(cats, levels = cats)
     ij <- lapply(dim(gs_by_k), seq_len)
     class_tbl[ij[[1]], ij[[2]]] <- "state"
     # track type-genes already used while looping
-    res <- .read_branch(phylo_tree, class_tbl, used = c(), params_dist)
+    res <- .read_branch(phylo_tree, class_tbl, used = c(), phylo_pars)
     class_tbl <- res$class_tbl; used <- res$used
     # sample genes that were defined as type 
     # (same across related clusters)

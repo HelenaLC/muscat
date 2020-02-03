@@ -84,11 +84,12 @@
     }
 
     contrast <- getContrast(v, as.formula(formula), cd, coef)
-    fit <- dream(v, formula, cd, contrast, ddf = ddf, 
-        BPPARAM = bp, suppressWarnings = !verbose)
+    .dream <- expression(dream(v, formula, cd, contrast, ddf, 
+        BPPARAM = bp, suppressWarnings = !verbose, quiet  = !verbose))
+    if (verbose) fit <- eval(.dream) else suppressWarnings(fit <- eval(.dream))
     fit <- eBayes(fit, trend = trended, robust = TRUE)
 
-    topTable(fit, number = Inf, sort.by = "none") %>%
+    topTable(fit, coef, number = Inf, sort.by = "none") %>%
         rename(p_val = "P.Value", p_adj.loc = "adj.P.Val")
 }
 
@@ -129,14 +130,17 @@
     formula <- as.formula(formula)
 
     if (is.null(coef)) {
-        coef <- paste0("group_id",last(levels(x$group_id)))
+        coef <- paste0("group_id",last(levels(cd$group_id)))
         if (verbose)
             message("Argument 'coef' not specified; ",
                     "testing for ", dQuote(coef), ".")
     }
 
-    v <- voomWithDreamWeights(y, formula, cd, BPPARAM = bp, verbose = verbose)
-    res <- dream(v, formula, cd, BPPARAM = bp, ddf = ddf, verbose = verbose)
+    .dream <- expression(voomWithDreamWeights(y, 
+        formula, cd, BPPARAM = bp, quiet = !verbose))
+    if (verbose) v <- eval(.dream) else suppressMessages(v <- eval(.dream))
+    res <- dream(v, formula, cd, BPPARAM = bp, ddf = ddf, 
+        suppressWarnings = !verbose, quiet = !verbose)
     tbl <- topTable(res, coef = coef, Inf, sort.by = "none")
     rename(tbl, p_val = "P.Value", p_adj.loc = "adj.P.Val")
 }
@@ -190,8 +194,8 @@
     if (verbose) message("Applying empirical Bayes moderation..")
     fits <- .mm_eBayes(fits, coef)
     i <- which(colnames(fits) == "p_val")
-    fits[["p_adj.loc"]] <- p.adjust(fits$p_val)
-    fits[, c(seq_len(i), ncol(fits), seq(i+1, ncol(fits)-1))]
+    fits$p_adj.loc <- p.adjust(fits$p_val)
+    fits[, c(seq_len(i), ncol(fits), seq_len(ncol(fits)-1)[-seq_len(i)])]
 }
 
 # helper to prepare colData for .mm_dream/vst
@@ -201,9 +205,10 @@
     cd <- colData(x)[c("sample_id", "group_id", covs)]
     cd <- data.frame(cd, check.names = FALSE)
     cd <- mutate_if(cd, is.factor, droplevels)
-    cd <- mutate_at(covs, function(u) if (is.numeric(u)) scale(u))
-    rownames(cd) <- colnames(x)
-    return(cd)
+    if (!is.null(covs))
+        cd <- mutate_at(cd, covs, function(u) 
+            if (is.numeric(u)) scale(u))
+    rownames(cd) <- colnames(x); cd
 }
 
 # fits mixed models and returns fit information required for eBayes
@@ -273,15 +278,14 @@
     }
 
     # fit mixed model for ea. gene
-    gs <- seq_len(nrow(y))
-    names(gs) <- rownames(y)
-    fits <- bplapply(gs, function(i) {
-        df <- data.frame(u = y[i, ], cd)
+    names(gs) <- gs <- rownames(y)
+    fits <- bplapply(gs, function(g) {
+        df <- data.frame(u = y[g, ], cd)
         if (moderate) {
-            fun <- switch(family,
+            .fit <- switch(family,
                 nbinom = .fit_nbinom,
                 poisson = .fit_bglmer)
-            fun(df, formula, coef)
+            .fit(df, formula, coef)
         } else {
             tryCatch({
                 switch(family,
@@ -304,8 +308,8 @@
         colnames(fits) <- c("beta", "SE", "stat", "p_val")
     }
     i <- which(colnames(fits) == "p_val")
-    fits[["p_adj.loc"]] <- p.adjust(fits$p_val)
-    fits[, c(seq_len(i), ncol(fits), seq(i+1, ncol(fits)-1))]
+    fits$p_adj.loc <- p.adjust(fits$p_val)
+    fits[, c(seq_len(i), ncol(fits), seq_len(ncol(fits)-1)[-seq_len(i)])]
 }
 
 .mm_poisson <- function(x, coef = NULL, covs = NULL,
@@ -357,14 +361,16 @@
 
     # get coefficient to test
     if (is.null(coef)) {
-        coef <- paste0("group_id", last(levels(x$group_id)))
+        coef <- last(colnames(mm))
         if (verbose)
             message("Argument 'coef' not specified; ",
                 "testing for ", dQuote(coef), ".")
     }
 
     # pseudobulk analysis
-    res <- pbDS(pb, mm, coef = which(colnames(mm) == coef), method = "edgeR")
+    res <- pbDS(pb, design = mm, 
+        coef = which(colnames(mm) == coef), 
+        method = "edgeR", verbose = verbose)
     res <- res$table[[1]][[1]]
     cols <- c("F", "p_adj.loc", "coef", "p_adj.glb")
     cols_keep <- setdiff(colnames(res), cols)
@@ -401,8 +407,8 @@
 
     res <- res[, -c(1, 2)]
     i <- which(colnames(res) == "p_val")
-    res[["p_adj.loc"]] <- p.adjust(res$p_val)
-    res[, c(seq_len(i), ncol(res), seq(i+1, ncol(res)-1))]
+    res$p_adj.loc <- p.adjust(res$p_val)
+    res[, c(seq_len(i), ncol(res), seq_len(ncol(res)-1)[-seq_len(i)])]
 }
 
 # fits negative binomial mixed models and
