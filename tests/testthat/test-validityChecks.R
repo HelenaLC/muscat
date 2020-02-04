@@ -19,19 +19,16 @@ test_that(".check_sce", {
 })
 
 test_that(".check_arg_assay", {
-    # single valid assay
-    expect_silent(.check_arg_assay(sce, assayNames(sce)[1]))
-    # single invalid assay
-    expect_error(.check_arg_assay(sce, "x"))
-    # non-character assay
     expect_error(.check_arg_assay(sce, 1))
-    # multiple assays 
+    expect_error(.check_arg_assay(sce, "x"))
     expect_error(.check_arg_assay(sce, c(assayNames(sce)[1], "x")))
+    expect_silent(.check_arg_assay(sce, assayNames(sce)[1]))
 })
 
 test_that(".check_args_simData", {
     u <- list(x = sce, ng = 10, nc = 100, ns = 3, nk = 2, probs = NULL, 
-        p_dd = diag(6)[1, ], p_type = 0.1, lfc = 1, rel_lfc = NULL)
+        p_dd = diag(6)[1, ], p_type = 0.1, lfc = 1, rel_lfc = NULL, 
+        p_ep = 0.1, p_dp = 0.1, p_dm = 0.1, paired = FALSE, force = TRUE)
     expect_silent(.check_args_simData(u))
     # 'ng', 'nc', 'ns', 'nk' should be single numerics > 0
     for (arg in c("ng", "nc", "ns", "nk")) {

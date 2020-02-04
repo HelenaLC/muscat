@@ -11,6 +11,7 @@ set.seed(seed)
 sce <- .toySCE()
 nk <- length(kids <- levels(sce$cluster_id))
 ns <- length(sids <- levels(sce$sample_id))
+ng <- length(gids <- levels(sce$group_id))
 
 test_that("aggregation across 2 factors", {
     for (fun in c("sum", "mean", "median")) {
@@ -52,19 +53,35 @@ test_that("aggregation across 1 factor", {
     for (fun in c("sum", "mean", "median")) {
         pb <- aggregateData(sce, by = "cluster_id", fun = fun)
         expect_is(pb, "SingleCellExperiment")
-        
         expect_identical(nrow(pb), nrow(sce))
         expect_identical(ncol(pb), nk)
-        
         expect_identical(rownames(pb), rownames(sce))
         expect_identical(colnames(pb), kids)
-        
         expect_equivalent(table(sce$cluster_id), metadata(pb)$n_cells)
-        
         # random spot check
         k <- sample(kids, 1)
         g <- sample(rownames(sce), 1)
         i <- sce$cluster_id == k
         expect_equal(assay(pb)[g, k], get(fun)(assay(sce)[g, i]))
     }
+})
+
+test_that("pbFlatten()", {
+    x <- aggregateData(sce, by = "cluster_id")
+    expect_error(pbFlatten(x))
+    x <- aggregateData(sce)
+    cd <- colData(y <- pbFlatten(x))
+    expect_is(y, "SingleCellExperiment")
+    expect_true(length(assays(y)) == 2)
+    expect_identical(rownames(y), rownames(x))
+    expect_true(ncol(y) == nk*ncol(x))
+    a <- do.call(cbind, as.list(assays(x)))
+    expect_equivalent(assay(y), a)
+    expect_true(all(table(cd$sample_id) == nk))
+    expect_true(all(table(cd$cluster_id) == ns))
+    expect_true(all(table(cd$group_id) == ns/ng*nk))
+    expect_equivalent(y$n_cells, c(table(sce$sample_id, sce$cluster_id)))
+    # without normalization
+    y <- pbFlatten(x, normalize = FALSE)
+    expect_true(assayNames(y) == "counts")
 })
