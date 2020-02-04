@@ -133,6 +133,26 @@
         is.logical(u$treat), length(u$treat) == 1)
 }
 
+.check_args_mmDS <- function(u) {
+    stopifnot(
+        is.null(u$covs) || is.character(u$covs) & all(u$covs %in% names(colData(u$x))),
+        is.numeric(u$coef) & u$coef %in% seq_len(nlevels(u$x$group_id))
+        | is.character(u$coef) & u$coef %in% c("(Intercept)", 
+            paste0("group_id", levels(u$x$group_id)[-1])),
+        !is.null(metadata(u$x)$experiment_info$group_id) | !is.null(u$x$group_id), 
+        is.numeric(u$n_cells), length(u$n_cells) == 1, u$n_cells >= 0,
+        is.numeric(u$n_samples), length(u$n_samples) == 1, u$n_samples >= 2,
+        is.numeric(u$min_count), length(u$min_count) == 1, u$min_count >= 0,
+        is.numeric(u$min_cells), length(u$min_cells) == 1, u$min_cells >= 0,
+        is.numeric(u$n_threads), length(u$n_threads) == 1, u$n_threads >= 1,
+        is.logical(u$verbose), length(u$verbose) == 1,
+        is.logical(u$dup_corr), length(u$dup_corr) == 1,
+        is.logical(u$trended), length(u$trended) == 1,
+        is.logical(u$bayesian), length(u$bayesian) == 1,
+        is.logical(u$blind), length(u$blind) == 1,
+        is.logical(u$REML), length(u$REML) == 1)
+}
+
 .check_args_pbHeatmap <- function(u) {
     if (!is.null(u$k))
         stopifnot(is.character(u$k), u$k %in% levels(u$x$cluster_id))
