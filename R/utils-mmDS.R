@@ -126,16 +126,16 @@
         bp <- SerialParam(progressbar = verbose)
     }
 
-    if (verbose) print(formula)
-    formula <- as.formula(formula)
-
     if (is.null(coef)) {
-        coef <- paste0("group_id",last(levels(cd$group_id)))
+        coef <- paste0("group_id", last(levels(cd$group_id)))
         if (verbose)
             message("Argument 'coef' not specified; ",
                     "testing for ", dQuote(coef), ".")
     }
 
+    if (verbose) print(formula)
+    formula <- as.formula(formula)
+    
     .dream <- expression(voomWithDreamWeights(y, 
         formula, cd, BPPARAM = bp, quiet = !verbose))
     if (verbose) v <- eval(.dream) else suppressMessages(v <- eval(.dream))
@@ -179,7 +179,7 @@
 
     # get coefficient to test
     if (is.null(coef)) {
-        coef <- paste0("group_id", last(levels(x$group_id)))
+        coef <- paste0("group_id", last(levels(cd$group_id)))
         if (verbose)
             message("Argument 'coef' not specified; ",
                 "testing for ", dQuote(coef), ".")
@@ -271,7 +271,7 @@
 
     # get coefficient to test
     if (is.null(coef)) {
-        coef <- paste0("group_id", last(levels(x$group_id)))
+        coef <- paste0("group_id", last(levels(cd$group_id)))
         if (verbose)
             message("Argument 'coef' not specified; ",
                 "testing for ", dQuote(coef), ".")
@@ -423,7 +423,6 @@
     if (is.null(mod)) return(mod)
     tryCatch({
         coefs <- colnames(coef(mod)[[1]][[1]])
-        cs <- as.numeric(coefs == coef)
         re <- coef(summary(mod))[[1]]
         re <- split(re, col(re)) %>%
             map(set_names, coefs) %>%
@@ -448,7 +447,6 @@
     if (is.null(mod)) return(mod)
     tryCatch({
         coefs <- colnames(coef(mod)[[1]])
-        cs <- as.numeric(coefs == coef)
         re <- coef(summary(mod))
         re <- split(re, col(re)) %>%
             map(set_names, coefs) %>%
