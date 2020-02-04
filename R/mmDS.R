@@ -61,7 +61,6 @@
 #' @importFrom matrixStats rowMins
 #' @importFrom progress progress_bar
 #' @importFrom purrr map_depth
-#' @importFrom tibble add_column
 #' @importFrom sctransform vst
 #' @importFrom SingleCellExperiment counts counts<-
 #'   colData sizeFactors sizeFactors<-
@@ -153,9 +152,9 @@ mmDS <- function(x, coef = NULL, covs = NULL,
 
         # call to .mm_dream/.mm_vst
         args$x <- y
-        do.call(fun, args) %>%
-            add_column(.before = 1, gene = rownames(y), cluster_id = k) %>%
-            set_rownames(NULL)
+        z <- do.call(fun, args)
+        z <- cbind(gene = rownames(y), cluster_id = k, z)
+        rownames(z) <- NULL; z
     })
     if (verbose) pb$terminate()
 
@@ -163,7 +162,9 @@ mmDS <- function(x, coef = NULL, covs = NULL,
     res <- bind_rows(res)
     # global p-value adjustment
     p_adj.glb <- p.adjust(res$p_val)
-    res <- add_column(res, p_adj.glb, .after = "p_adj.loc")
+    i <- which(colnames(res) == "p_adj.loc")
+    res[["p_adj.glb"]] <- p_adj.glb
+    res <- res[, c(seq_len(i), ncol(res), seq_len(ncol(res)-1)[-seq_len(i)])]
     # re-split by cluster
     split(res, res$cluster_id)
 }

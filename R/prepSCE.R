@@ -44,7 +44,6 @@
 #' @return a \code{\link[SingleCellExperiment]{SingleCellExperiment}}.
 #' 
 #' @importFrom dplyr mutate_all
-#' @importFrom magrittr set_colnames
 #' @importFrom S4Vectors DataFrame metadata<-
 #' @importFrom SingleCellExperiment reducedDims SingleCellExperiment
 #' @importFrom SummarizedExperiment assays colData rowData
@@ -62,10 +61,9 @@ prepSCE <- function(x, cluster_id, sample_id, group_id, drop = FALSE) {
     stopifnot(all(ids %in% colnames(colData(x))))
     
     cd0 <- colData(x)
-    cd <- cd0[ids] %>% 
-        data.frame(check.names = FALSE) %>% 
-        mutate_all(as.factor) %>% 
-        set_colnames(names(ids))
+    cd <- data.frame(cd0[ids], check.names = FALSE)
+    cd <- mutate_all(cd, as.factor)
+    colnames(cd) <- names(ids)
     
     if (!drop)
         cd <- data.frame(cd,

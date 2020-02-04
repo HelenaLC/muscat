@@ -10,8 +10,9 @@ Version: 1.1.0
 Depends: R (>= 3.6), scater (>= 1.13)
 Authors@R: c(
 	person("Helena L.", "Crowell", role=c("aut", "cre"), email="helena.crowell@uzh.ch"),
-	person("Charlotte", "Soneson", role="aut"),
 	person("Pierre-Luc", "Germain", role="aut"),
+	person("Charlotte", "Soneson", role="aut"),
+	person("Anthony", "Sonrel", role="aut"),
 	person("Mark D.", "Robinson", role=c("aut", "fnd"), email="mark.robinson@imls.uzh.ch"))
 Imports: 
 	BiocParallel, blme, 
@@ -20,17 +21,18 @@ Imports:
 	edgeR, 
 	ggplot2, glmmTMB, grDevices, grid, 
 	limma, lmerTest, lme4, 
-	magrittr, Matrix, matrixStats, methods, 
-	parallel, progress, purrr, 
+	Matrix, matrixStats, methods, 
+	progress, purrr, 
 	reshape2, 
 	scales, sctransform, stats, SingleCellExperiment, SummarizedExperiment, S4Vectors, 
-	tibble, 
 	variancePartition, viridis
 Suggests: 
 	BiocStyle,
+	countsimQC,
 	cowplot, 
 	ExperimentHub, 
 	knitr, 
+	phylogram,
 	RColorBrewer,
 	rmarkdown,
 	testthat, 

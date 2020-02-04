@@ -19,6 +19,8 @@
 #'   for \code{method = "edgeR", "limma-x", "DESeq2"}, respectively.
 #' @param min_cells a numeric. Specifies the minimum number of cells in a given 
 #'   cluster-sample required to consider the sample for differential testing.
+#' @param filter characterstring specifying whether
+#'   to filter on genes, samples, both or neither.
 #' @param treat logical specifying whether empirical Bayes moderated-t 
 #'   p-values should be computed relative to a minimum fold-change threshold. 
 #'   Only applicable for methods \code{"limma-x"} (\code{\link[limma]{treat}})

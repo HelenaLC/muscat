@@ -6,7 +6,6 @@
 \usage{
 simData(
   x,
-  ng = nrow(x),
   nc = 2000,
   ns = 3,
   nk = 3,
@@ -19,14 +18,16 @@ simData(
   p_type = 0,
   lfc = 2,
   rel_lfc = NULL,
-  cells_phylo = NULL,
-  params_dist = c(0.2, 3)
+  phylo_tree = NULL,
+  phylo_pars = c(0.2, 3),
+  ng = nrow(x),
+  force = FALSE
 )
 }
 \arguments{
 \item{x}{a \code{\link[SingleCellExperiment]{SingleCellExperiment}}.}
 
-\item{ng, nc, ns, nk}{# of genes, cells, samples and clusters to simulate.}
+\item{nc, ns, nk}{# of cells, samples and clusters to simulate.}
 
 \item{probs}{a list of length 3 containing probabilities of a cell belonging
 to each cluster, sample, and group, respectively. List elements must be 
@@ -55,14 +56,14 @@ Should be of length \code{nlevels(x$cluster_id)} with
 \code{levels(x$cluster_id)} as names. 
 Defaults to factor of 1 for all clusters.}
 
-\item{cells_phylo}{newick tree text representing cluster relations 
+\item{phylo_tree}{newick tree text representing cluster relations 
 and their relative distance. If a tree is given, the distance between 
 the clusters will be translated in the number of shared genes 
-(this relation is controlled with \code{params_dist}). The distance 
+(this relation is controlled with \code{phylo_pars}). The distance 
 between two clusters is defined as the sum of the branches lengths 
 separating them.}
 
-\item{params_dist}{numeric vector of length 2. Defines the number of shared 
+\item{phylo_pars}{numeric vector of length 2. Defines the number of shared 
 genes as an adaptation of the exponential's PDF:
 N = Ngenes x gamma1 * e^(-gamma2 x dist) ,
 where gamma1 is the parameter that controls the percentage of shared genes. 
@@ -70,6 +71,15 @@ By default, it corresponds to \code{p_type} but it's advised to tune it
 depending on the input prep_sce. gamma2 is the 'penalty' of increasing 
 the distance between clusters, applied on the number of shared genes. 
 Default to -3.}
+
+\item{ng}{# of genes to simulate. Importantly, for the library sizes 
+computed by \code{\link{prepSim}} (= \code{exp(x$offset)}) to make sense, 
+the number of simulated genes should match with the number of genes 
+in the reference. To simulate a reduced number of genes, e.g. for 
+testing and development purposes, please set \code{force = TRUE}.}
+
+\item{force}{logical specifying whether to force 
+simulation despite \code{ng != nrow(x)}.}
 }
 \value{
 a \code{\link[SingleCellExperiment]{SingleCellExperiment}}
@@ -87,11 +97,13 @@ data(sce)
 library(SingleCellExperiment)
 
 # prep. SCE for simulation
-sce <- prepSim(sce)
+ref <- prepSim(sce)
 
 # simulate data
-(sim <- simData(sce, ng = 100, nc = 10,
-  p_dd = c(0.9, 0, 0.1, 0, 0, 0)))
+(sim <- simData(ref, nc = 10,
+  p_dd = c(0.9, 0, 0.1, 0, 0, 0),
+  ng = 100, force = TRUE,
+  probs = list(NULL, NULL, c(1, 0))))
 
 # simulation metadata
 head(gi <- metadata(sim)$gene_info)
@@ -100,30 +112,32 @@ head(gi <- metadata(sim)$gene_info)
 table(gi$category)
 
 # unbalanced sample sizes
-sim <- simData(sce, ng = 10, nc = 100,
-  probs = list(NULL, c(0.25, 0.75), NULL))
+sim <- simData(ref, nc = 100,
+  probs = list(NULL, c(0.25, 0.75), NULL),
+  ng = 10, force = TRUE)
 table(sim$sample_id)
 
 # one group only
-sim <- simData(sce, ng = 10, nc = 100,
-  probs = list(NULL, NULL, c(1, 0)))
+sim <- simData(ref, nc = 100,
+  probs = list(NULL, NULL, c(1, 0)),
+  ng = 10, force = TRUE)
 levels(sim$group_id)
 
-
-# Hierarchical cell-type relations: 
-# we first define a phylogram representing the relations between 3 clusters
-cells_phylo <- "(('cluster1':0.1, 'cluster2':0.1):0.4,'cluster3':0.5);"
-# to verify the syntax and the relation, we can plot it
+# HIERARCHICAL CLUSTER STRUCTURE
+# define phylogram specifying cluster relations
+phylo_tree <- "(('cluster1':0.1,'cluster2':0.1):0.4,'cluster3':0.5);"
+# verify syntax & visualize relations
 library(phylogram)
-dend <- read.dendrogram(text = cells_phylo)
-plot(dend)
-# More complex relations are also possible
-cells_phylo2 <- "(('cluster1':0.4, 'cluster2':0.4):0.4, ('cluster3':0.5,('cluster4':0.2,'cluster5':0.2,'cluster6':0.2):0.4):0.4);"
-dend2 <- read.dendrogram(text = cells_phylo2)
-plot(dend2)
-# simulate clusters based on these distances
-sim <- simData(sce_, nk = 3, cells_phylo = cells_phylo)
-# the information about the shared 'type' genes are also kept in the metadata
+plot(read.dendrogram(text = phylo_tree))
+
+# let's use a more complex phylogeny
+phylo_tree <- "(('cluster1':0.4,'cluster2':0.4):0.4,('cluster3':
+  0.5,('cluster4':0.2,'cluster5':0.2,'cluster6':0.2):0.4):0.4);"
+plot(read.dendrogram(text = phylo_tree))
+
+# simulate clusters accordingly
+sim <- simData(sce, phylo_tree = phylo_tree, ng = 500, force = TRUE)
+# view information about shared 'type' genes
 table(metadata(sim)$gene_info$shared_class)
 
 }
