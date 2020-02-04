@@ -21,8 +21,7 @@ author:
 package: "`r BiocStyle::pkg_ver('muscat')`"
 date: "`r format(Sys.Date(), '%B %d, %Y')`"
 output: 
-  BiocStyle::html_document:
-    toc_float: yes
+  BiocStyle::html_document
 vignette: >
   %\VignetteIndexEntry{"1. DS analysis"}
   %\VignettePackage{muscat}
@@ -91,7 +90,7 @@ For this vignette, we will use a `r Biocpkg("SingleCellExperiment")` (SCE) conta
 
 The @Kang2018-demuxlet dataset has been made available through Biocondcutor's `ExperimentHub` and can be loaded into R as follows: We first initialize a Hub instance to search for and load available data with the `ExperimentHub` function, and store the complete list of records in the variable `eh`. Using `query`, we then retrieve any records that match our keyword(s) of interest, as well as their corresponding accession ID (EH1234).
 
-```{r eh, cache = TRUE, message = FALSE}
+```{r eh, message = FALSE}
 library(ExperimentHub)
 eh <- ExperimentHub()
 query(eh, "Kang")
@@ -165,10 +164,10 @@ assays(sce)$vstresiduals <- vst(counts(sce), show_progress = FALSE)$y
 ```{r prep-sce} 
 sce$id <- paste0(sce$stim, sce$ind)
 (sce <- prepSCE(sce, 
-    cluster_id = "cell", # subpopulation assignments
-    group_id = "stim",   # group IDs (ctrl/stim)
-    sample_id = "id",    # sample IDs (ctrl/stim.1234)
-    drop = TRUE))        # drop all other colData columns
+    kid = "cell", # subpopulation assignments
+    gid = "stim",  # group IDs (ctrl/stim)
+    sid = "id",   # sample IDs (ctrl/stim.1234)
+    drop = TRUE))  # drop all other colData columns
 ```
 
 For consistency and easy accession throughout this vignette, we will store cluster and sample IDs, as well as the number of clusters and samples into the following *simple* variables:
