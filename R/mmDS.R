@@ -75,22 +75,20 @@ mmDS <- function(x, coef = NULL, covs = NULL,
     vst = c("sctransform", "DESeq2"),
     bayesian = FALSE, blind = TRUE, REML = TRUE,
     ddf = c("Satterthwaite", "Kenward-Roger", "lme4")) {
-
+    
+    # check validity of input arguments
     .check_sce(x, req_group = TRUE)
     .check_arg_assay(x, "counts")
-
+    .check_args_mmDS(as.list(environment()))
+    
     args <- as.list(environment())
     args$method <- match.arg(method)
     args$vst <- match.arg(vst)
     args$ddf <- match.arg(ddf)
-
-    if (!is.null(covs) && !all(covs %in% names(colData(x)))) 
-        stop("Some of the specified covariates couldn't be found: ", 
-            paste(dQuote(setdiff(covs, names(colData(x)))), collapse = ", "))
-
+    
     # counts cells per cluster-sample
     n_cells_by_ks <- table(x$cluster_id, x$sample_id)
-
+    
     # filter clusters w/ >= n_cells in >= n_samples
     if (!is.null(metadata(x)$experiment_info$group_id)) {
         ei <- metadata(x)$experiment_info
@@ -104,26 +102,26 @@ mmDS <- function(x, coef = NULL, covs = NULL,
     if (sum(ks_keep) == 0)
         stop(paste("No cluster has at least", n_samples,
             "samples with at least", n_cells, "cells."))
-
+    
     kids <- levels(x$cluster_id)
-    if (sum(ks_keep) < length(kids))
+    if (verbose && sum(ks_keep) < length(kids))
         message(paste("Skipping cluster(s)",
             paste(dQuote(kids[!ks_keep]), collapse = ", "),
             "\ndue to an insufficient number of samples",
             "with a sufficient number of cells."))
     kids <- kids[ks_keep]
     names(kids) <- kids
-
+    
     # split cells by cluster
     cells_by_k <- split(colnames(x), x$cluster_id)
-
+    
     if (min_count < 1) {
         min_count <- floor(min_count * rowMins(n_cells_by_ks))
     } else {
         min_count <- rep(min_count, length(kids))
     }
     names(min_count) <- kids
-
+    
     # variance-stabilizing transformation
     if (args$method == "vst") {
         vst_call <- switch(args$vst,
@@ -135,13 +133,13 @@ mmDS <- function(x, coef = NULL, covs = NULL,
             counts(x) <- suppressMessages(eval(vst_call))
         }
     }
-
+    
     # get method function & construct correct call
     fun <- ifelse(is.function(args$method),
         args$method, get(paste0(".mm_", args$method)))
     args_use <- names(formals(fun))
     args <- args[names(args) %in% args_use]
-
+    
     if (verbose) pb <- progress_bar$new(total = length(kids))
     res <- lapply(kids, function(k) {
         y <- x[, cells_by_k[[k]]]
@@ -149,15 +147,16 @@ mmDS <- function(x, coef = NULL, covs = NULL,
         if (verbose)
             message("Testing ", nrow(y), " genes across ",
                 ncol(y), " cells in cluster ", dQuote(k), "...")
-
+        
         # call to .mm_dream/.mm_vst
         args$x <- y
         z <- do.call(fun, args)
-        z <- cbind(gene = rownames(y), cluster_id = k, z)
+        z <- cbind(stringsAsFactors = FALSE,
+            gene = rownames(y), cluster_id = k, z)
         rownames(z) <- NULL; z
     })
     if (verbose) pb$terminate()
-
+    
     # assemble results from all cluster
     res <- bind_rows(res)
     # global p-value adjustment
