@@ -33,9 +33,11 @@ abstract: >
   <p> This vignette serves to provide the underlying theoretical background, to thoroughly describe the various input arguments, and to demonstrate the simulation framework's current capabilities using some illustrative (not necessarily realistic) examples. 
 ---
 
-```{r setup, echo = FALSE}
-knitr::opts_chunk$set(cache = TRUE)
-```
+<style type="text/css">
+.smaller {
+  font-size: 10px
+}
+</style>
 
 *** 
 
@@ -296,7 +298,7 @@ sim <- simData(ref, p_type = 0.05,
 sim <- logNormCounts(sim)
 ```
 
-For visualizing the above simulation, we select for genes that are of class *type* (`rowData()$class == "type"`) and have a decent simulated expression mean. Furthermore, we sample a subset of cells for each cluster. The resulting heatmap (Fig. \@ref(fig:heatmap-ptype)) shows that the 3 clusters separate well from one another, but that type genes aren't necessarily expressed higher in a single cluster. This is the case because a gene selected as reference for a type gene in a given cluster may indeed have a lower expression than the gene used for the remainder of clusters.
+For visualizing the above simulation, we select for genes that are of class *type* (`rowData()$class == "type"`) and have a decent simulated expression mean. Furthermore, we sample a subset of cells for each cluster. The resulting heatmap (Fig. \@ref(fig:heatmap-type)) shows that the 3 clusters separate well from one another, but that type genes aren't necessarily expressed higher in a single cluster. This is the case because a gene selected as reference for a type gene in a given cluster may indeed have a lower expression than the gene used for the remainder of clusters.
 
 ```{r heatmap-type, fig.width = 10, fig.height = 6, fig.cap = "Exemplary heatmap demonstrating the effect of `p_type` to introduce cluster-specific *type* genes. Included are type genes (= rows) with a simulated expression mean > 1, and a random subset of 100 cells (= columns) per cluster; column annotations represent cluster IDs. Bins are colored by expression scaled in row direction, and both genes and cells are hierarchically clustered."}
 # extract gene metadata & number of clusters
