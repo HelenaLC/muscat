@@ -19,7 +19,7 @@ simData(
   lfc = 2,
   rel_lfc = NULL,
   phylo_tree = NULL,
-  phylo_pars = c(0.2, 3),
+  phylo_pars = list(c(0.2, 3), 0.1),
   ng = nrow(x),
   force = FALSE
 )
@@ -44,7 +44,7 @@ or not (reference samples are drawn at random).}
 \item{p_ep, p_dp, p_dm}{numeric specifying the proportion of cells
 to be shifted to a different expression state in one group (see details).}
 
-\item{p_type}{numeric. Probaility of EE/EP gene being a type-gene.
+\item{p_type}{numeric. Probability of EE/EP gene being a type-gene.
 If a gene is of class "type" in a given cluster, a unique mean 
 will be used for that gene in the respective cluster.}
 
@@ -57,20 +57,32 @@ Should be of length \code{nlevels(x$cluster_id)} with
 Defaults to factor of 1 for all clusters.}
 
 \item{phylo_tree}{newick tree text representing cluster relations 
-and their relative distance. If a tree is given, the distance between 
+and their relative distance. An explanation of the syntax can be found 
+\href{http://evolution.genetics.washington.edu/phylip/newicktree.html}{here}. 
+If a tree is given, the distance between 
 the clusters will be translated in the number of shared genes 
 (this relation is controlled with \code{phylo_pars}). The distance 
 between two clusters is defined as the sum of the branches lengths 
 separating them.}
 
-\item{phylo_pars}{numeric vector of length 2. Defines the number of shared 
-genes as an adaptation of the exponential's PDF:
-N = Ngenes x gamma1 * e^(-gamma2 x dist) ,
-where gamma1 is the parameter that controls the percentage of shared genes. 
-By default, it corresponds to \code{p_type} but it's advised to tune it 
-depending on the input prep_sce. gamma2 is the 'penalty' of increasing 
-the distance between clusters, applied on the number of shared genes. 
-Default to -3.}
+\item{phylo_pars}{list of length 2, defining the parameters that control the 
+number of shared/ specific type-genes; \itemize{
+\item The first element of the list is a numeric vector of length 2. 
+It defines the number of shared genes as an adaptation of the 
+exponential's PDF:
+
+\code{N = Ngenes x gamma1 * e^(-gamma2 x dist)} ,
+
+where \code{gamma1} is the parameter that controls the percentage of shared genes
+between the nodes. By default 0.2, but it's advised to tune it depending 
+on the input \code{prep_sce}. 
+\code{gamma2} is the 'penalty' of increasing 
+the distance between clusters (\code{dist}, defined by \code{phylo_tree}),
+applied on the number of shared genes. Default to -3. 
+\item The second element can be a single numeric or a list of length nk. 
+It is an equivalent of \code{p_type} for each leaf (i.e. cluster) that is applied 
+after the determination of 'shared type genes'. 
+}}
 
 \item{ng}{# of genes to simulate. Importantly, for the library sizes 
 computed by \code{\link{prepSim}} (= \code{exp(x$offset)}) to make sense, 
@@ -91,6 +103,12 @@ Simulation of complex scRNA-seq data
 \details{
 \code{simData} simulates multiple clusters and samples 
 across 2 experimental conditions from a real scRNA-seq data set.
+
+
+ The simulation of type genes can be performed in 2 ways; (1) by defining 
+ \code{p_type} and thus simulating independant clusters, OR (2) by defining both 
+ \code{phylo_tree} and \code{phylo_pars}, which will simulate a hierarchical structure 
+ between the clusters. Only one of the options is allowed.
 }
 \examples{
 data(sce)

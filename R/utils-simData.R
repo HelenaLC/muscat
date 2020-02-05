@@ -102,7 +102,7 @@ cats <- factor(cats, levels = cats)
 #     ii) genes already used as 'shared' in previous recursions
 # ------------------------------------------------------------------------------
 #' @importFrom dplyr %>%
-.read_branch <- function(phylo_tree, class_tbl, used, phylo_pars) {
+.read_branch <- function(phylo_tree, class_tbl, used, phylo_pars, first_node) {
     # assure there's no linebreaks
     phylo <- gsub("\n", "", phylo_tree)
     phygs <- gsub("^\\(|\\);$", "", phylo) 
@@ -123,10 +123,16 @@ cats <- factor(cats, levels = cats)
     } else gs <- rownames(class_tbl)
     if (n_shared > length(gs)) stop("Ran out of genes to sample from;",
         "\n  please simulate more genes or adjust 'phylo_pars'.")
-    type_gs <- sample(gs, n_shared)
-    used <- c(used, type_gs)
-    # update class table
-    class_tbl[type_gs, k_shared] <- "type"
+    # avoid computation of main/first branch
+    if (first_node) {
+        first_node <- FALSE
+    } else {
+        type_gs <- sample(gs, n_shared)
+        used <- c(used, type_gs)
+        # update class table
+        class_tbl[type_gs, k_shared] <- "type" 
+    }
+    
     # remove phylogeny groups that reached leaf (recognized by missing ",")
     is_not_leaf <- vapply(phygs, function(u) 
         length(grep("\\,", u)) > 0, logical(1))
@@ -134,7 +140,7 @@ cats <- factor(cats, levels = cats)
     # stop if no nodes left, otherwise recursion on further nodes
     if (length(phygs) != 0) 
         for (node in phygs) {
-            res <- .read_branch(node, class_tbl, used, phylo_pars)
+            res <- .read_branch(node, class_tbl, used, phylo_pars, first_node)
             class_tbl <- res$class_tbl; used <- res$used
         }
     list(class_tbl = class_tbl, used = used)
@@ -157,6 +163,10 @@ cats <- factor(cats, levels = cats)
 #     simulation metadata stored in `metadata(x)$gene_info`
 # ------------------------------------------------------------------------------
 .impute_shared_type_genes <- function(x, gs_by_k, gs_idx, phylo_tree, phylo_pars) {
+    
+    # sample gene-classes for genes of categroy EE & EP
+    non_de_g <- sample(rownames(gs_by_k), size = sum(unlist(lapply(gs_idx[1:2,1], length))))
+    
     names(kids) <- kids <- colnames(gs_idx)
     # initialize temporary copy of 'gs_by_k' 
     # such that all genes are of class "state"
@@ -164,8 +174,9 @@ cats <- factor(cats, levels = cats)
     ij <- lapply(dim(gs_by_k), seq_len)
     class_tbl[ij[[1]], ij[[2]]] <- "state"
     # track type-genes already used while looping
-    res <- .read_branch(phylo_tree, class_tbl, used = c(), phylo_pars)
-    class_tbl <- res$class_tbl; used <- res$used
+    res <- .read_branch(phylo_tree, class_tbl[non_de_g,], used = c(), 
+                        phylo_pars[[1]], first_node = TRUE)
+    class_tbl[non_de_g,] <- res$class_tbl[non_de_g,]; used <- res$used
     # sample genes that were defined as type 
     # (same across related clusters)
     for (g in used) {
@@ -185,6 +196,41 @@ cats <- factor(cats, levels = cats)
     class <- vapply(specs, function(u)
         ifelse(isTRUE(is.na(u)), "state", "shared"),
         character(1))
+    # define type genes for each leaf (cluster)
+    if (!all(phylo_pars[[2]] == 0)) {
+        # format p_type for cluster names
+        if (length(phylo_pars[[2]]) == 1) {
+            phylo_ptype <- rep(phylo_pars[[2]], ncol(gs_by_k)) 
+        } else {
+            phylo_ptype <- phylo_pars[[2]]
+        }
+        names(phylo_ptype) <- colnames(gs_by_k)
+        
+        # adapt p_type to the genes that were already used, so that the 
+        # proportion reflects the number of non_de genes
+        phylo_ptype <- nrow(x)*phylo_ptype/(nrow(x) - length(used))
+        
+        # update gene indices 'gs_idx' to avoid imputing
+        # exclusive type genes in shared type genes
+        gs_idx_tmp <- gs_idx
+        for (c in c("ee", "ep"))
+            for (k in kids) {
+                u <- gs_idx[[c, k]]
+                gs_idx_tmp[[c, k]] <- u[!u %in% res$used]
+            }
+        # inpute cluster-specific type genes 
+        res2 <- .impute_type_genes(x, gs_by_k, gs_idx_tmp, phylo_ptype)
+        gs_by_k <- res2$gs_by_k
+        # update genes classes & specificities
+        is_type <- res2$class == "type"
+        # spot checks; any type-gene should not be of class 'shared'
+        # and cluster-specificities should be unassigned at this point
+        stopifnot(
+            all(class[is_type] == "state"),
+            all(is.na(unlist(specs[is_type]))))
+        class[is_type] <- "type"
+        specs[is_type] <- res2$specs[is_type]
+    }
     list(gs_by_k = gs_by_k, used = used, class = class, specs = specs)
 }
 
@@ -202,6 +248,10 @@ cats <- factor(cats, levels = cats)
 #' @importFrom purrr map
 .impute_type_genes <- function(x, gs_by_k, gs_idx, p_type) {
     names(kids) <- kids <- colnames(gs_idx)
+    if (length(p_type) == 1) {
+        p_type <- rep(p_type, ncol(gs_by_k)) 
+        names(p_type) <- colnames(gs_by_k)
+    }
     # sample gene-classes for genes of categroy EE & EP
     non_de <- c("ee", "ep")
     class_tbl <- lapply(kids, function(k) {
@@ -211,7 +261,7 @@ cats <- factor(cats, levels = cats)
             stringsAsFactors = FALSE,
             gene = gs, cluster_id = k,
             class = sample(factor(c("state", "type")), n,
-                prob = c(1 - p_type, p_type), replace = TRUE))
+                prob = c(1 - p_type[k], p_type[k]), replace = TRUE))
     }) %>% map(split, by = "class", flatten = FALSE)
     # sample cluster-specific genes for ea. cluster & type-gene
     for (k in kids) {
@@ -235,7 +285,7 @@ cats <- factor(cats, levels = cats)
     specs <- rep(NA, ng)
     names(specs) <- gs
     ns <- vapply(is_type, nrow, numeric(1))
-    specs[unique(type_gs)] <- split(rep.int(kids, ns), type_gs)
+    specs[sort(unique(type_gs))] <- split(rep.int(kids, ns), type_gs)
     return(list(gs_by_k = gs_by_k, class = class, specs = specs))
 }
 
