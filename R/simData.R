@@ -18,7 +18,7 @@
 #'   or not (reference samples are drawn at random).
 #' @param p_ep,p_dp,p_dm numeric specifying the proportion of cells
 #'   to be shifted to a different expression state in one group (see details).
-#' @param p_type numeric. Probaility of EE/EP gene being a type-gene.
+#' @param p_type numeric. Probability of EE/EP gene being a type-gene.
 #'   If a gene is of class "type" in a given cluster, a unique mean 
 #'   will be used for that gene in the respective cluster.
 #' @param lfc numeric value to use as mean logFC
@@ -28,19 +28,32 @@
 #'   \code{levels(x$cluster_id)} as names. 
 #'   Defaults to factor of 1 for all clusters.
 #' @param phylo_tree newick tree text representing cluster relations 
-#'   and their relative distance. If a tree is given, the distance between 
-#'   the clusters will be translated in the number of shared genes 
-#'   (this relation is controlled with \code{phylo_pars}). The distance 
+#'   and their relative distance. An explanation of the syntax can be found 
+#'   \href{http://evolution.genetics.washington.edu/phylip/newicktree.html}{here}. 
+#'   The distance between the nodes, except for the original branch, will be 
+#'   translated in the number of shared genes between the clusters belonging to 
+#'   these nodes (this relation is controlled with \code{phylo_pars}). The distance 
 #'   between two clusters is defined as the sum of the branches lengths 
 #'   separating them. 
-#' @param phylo_pars numeric vector of length 2. Defines the number of shared 
-#'   genes as an adaptation of the exponential's PDF:
-#'   N = Ngenes x gamma1 * e^(-gamma2 x dist) ,
-#'   where gamma1 is the parameter that controls the percentage of shared genes. 
-#'   By default, it corresponds to \code{p_type} but it's advised to tune it 
-#'   depending on the input prep_sce. gamma2 is the 'penalty' of increasing 
-#'   the distance between clusters, applied on the number of shared genes. 
-#'   Default to -3. 
+#' @param phylo_pars list of length 2, defining the parameters that control the 
+#'   number of shared/ specific type-genes; \itemize{
+#'   \item The first element of the list is a numeric vector of length 2. 
+#'   It defines the number of shared genes as an adaptation of the 
+#'   exponential's PDF:
+#'   
+#'   \code{N = Ngenes x gamma1 * e^(-gamma2 x dist)} ,
+#'   
+#'   where \code{gamma1} is the parameter that controls the percentage of shared genes
+#'   between the nodes. By default 0.2, but it's advised to tune it depending 
+#'   on the input \code{prep_sce}. 
+#'   \code{gamma2} is the 'penalty' of increasing 
+#'   the distance between clusters (\code{dist}, defined by \code{phylo_tree}),
+#'   applied on the number of shared genes. Default to -3. 
+#'   \item The second element can be a single numeric or a list of length nk. 
+#'   It is an equivalent of \code{p_type} for each leaf (i.e. cluster) that is applied 
+#'   after the determination of 'shared type genes'. 
+#'   }
+#'   
 #' @param ng # of genes to simulate. Importantly, for the library sizes 
 #'   computed by \code{\link{prepSim}} (= \code{exp(x$offset)}) to make sense, 
 #'   the number of simulated genes should match with the number of genes 
@@ -49,6 +62,12 @@
 #' @param force logical specifying whether to force 
 #'   simulation despite \code{ng != nrow(x)}.
 #'   
+#' @details 
+#'  The simulation of type genes can be performed in 2 ways; (1) by defining 
+#'  \code{p_type} and thus simulating independant clusters, OR (2) by defining both 
+#'  \code{phylo_tree} and \code{phylo_pars}, which will simulate a hierarchical structure 
+#'  between the clusters. Only one of the options is allowed. 
+#'  
 #' @return a \code{\link[SingleCellExperiment]{SingleCellExperiment}}
 #'   containing multiple clusters & samples across 2 groups.
 #' 
@@ -96,9 +115,11 @@
 #' plot(read.dendrogram(text = phylo_tree))
 #' 
 #' # simulate clusters accordingly
-#' sim <- simData(sce, phylo_tree = phylo_tree, ng = 500, force = TRUE)
+#' sim <- simData(ref, phylo_tree = phylo_tree, 
+#'   phylo_pars = list(c(0.1, 3), 0.1), 
+#'   ng = 500, force = TRUE)
 #' # view information about shared 'type' genes
-#' table(metadata(sim)$gene_info$shared_class)
+#' table(rowData(sim)$class)
 #' 
 #' @author Helena L Crowell
 #' 
@@ -124,7 +145,7 @@ simData <- function(x, nc = 2e3, ns = 3, nk = 3,
     probs = NULL, p_dd = diag(6)[1, ], paired = FALSE,
     p_ep = 0.5, p_dp = 0.3, p_dm = 0.5,
     p_type = 0, lfc = 2, rel_lfc = NULL, 
-    phylo_tree = NULL, phylo_pars = c(0.2, 3),
+    phylo_tree = NULL, phylo_pars = list(c(0, 3), 0),
     ng = nrow(x), force = FALSE) {
     
     # throughout this code...
@@ -144,6 +165,18 @@ simData <- function(x, nc = 2e3, ns = 3, nk = 3,
         stop("Number of simulated genes should match with reference,\n", 
             "but 'ng != nrow(x)'; please specify 'force = TRUE' if\n", 
             "simulation should be forced regardlessly (see '?simData').")
+    if (!is.null(phylo_tree) && p_type != 0)
+        stop("Only one of 'p_type' and 'phylo_tree' can be provided.\n", 
+             "Please see the 'Details' section of '?simData'.")
+    if (!length(phylo_pars[[2]]) %in% c(1, nk))
+        stop("The second element of 'phylo_pars' should be correspond\n", 
+             " to the number of clusters ('nk') or of length 1.")
+    if (!is.null(phylo_tree) && phylo_pars[[1]][1] == 0)
+        warning("'phylo_pars[[1]][1]' has been set to 0;\n", 
+                "'phylo_tree' argument will be ignored.")
+    if (!is.null(phylo_tree) && all(phylo_pars[[2]] == 0))
+        warning("'phylo_pars[[2]]' has been set to 0;\n", 
+                "type genes for individual clusters won't be simulated.")
     
     # reference IDs
     nk0 <- length(kids0 <- set_names(levels(x$cluster_id)))
@@ -221,28 +254,6 @@ simData <- function(x, nc = 2e3, ns = 3, nk = 3,
         gs_by_k <- res$gs_by_k
         class  <- res$class
         specs <- res$specs
-        if (p_type != 0) {
-            # update gene indices 'gs_idx' to avoid imputing
-            # exclusive type genes in shared type genes
-            gs_idx_tmp <- gs_idx
-            for (c in c("ee", "ep"))
-                for (k in kids) {
-                    u <- gs_idx[[c, k]]
-                    gs_idx_tmp[[c, k]] <- u[!u %in% res$used]
-                }
-            # inpute cluster-specific type genes 
-            res <- .impute_type_genes(x, gs_by_k, gs_idx_tmp, p_type)
-            gs_by_k <- res$gs_by_k
-            # update genes classes & specificities
-            is_type <- res$class == "type"
-            # spot checks; any type-gene should not be of class 'shared'
-            # and cluster-specificities should be unassigned at this point
-            stopifnot(
-                all(class[is_type] == "state"),
-                all(is.na(unlist(specs[is_type]))))
-            class[is_type] <- "type"
-            specs[is_type] <- res$specs[is_type]
-        }
     # otherwise, simply impute type-genes w/o phylogeny
     } else if (p_type != 0) {
         res <- .impute_type_genes(x, gs_by_k, gs_idx, p_type)
