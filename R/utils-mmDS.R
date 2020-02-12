@@ -251,7 +251,7 @@
 #' @importFrom SingleCellExperiment counts
 #' @importFrom SummarizedExperiment assay
 .mm_glmm <- function(x, coef = NULL, covs = NULL, n_threads = 1,
-    family = c("poisson","nbinom"), verbose = TRUE, moderate = TRUE) {
+    family = c("poisson","nbinom"), verbose = TRUE, moderate = FALSE) {
 
     family <- match.arg(family)
     cd <- .prep_cd(x, covs)
@@ -313,12 +313,12 @@
 }
 
 .mm_poisson <- function(x, coef = NULL, covs = NULL,
-    n_threads = 1, verbose = TRUE, moderate = TRUE)
+    n_threads = 1, verbose = TRUE, moderate = FALSE)
     .mm_glmm(x, coef, covs, n_threads, family = "poisson",
         verbose = verbose, moderate = moderate)
 
 .mm_nbinom <- function(x, coef = NULL, covs = NULL,
-    n_threads = 1, verbose = TRUE, moderate = TRUE)
+    n_threads = 1, verbose = TRUE, moderate = FALSE)
     .mm_glmm(x, coef, covs, n_threads, family = "nbinom",
         verbose = verbose, moderate = moderate)
 
