@@ -87,7 +87,7 @@
     .dream <- expression(dream(v, formula, cd, contrast, ddf, 
         BPPARAM = bp, suppressWarnings = !verbose, quiet  = !verbose))
     if (verbose) fit <- eval(.dream) else suppressWarnings(fit <- eval(.dream))
-    fit <- eBayes(fit, trend = trended, robust = TRUE)
+    #fit <- eBayes(fit, trend = trended, robust = TRUE)
 
     topTable(fit, coef, number = Inf, sort.by = "none") %>%
         rename(p_val = "P.Value", p_adj.loc = "adj.P.Val")
