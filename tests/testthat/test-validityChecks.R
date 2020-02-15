@@ -28,7 +28,8 @@ test_that(".check_arg_assay", {
 test_that(".check_args_simData", {
     u <- list(x = sce, ng = 10, nc = 100, ns = 3, nk = 2, probs = NULL, 
         p_dd = diag(6)[1, ], p_type = 0.1, lfc = 1, rel_lfc = NULL, 
-        p_ep = 0.1, p_dp = 0.1, p_dm = 0.1, paired = FALSE, force = TRUE)
+        p_ep = 0.1, p_dp = 0.1, p_dm = 0.1, paired = FALSE, force = TRUE,
+        phylo_tree = NULL, phylo_pars = list(c(0, 3), 0))
     expect_silent(.check_args_simData(u))
     # 'ng', 'nc', 'ns', 'nk' should be single numerics > 0
     for (arg in c("ng", "nc", "ns", "nk")) {
@@ -47,4 +48,6 @@ test_that(".check_args_simData", {
     expect_silent(.check_args_simData(u))
     v <- u; for (val in list(-1, rep(1,u$nk+1)))
         v$rel_lfc <- val; expect_error(.check_args_simData(v))
+    v <- u; v$phylo_pars[[2]] <- rep(0.1, u$nk + 1)
+    expect_error(.check_args_simData(v))
 })

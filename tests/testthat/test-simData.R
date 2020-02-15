@@ -5,9 +5,9 @@ suppressMessages({
     library(SingleCellExperiment)
 })
 
-k <- paste0("cluster", seq_len(5))
-s <- paste0("sample", seq_len(4))
-g <- paste0("group", seq_len(3))
+nk <- length(k <- paste0("cluster", seq_len(5)))
+ns <- length(s <- paste0("sample", seq_len(4)))
+ng <- length(g <- paste0("group", seq_len(3)))
 
 test_that(".sample_n_cells", {
     n <- 50
@@ -53,13 +53,15 @@ test_that(".split_cells", {
 })
 
 test_that(".sample_cell_md", {
-    n <- 1e3
     ids <- list(k, s, g)
-    md <- .sample_cell_md(n, ids)
-    ns <- apply(md, 2, table)
-    ms <- vapply(ns, mean, numeric(1))
+    md <- .sample_cell_md((n <- 1e3), ids)
+    ms <- vapply(apply(md, 2, table), mean, numeric(1))
     expect_true(all(vapply(seq_along(ids), function(i) 
         ms[[i]] == n/length(ids[[i]]), logical(1))))
+    set.seed(1); a <- .sample_cell_md(n, ids)
+    set.seed(1); b <- .sample_cell_md(n, ids, 
+        list(rep(1/nk,nk),rep(1/ns,ns),rep(1/ng,ng)))
+    expect_identical(a, b)
 })
 
 data(sce)
@@ -96,6 +98,23 @@ test_that("pbDS() gets at least 50% right for 10% DE genes", {
     })
 })
 
+test_that("Single group simulation", {
+    gs <- c("A", "B")
+    ps <- list(c(1, 0), c(0, 1))
+    names(ps) <- gs
+    for (g in gs) {
+        x <- simData(ref, 
+            nc, ns, nk, ng = 10, force = TRUE,
+            probs = list(NULL, NULL, ps[[g]]))
+        expect_identical(levels(x$group_id), g)
+        sids <- sprintf("sample%s.%s", seq_len(ns), g)
+        expect_identical(levels(x$sample_id), sids)
+        gi <- metadata(x)$gene_info
+        ms <- paste0("sim_mean.", setdiff(gs, g))
+        expect_true(all(is.na(gi[[ms]])))
+    }
+})
+
 test_that("Pure simulations give single DD category", {
     for (c in cats) {
         sim <- simData(ref, nc, ns, nk, 
@@ -106,9 +125,15 @@ test_that("Pure simulations give single DD category", {
     }
 })
 
-test_that("Number of genes mismatch b/w simulation & reference", {
+test_that("simData() - input arguments", {
+    # number of genes mismatch b/w simulation & reference
     expect_error(simData(ref, ng = 100, force = FALSE))
     expect_silent(simData(ref, ng = 100, force = TRUE))
+    nk <- length(kids <- levels(ref$cluster_id))
+    # named 'rel_lfc's (mis)match cluster names
+    lfc <- rep(1, nk); names(lfc) <- kids; lfc2 <- lfc; names(lfc2)[1] <- "x"
+    expect_silent(simData(ref, nk = nk, rel_lfc = lfc, ng = 10, force = TRUE))
+    expect_error(simData(ref, nk = nk, rel_lfc = lfc2, ng = 10, force = TRUE))
 })
 
 test_that("Type genes & cluster phylogeny", {
@@ -116,13 +141,12 @@ test_that("Type genes & cluster phylogeny", {
     t <- "(('cluster1':0.1,'cluster2':0.1):0.4,'cluster3':0.5);"
     args <- list(
         list(pt = pt, t = NULL), # type genes but no phylogeny
-        list(t = t, pt = 0),     # phylogeny but no type genes
-        list(t = t, pt = pt))    # both, type genes and phylogeny
-    cs <- c("type", "state", "shared") # possible gene classes
-    cs_ex <- c("shared", "type", NULL) # these shouldn't appear
+        list(t = t, pt = 0))     # both, type genes and phylogeny
+    cs <- c("type", "state")     # possible gene classes
+    cs_ex <- c("shared", "type") # these shouldn't appear
     for (i in seq_along(args)) {
         rd <- rowData(x <- simData(ref, ng = ng, force = TRUE,
-            p_type = args[[i]]$pt, phylo_tree = args[[i]]))
+            p_type = args[[i]]$pt, phylo_tree = args[[i]]$t))
         expect_is(rd, "DataFrame")
         expect_equal(dim(rd), c(ng, 2))
         expect_equal(colnames(rd), c("class", "specs"))
@@ -135,4 +159,6 @@ test_that("Type genes & cluster phylogeny", {
     # missing clusters in input phylogeny
     t <- "(('cluster1':0.1,'cluster2':0.1):0.4,'cluster4':0.5);"
     expect_error(simData(ref, phylo_tree = t))
+    # specification of both, 'p_type' and 'phylo_tree'
+    expect_error(simData(ref, p_type = pt, phylo_tree = t))
 })

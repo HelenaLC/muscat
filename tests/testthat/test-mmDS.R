@@ -66,7 +66,6 @@ test_that("mmDS-utils", {
     for (fun in paste0(".mm_", c("dream", "dream2", "vst"))) {
         # currently not passing?
         #"poisson", "hybrid", "nbinom"))) { 
-        print(fun)
         expect_silent(y <- get(fun)(x[gs, cs], 
             n_threads = 1, verbose = FALSE))
         expect_is(y, "data.frame")

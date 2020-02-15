@@ -19,7 +19,7 @@ simData(
   lfc = 2,
   rel_lfc = NULL,
   phylo_tree = NULL,
-  phylo_pars = list(c(0.2, 3), 0.1),
+  phylo_pars = list(c(0, 3), 0),
   ng = nrow(x),
   force = FALSE
 )
@@ -59,9 +59,9 @@ Defaults to factor of 1 for all clusters.}
 \item{phylo_tree}{newick tree text representing cluster relations 
 and their relative distance. An explanation of the syntax can be found 
 \href{http://evolution.genetics.washington.edu/phylip/newicktree.html}{here}. 
-If a tree is given, the distance between 
-the clusters will be translated in the number of shared genes 
-(this relation is controlled with \code{phylo_pars}). The distance 
+The distance between the nodes, except for the original branch, will be 
+translated in the number of shared genes between the clusters belonging to 
+these nodes (this relation is controlled with \code{phylo_pars}). The distance 
 between two clusters is defined as the sum of the branches lengths 
 separating them.}
 
@@ -154,9 +154,11 @@ phylo_tree <- "(('cluster1':0.4,'cluster2':0.4):0.4,('cluster3':
 plot(read.dendrogram(text = phylo_tree))
 
 # simulate clusters accordingly
-sim <- simData(sce, phylo_tree = phylo_tree, ng = 500, force = TRUE)
+sim <- simData(ref, phylo_tree = phylo_tree, 
+  phylo_pars = list(c(0.1, 3), 0.1), 
+  ng = 500, force = TRUE)
 # view information about shared 'type' genes
-table(metadata(sim)$gene_info$shared_class)
+table(rowData(sim)$class)
 
 }
 \references{
