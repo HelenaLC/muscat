@@ -92,6 +92,34 @@
 }
 
 .check_args_simData <- function(u) {
+    if (!u$force && u$ng != nrow(u$x))
+        stop("Number of simulated genes should match with reference,\n", 
+            "  but 'ng != nrow(x)'; please specify 'force = TRUE' if\n", 
+            "  simulation should be forced regardlessly (see '?simData').")
+    if (!is.null(u$phylo_tree) && u$p_type != 0)
+        stop("Only one of arguments 'p_type' or 'phylo_tree'\n",
+            "  can be specified; see '?simData' for 'Details'.")
+    # assure number of simulated clusters matches with specified phylogeny
+    if (!is.null(u$phylo_tree)) {
+        kids_phylo <- .get_clusters_from_phylo(u$phylo_tree)
+        nk_phylo <- length(kids_phylo)
+        ns_phylo <- as.numeric(gsub("[a-z]", "", kids_phylo))
+        if (!all(sort(ns_phylo) == seq_len(nk_phylo)))
+            stop("Some clusters appear to be missing from 'phylo_tree';\n",
+                "  please make sure all clusters up to ", 
+                dQuote(kids_phylo[which.max(ns_phylo)]), " are present.")
+        # possibly update number of clusters 'nk'
+        if (nk_phylo != u$nk) u$nk <- nk_phylo
+    }
+    if (!length(u$phylo_pars[[2]]) %in% c(1, u$nk))
+        stop("Length of 'phylo_pars[[2]]' should be 1\n", 
+            "  or equal to the number of clusters 'nk'.")
+    if (!is.null(u$phylo_tree) && u$phylo_pars[[1]][1] == 0)
+        message("'phylo_pars[[1]][1]' is 0; ignoring 'phylo_tree'.")
+    if (!is.null(u$phylo_tree) && all(u$phylo_pars[[2]] == 0))
+        message("'phylo_pars[[2]]' is 0; won't simulate\n", 
+            "type genes for individual clusters.")
+    
     stopifnot(
         is.numeric(u$nc), length(u$nc) == 1, u$nc > 0, as.integer(u$nc) == u$nc,
         is.numeric(u$nk), length(u$nk) == 1, u$nk > 0, as.integer(u$nk) == u$nk,
@@ -108,6 +136,7 @@
     if (!is.null(u$rel_lfc))
         stopifnot(is.numeric(u$rel_lfc), 
             length(u$rel_lfc) == u$nk, u$rel_lfc >= 0)
+    return(list(nk = u$nk))
 }
 
 #' @importFrom SummarizedExperiment colData

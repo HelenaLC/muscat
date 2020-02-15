@@ -68,11 +68,11 @@
 #' @importFrom edgeR filterByExpr
 #' @importFrom dplyr last rename
 #' @importFrom limma makeContrasts
-#' @importFrom Matrix qr
+#' @importFrom Matrix qr rowSums
 #' @importFrom methods is
 #' @importFrom scater isOutlier
 #' @importFrom stats model.matrix
-#' @importFrom SummarizedExperiment colData
+#' @importFrom SummarizedExperiment assay colData
 #' @export
 
 pbDS <- function(pb, 
@@ -82,20 +82,23 @@ pbDS <- function(pb,
     treat = FALSE, verbose = TRUE) {
     
     # check validity of input arguments
+    args <- as.list(environment())
     method <- match.arg(method)
     filter <- match.arg(filter)
     .check_pbs(pb, check_by = TRUE)
-    .check_args_pbDS(as.list(environment()))
+    .check_args_pbDS(args)
     
     if (is.null(design)) {
         formula <- ~ group_id
         cd <- as.data.frame(colData(pb))
         design <- model.matrix(formula, cd)
         colnames(design) <- levels(pb$group_id)
+        args$design <- design
     }
     if (is.null(coef) & is.null(contrast)) {
         c <- colnames(design)[ncol(design)]
         contrast <- makeContrasts(contrasts = c, levels = design)
+        args$contrast <- contrast
     }
 
     # ct: type of comparison - "contrast" or "coef"
@@ -141,8 +144,9 @@ pbDS <- function(pb,
             || qr(d)$rank == nrow(d) 
             || qr(d)$rank < ncol(d)) 
             return(NULL)
-        if (filter %in% c("genes", "both"))
-            y <- y[filterByExpr(assay(y, k)), ]
+        y <- y[rowSums(assay(y, k)) != 0, ]
+        if (filter %in% c("genes", "both") & max(assay(y, k)) > 100) 
+            y <- y[filterByExpr(assay(y, k), d), ]
         args <- list(x = y, k = k, design = d, coef = coef, 
             contrast = contrast, ct = ct, cs = cs, treat = treat)
         args <- args[intersect(names(args), fun_args)]
@@ -158,5 +162,5 @@ pbDS <- function(pb,
     names(i) <- i <- c("table", "data", "fit")
     res <- lapply(i, map, .x = res)
     res$table <- .p_adj_global(res$table)
-    return(res)
+    return(c(res, list(args = args)))
 }
