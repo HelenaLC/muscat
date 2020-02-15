@@ -111,10 +111,10 @@ prepSim <- function(x,
         sum(genes_keep), nrow(x), sum(cells_keep), n_cells0))
     x <- x[genes_keep, cells_keep, drop = FALSE]
     
-    # keep cluster-samples w/ at least 100 cells
+    # keep cluster-samples w/ at least 'min_size' cells
     if (!is.null(min_size)) {
         n_cells <- table(x$cluster_id, x$sample_id)
-        n_cells <- .filter_matrix(n_cells, n = 100)
+        n_cells <- .filter_matrix(n_cells, n = min_size)
         if (ncol(n_cells) == 1)
             stop("Current 'min_size' retains only 1 sample,\nbut",
                 " mean-dispersion estimation requires at least 2.")
