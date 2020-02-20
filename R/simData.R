@@ -160,40 +160,12 @@ simData <- function(x, nc = 2e3, ns = 3, nk = 3,
     
     # check validity of input arguments
     .check_sce(x, req_group = FALSE)
-    .check_args_simData(as.list(environment()))
-    if (!force && ng != nrow(x))
-        stop("Number of simulated genes should match with reference,\n", 
-            "but 'ng != nrow(x)'; please specify 'force = TRUE' if\n", 
-            "simulation should be forced regardlessly (see '?simData').")
-    if (!is.null(phylo_tree) && p_type != 0)
-        stop("Only one of 'p_type' and 'phylo_tree' can be provided.\n", 
-             "Please see the 'Details' section of '?simData'.")
-    if (!length(phylo_pars[[2]]) %in% c(1, nk))
-        stop("The second element of 'phylo_pars' should be correspond\n", 
-             " to the number of clusters ('nk') or of length 1.")
-    if (!is.null(phylo_tree) && phylo_pars[[1]][1] == 0)
-        warning("'phylo_pars[[1]][1]' has been set to 0;\n", 
-                "'phylo_tree' argument will be ignored.")
-    if (!is.null(phylo_tree) && all(phylo_pars[[2]] == 0))
-        warning("'phylo_pars[[2]]' has been set to 0;\n", 
-                "type genes for individual clusters won't be simulated.")
+    args_tmp <- .check_args_simData(as.list(environment()))
+    nk <- args$nk <- args_tmp$nk
     
     # reference IDs
     nk0 <- length(kids0 <- set_names(levels(x$cluster_id)))
     ns0 <- length(sids0 <- set_names(levels(x$sample_id)))
-
-    # assure number of simulated clusters
-    # matches with specified phylogeny
-    if (!is.null(phylo_tree)) {
-        kids_phylo <- .get_clusters_from_phylo(phylo_tree)
-        nk_phylo <- length(kids_phylo)
-        ns_phylo <- as.numeric(gsub("[a-z]", "", kids_phylo))
-        if (!all(sort(ns_phylo) == seq_len(nk_phylo)))
-            stop("Some clusters appear to be missing from 'phylo_tree';\n",
-                "please make sure all clusters up to ", 
-                dQuote(kids_phylo[which.max(ns_phylo)]), " are present.")
-        if (nk_phylo != nk) args$nk <- nk <- nk_phylo
-    }
     
     # simulation IDs
     nk <- length(kids <- set_names(paste0("cluster", seq_len(nk))))
@@ -244,7 +216,7 @@ simData <- function(x, nc = 2e3, ns = 3, nk = 3,
     gs_idx <- .sample_gene_inds(gs, n_dd)
     
     # for ea. cluster, sample set of genes to simulate from
-    gs_by_k <- setNames(sample(rownames(x), ng, TRUE), gs)
+    gs_by_k <- setNames(sample(rownames(x), ng, ng > nrow(x)), gs)
     gs_by_k <- replicate(nk, gs_by_k)
     colnames(gs_by_k) <- kids
 

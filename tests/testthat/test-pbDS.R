@@ -44,23 +44,28 @@ dimnames(design) <- list(ei$sample_id, levels(ei$group_id))
 contrast <- limma::makeContrasts("g2-g1", "g3-g1", levels = design)
 
 for (method in eval(as.list(args(pbDS))$method)) {
+    if (grepl("edgeR|limma", method)) {
+        treat <- c(FALSE, TRUE)
+    } else treat <- FALSE
     test_that(paste("pbDS", method, sep = "."), {
-        res <- pbDS(pb, 
-            method = method, verbose = FALSE,
-            design = design, contrast = contrast)
-
-        expect_identical(length(res$table), ncol(contrast))
-        expect_identical(names(res$table), colnames(contrast))
-        expect_true(all(vapply(map(res$table, names), "==",
-            levels(kids), FUN.VALUE = logical(nlevels(kids)))))
-        
-        # check that top genes equal 'degs' in ea. comparison & cluster
-        top <- map_depth(res$table, 2, function(u) {
-            dplyr::arrange(u, p_adj.loc) %>% 
-                dplyr::slice(seq_len(nde)) %>% 
-                pull("gene")
-        }) %>% Reduce(f = "c")
-        expect_true(all(unlist(map(top, setequal, degs))))
+        for (t in treat) {
+            res <- pbDS(pb, treat = t,
+                method = method, verbose = FALSE,
+                design = design, contrast = contrast)
+            
+            expect_identical(length(res$table), ncol(contrast))
+            expect_identical(names(res$table), colnames(contrast))
+            expect_true(all(vapply(map(res$table, names), "==",
+                levels(kids), FUN.VALUE = logical(nlevels(kids)))))
+            
+            # check that top genes equal 'degs' in ea. comparison & cluster
+            top <- map_depth(res$table, 2, function(u) {
+                dplyr::arrange(u, p_adj.loc) %>% 
+                    dplyr::slice(seq_len(nde)) %>% 
+                    pull("gene")
+            }) %>% Reduce(f = "c")
+            expect_true(all(unlist(map(top, setequal, degs))))
+        }
     })
 }
 

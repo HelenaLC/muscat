@@ -18,13 +18,14 @@ mmDS(
   min_cells = 20,
   n_threads = 8,
   verbose = TRUE,
+  vst = c("sctransform", "DESeq2"),
+  ddf = c("Satterthwaite", "Kenward-Roger", "lme4"),
   dup_corr = FALSE,
   trended = FALSE,
-  vst = c("sctransform", "DESeq2"),
   bayesian = FALSE,
   blind = TRUE,
   REML = TRUE,
-  ddf = c("Satterthwaite", "Kenward-Roger", "lme4")
+  moderate = FALSE
 )
 
 .mm_dream(
@@ -95,21 +96,9 @@ at least \code{min_cells} must have a count >= \code{min_count}.}
 \item{verbose}{logical specifying whether messages
 on progress and a progress bar should be displayed.}
 
-\item{dup_corr}{logical; whether to use
-\code{\link[limma:dupcor]{duplicateCorrelation}}.}
-
-\item{trended}{logical; whether to use expression-dependent variance priors
-in \code{\link[limma]{eBayes}}.}
-
 \item{vst}{method to use as variance-stabilizing transformations.
 \code{"sctransform"} for \code{\link[sctransform]{vst}}; \code{"DESeq2"}
 for \code{\link[DESeq2]{varianceStabilizingTransformation}}.}
-
-\item{bayesian}{logical; whether to use bayesian mixed models.}
-
-\item{blind}{logical; whether to ignore experimental design for the vst.}
-
-\item{REML}{logical; whether to maximize REML instead of log-likelihood.}
 
 \item{ddf}{character string specifying the method for estimating
 the effective degrees of freedom. For \code{method = "dream"},
@@ -117,6 +106,18 @@ either \code{"Satterthwaite"} (faster) or \code{"Kenward-Roger"}
 (more accurate); see \code{?variancePartition::dream} for details.
 For \code{method = "vst"}, method \code{"lme4"} is also valid;
 see \code{\link[lmerTest]{contest.lmerModLmerTest}}.}
+
+\item{dup_corr}{logical; whether to use
+\code{\link[limma:dupcor]{duplicateCorrelation}}.}
+
+\item{trended}{logical; whether to use expression-dependent variance priors
+in \code{\link[limma]{eBayes}}.}
+
+\item{bayesian}{logical; whether to use bayesian mixed models.}
+
+\item{blind}{logical; whether to ignore experimental design for the vst.}
+
+\item{REML}{logical; whether to maximize REML instead of log-likelihood.}
 
 \item{...}{additional parameters passed to the method function.}
 }

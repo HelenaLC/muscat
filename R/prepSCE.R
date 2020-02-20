@@ -4,7 +4,7 @@
 #' @description ...
 #' 
 #' @param x a \code{\link[SingleCellExperiment]{SingleCellExperiment}}.
-#' @param cluster_id,sample_id,group_id character strings specifying
+#' @param kid,sid,gid character strings specifying
 #'   the \code{colData(x)} columns containing cluster assignments,
 #'   unique sample identifiers, and group IDs (e.g., treatment).
 #' @param drop logical. Specifies whether \code{colData(x)} columns
@@ -49,12 +49,16 @@
 #' @importFrom SummarizedExperiment assays colData rowData
 #' @export
 
-prepSCE <- function(x, cluster_id, sample_id, group_id, drop = FALSE) {
-    
+prepSCE <- function(x, 
+    kid = "cluster_id", 
+    sid = "sample_id", 
+    gid = "group_id", 
+    drop = FALSE) {
+
     stopifnot(is(x, "SingleCellExperiment"))
 
-    ids <- as.list(match.call())
-    ids <- ids[grep("id", names(ids))]
+    args <- as.list(environment())
+    ids <- args[grep("[a-z]id", names(args))]
     ids <- unlist(ids)
     
     stopifnot(is.character(ids))
@@ -63,7 +67,7 @@ prepSCE <- function(x, cluster_id, sample_id, group_id, drop = FALSE) {
     cd0 <- colData(x)
     cd <- data.frame(cd0[ids], check.names = FALSE)
     cd <- mutate_all(cd, as.factor)
-    colnames(cd) <- names(ids)
+    colnames(cd) <- unlist(formals()[names(ids)])
     
     if (!drop)
         cd <- data.frame(cd,

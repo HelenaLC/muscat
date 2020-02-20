@@ -86,6 +86,8 @@
 # generate experimental design metadata table 
 # for an input SCE or colData data.frame
 # ------------------------------------------------------------------------------
+#' @importFrom dplyr mutate_at 
+#' @importFrom methods is
 #' @importFrom SummarizedExperiment colData
 .make_ei <- function(x) {
     if (is(x, "SingleCellExperiment"))

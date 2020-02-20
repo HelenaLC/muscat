@@ -1,43 +1,76 @@
-# context("DS analysis using mixed-models")
-# 
-# # load packages
-# suppressPackageStartupMessages({
-#     library(dplyr)
-#     library(purrr)
-#     library(SingleCellExperiment)
-# })
-# 
-# # generate toy dataset
-# seed <- as.numeric(format(Sys.time(), "%s"))
-# set.seed(seed)
-# sce <- .toySCE()
-# 
-# nk <- length(kids <- sce$cluster_id)
-# ns <- length(sids <- sce$sample_id)
-# ng <- length(gids <- sce$group_id)
-# 
-# # randomly select n_de DE genes & multiply counts by 100 for group 2
-# n_de <- 10
-# de_gs <- sample(rownames(sce), n_de)
-# g3 <- gids == "g3"
-# assay(sce[de_gs, g3]) <- assay(sce[de_gs, g3]) * 100
-# 
-# for (vst in c("DESeq2", "sctransform")) {
-#     test_that(paste0("mmDS-vst-", vst), {
-#         res <- mmDS(sce, method = "vst", vst = vst, verbose = TRUE)
-#         
-#         expect_is(res, "list")
-#         expect_identical(names(res), levels(kids))
-#         
-#         p_adj <- map(res, pull, "p_adj.loc")
-#         n_de_res <- unlist(map(p_adj, function(u) sum(u < 1e-3)))
-#         expect_true(all(n_de_res == n_de))
-#         
-#         os <- map(p_adj, order)
-#         de_gs_res <- map(os, function(o) rownames(sce)[o][seq_len(n_de)])
-#         expect_true(all(unlist(map(de_gs_res, setequal, de_gs))))
-#     })
-# }
-# 
-# 
-# 
+context("DS analysis using mixed-models")
+
+# load packages
+suppressPackageStartupMessages({
+    library(dplyr)
+    library(purrr)
+    library(SingleCellExperiment)
+})
+
+# generate toy dataset
+seed <- as.numeric(format(Sys.time(), "%s"))
+set.seed(seed)
+x <- .toySCE()
+x <- x[, x$group_id != "g3"]
+
+nk <- length(kids <- x$cluster_id)
+ns <- length(sids <- x$sample_id)
+ng <- length(gids <- x$group_id)
+
+test_that(".check_args_mmDS()", {
+    y <- x; class(y) <- "x"
+    expect_error(mmDS(y))
+    y <- x; assayNames(y) <- "x"
+    expect_error(mmDS(y))
+    expect_error(mmDS(x, "x"))
+    expect_error(mmDS(x, 100))
+    expect_error(mmDS(x, covs = "x"))
+    expect_error(mmDS(x, method = "x"))
+    expect_error(mmDS(x, method = "vst", vst = "x"))
+    for (u in c("verbose", "dup_corr", "trended", "bayesian", "blind", "REML")) 
+        for (v in list("x", 1, c(TRUE, TRUE))) {
+            w <- list(x = x); w[[u]] <- v
+            expect_error(do.call(mmDS, w))
+        }
+})
+
+test_that("mmDS() - filtering", {
+    expect_error(mmDS(x, n_cells = Inf))
+    ks <- sample(kids, 2)
+    ks <- as.character(ks)
+    cs <- x$cluster_id %in% ks
+    ls <- rowSums(assay(x[, cs]))
+    o <- order(ls, decreasing = TRUE)
+    gs <- rownames(x)[o][seq_len(5)]
+    y <- computeLibraryFactors(x[gs, cs])
+    y <- y[, sizeFactors(y) > 0]
+    z <- mmDS(y, n_threads = 1, verbose = FALSE)
+    expect_setequal(names(z), ks)
+    expect_true(all(vapply(map(z, "gene"), 
+        function(u) all(u == gs), logical(1))))
+    expect_true(all(vapply(ks, function(k) 
+        all(z[[k]]$cluster_id == k), logical(1))))
+    y <- x[gs, cs]; metadata(y) <- list()
+    expect_silent(mmDS(y, n_threads = 1, verbose = FALSE))
+    y$group_id <- NULL; expect_error(mmDS(y))
+})
+
+# randomly select 'n_de' genes & bump counts for group 2
+n_de <- 5; g2 <- gids == "g2"
+de_gs <- sample(rownames(x), n_de)
+assay(x[de_gs, g2]) <- (assay(x[de_gs, g2])+1)*5
+
+test_that("mmDS-utils", {
+    cs <- x$cluster_id == kids[1]
+    gs <- c(de_gs, sample(setdiff(rownames(x), de_gs), 5))
+    for (fun in paste0(".mm_", c("dream", "dream2", "vst"))) {
+        # currently not passing?
+        #"poisson", "hybrid", "nbinom"))) { 
+        expect_silent(y <- get(fun)(x[gs, cs], 
+            n_threads = 1, verbose = FALSE))
+        expect_is(y, "data.frame")
+        expect_identical(rownames(y), gs)
+        top <- order(y$p_adj.loc)[seq_len(n_de)]
+        expect_setequal(rownames(y)[top], de_gs)
+    }
+})

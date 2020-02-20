@@ -4,12 +4,18 @@
 \alias{prepSCE}
 \title{Prepare SCE for DS analysis}
 \usage{
-prepSCE(x, cluster_id, sample_id, group_id, drop = FALSE)
+prepSCE(
+  x,
+  kid = "cluster_id",
+  sid = "sample_id",
+  gid = "group_id",
+  drop = FALSE
+)
 }
 \arguments{
 \item{x}{a \code{\link[SingleCellExperiment]{SingleCellExperiment}}.}
 
-\item{cluster_id, sample_id, group_id}{character strings specifying
+\item{kid, sid, gid}{character strings specifying
 the \code{colData(x)} columns containing cluster assignments,
 unique sample identifiers, and group IDs (e.g., treatment).}
 

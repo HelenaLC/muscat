@@ -31,7 +31,7 @@
 #' @importFrom DESeq2 DESeq results
 #' @importFrom dplyr rename
 #' @importFrom edgeR calcNormFactors DGEList estimateDisp
-#'   filterByExpr glmQLFit glmQLFTest topTags
+#'   filterByExpr glmQLFit glmQLFTest glmTreat topTags
 #' @importFrom scater isOutlier
 #' @importFrom SummarizedExperiment assay
 #' @importFrom S4Vectors metadata
@@ -58,7 +58,7 @@
 
 #' @importFrom dplyr rename
 #' @importFrom edgeR calcNormFactors DGEList
-#' @importFrom limma contrasts.fit eBayes lmFit topTable voom
+#' @importFrom limma contrasts.fit eBayes lmFit topTable topTreat voom treat
 #' @importFrom SummarizedExperiment assay
 #' @importFrom S4Vectors metadata
 .limma <- function(x, k, design, coef, contrast, ct, cs, method, treat) {
@@ -74,7 +74,7 @@
     fit <- lmFit(y, design, weights = w)
     # treat: eBayes moderated-t p-val relative to min logFC threshold
     # else:  eBayes moderated t-stat testing each contrast equal to 0 
-    .fun <- ifelse(treat, treat, eBayes)
+    .fun <- ifelse(treat, limma::treat, eBayes)
     .tbl <- ifelse(treat, topTreat, topTable)
     tbl <- lapply(cs, function(c) {
         fit <- contrasts.fit(fit, contrast[, c], coef[[c]])

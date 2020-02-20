@@ -8,7 +8,7 @@ Formatting of DS analysis results}
 resDS(
   x,
   y,
-  bind = c("col", "row"),
+  bind = c("row", "col"),
   frq = FALSE,
   cpm = FALSE,
   digits = 3,

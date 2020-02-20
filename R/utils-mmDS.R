@@ -87,7 +87,7 @@
     .dream <- expression(dream(v, formula, cd, contrast, ddf, 
         BPPARAM = bp, suppressWarnings = !verbose, quiet  = !verbose))
     if (verbose) fit <- eval(.dream) else suppressWarnings(fit <- eval(.dream))
-    fit <- eBayes(fit, trend = trended, robust = TRUE)
+    #fit <- eBayes(fit, trend = trended, robust = TRUE)
 
     topTable(fit, coef, number = Inf, sort.by = "none") %>%
         rename(p_val = "P.Value", p_adj.loc = "adj.P.Val")
@@ -126,16 +126,16 @@
         bp <- SerialParam(progressbar = verbose)
     }
 
-    if (verbose) print(formula)
-    formula <- as.formula(formula)
-
     if (is.null(coef)) {
-        coef <- paste0("group_id",last(levels(cd$group_id)))
+        coef <- paste0("group_id", last(levels(cd$group_id)))
         if (verbose)
             message("Argument 'coef' not specified; ",
                     "testing for ", dQuote(coef), ".")
     }
 
+    if (verbose) print(formula)
+    formula <- as.formula(formula)
+    
     .dream <- expression(voomWithDreamWeights(y, 
         formula, cd, BPPARAM = bp, quiet = !verbose))
     if (verbose) v <- eval(.dream) else suppressMessages(v <- eval(.dream))
@@ -179,7 +179,7 @@
 
     # get coefficient to test
     if (is.null(coef)) {
-        coef <- paste0("group_id", last(levels(x$group_id)))
+        coef <- paste0("group_id", last(levels(cd$group_id)))
         if (verbose)
             message("Argument 'coef' not specified; ",
                 "testing for ", dQuote(coef), ".")
@@ -251,7 +251,7 @@
 #' @importFrom SingleCellExperiment counts
 #' @importFrom SummarizedExperiment assay
 .mm_glmm <- function(x, coef = NULL, covs = NULL, n_threads = 1,
-    family = c("poisson","nbinom"), verbose = TRUE, moderate = TRUE) {
+    family = c("poisson","nbinom"), verbose = TRUE, moderate = FALSE) {
 
     family <- match.arg(family)
     cd <- .prep_cd(x, covs)
@@ -271,7 +271,7 @@
 
     # get coefficient to test
     if (is.null(coef)) {
-        coef <- paste0("group_id", last(levels(x$group_id)))
+        coef <- paste0("group_id", last(levels(cd$group_id)))
         if (verbose)
             message("Argument 'coef' not specified; ",
                 "testing for ", dQuote(coef), ".")
@@ -313,12 +313,12 @@
 }
 
 .mm_poisson <- function(x, coef = NULL, covs = NULL,
-    n_threads = 1, verbose = TRUE, moderate = TRUE)
+    n_threads = 1, verbose = TRUE, moderate = FALSE)
     .mm_glmm(x, coef, covs, n_threads, family = "poisson",
         verbose = verbose, moderate = moderate)
 
 .mm_nbinom <- function(x, coef = NULL, covs = NULL,
-    n_threads = 1, verbose = TRUE, moderate = TRUE)
+    n_threads = 1, verbose = TRUE, moderate = FALSE)
     .mm_glmm(x, coef, covs, n_threads, family = "nbinom",
         verbose = verbose, moderate = moderate)
 
@@ -423,7 +423,6 @@
     if (is.null(mod)) return(mod)
     tryCatch({
         coefs <- colnames(coef(mod)[[1]][[1]])
-        cs <- as.numeric(coefs == coef)
         re <- coef(summary(mod))[[1]]
         re <- split(re, col(re)) %>%
             map(set_names, coefs) %>%
@@ -448,7 +447,6 @@
     if (is.null(mod)) return(mod)
     tryCatch({
         coefs <- colnames(coef(mod)[[1]])
-        cs <- as.numeric(coefs == coef)
         re <- coef(summary(mod))
         re <- split(re, col(re)) %>%
             map(set_names, coefs) %>%
