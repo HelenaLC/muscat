@@ -35,23 +35,20 @@
 #'   these nodes (this relation is controlled with \code{phylo_pars}). The distance 
 #'   between two clusters is defined as the sum of the branches lengths 
 #'   separating them. 
-#' @param phylo_pars list of length 2, defining the parameters that control the 
-#'   number of shared/ specific type-genes; \itemize{
-#'   \item The first element of the list is a numeric vector of length 2. 
-#'   It defines the number of shared genes as an adaptation of the 
+#' @param phylo_pars vector of length 2, defining the parameters that control the 
+#'   number of type genes. It is passed to an adaptation of the 
 #'   exponential's PDF:
 #'   
 #'   \code{N = Ngenes x gamma1 * e^(-gamma2 x dist)} ,
 #'   
-#'   where \code{gamma1} is the parameter that controls the percentage of shared genes
-#'   between the nodes. By default 0.2, but it's advised to tune it depending 
-#'   on the input \code{prep_sce}. 
-#'   \code{gamma2} is the 'penalty' of increasing 
-#'   the distance between clusters (\code{dist}, defined by \code{phylo_tree}),
-#'   applied on the number of shared genes. Default to -3. 
-#'   \item The second element can be a single numeric or a list of length nk. 
-#'   It is an equivalent of \code{p_type} for each leaf (i.e. cluster) that is applied 
-#'   after the determination of 'shared type genes'. 
+#'   \itemize{
+#'   \item  \code{gamma1} is the parameter that controls the percentage of shared 
+#'   genes between the nodes. By default 0.1 if a tree is given, meaning that 
+#'   maximum 10% of the genes can be used as type genes (if gamma2 = 0). 
+#'   However it's advised to tune it depending on the input \code{prep_sce}. 
+#'   \code{gamma2} is the 'penalty' of increasing the distance between clusters 
+#'   (\code{dist}, defined by \code{phylo_tree}), applied on the number of 
+#'   shared genes. Default to 3. 
 #'   }
 #'   
 #' @param ng # of genes to simulate. Importantly, for the library sizes 
@@ -116,7 +113,7 @@
 #' 
 #' # simulate clusters accordingly
 #' sim <- simData(ref, phylo_tree = phylo_tree, 
-#'   phylo_pars = list(c(0.1, 3), 0.1), 
+#'   phylo_pars = c(0.1, 3), 
 #'   ng = 500, force = TRUE)
 #' # view information about shared 'type' genes
 #' table(rowData(sim)$class)
@@ -145,7 +142,7 @@ simData <- function(x, nc = 2e3, ns = 3, nk = 3,
     probs = NULL, p_dd = diag(6)[1, ], paired = FALSE,
     p_ep = 0.5, p_dp = 0.3, p_dm = 0.5,
     p_type = 0, lfc = 2, rel_lfc = NULL, 
-    phylo_tree = NULL, phylo_pars = list(c(0, 3), 0),
+    phylo_tree = NULL, phylo_pars = c(0, 3),
     ng = nrow(x), force = FALSE) {
     
     # throughout this code...
@@ -154,6 +151,9 @@ simData <- function(x, nc = 2e3, ns = 3, nk = 3,
     # g: group ID
     # c: DD category
     # 0: reference
+    
+    # default shared p if phylo tree given
+    if (missing(phylo_pars)) phylo_pars[1] <- ifelse(is.null(phylo_tree), 0, 0.1)
     
     # store all input arguments to be returned in final output
     args <- c(as.list(environment()))
