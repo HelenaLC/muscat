@@ -362,13 +362,13 @@ cats <- factor(cats, levels = cats)
             g2_hi <- sample(ng2, round(ng2 * props[2]))
             list(                           
                 .nb(cs_g1[-g1_hi], d, m_g1), 
-                .nb(cs_g1[ g1_hi], d, m_g1,  lfc), # lfc > 0 => 30/70% up
+                .nb(cs_g1[ g1_hi], d, m_g1,  lfc), # lfc > 0 => dp/(1-dp)% up
                 .nb(cs_g2[-g2_hi], d, m_g2), 
-                .nb(cs_g2[ g2_hi], d, m_g2, -lfc)) # lfc < 0 => 70/30% up
+                .nb(cs_g2[ g2_hi], d, m_g2, -lfc)) # lfc < 0 => (1-dp)/dp% up
         },
         "dm" = {
-            g1_hi <- sample(ng1, round(ng1 * ep))
-            g2_hi <- sample(ng2, round(ng2 * ep))
+            g1_hi <- sample(ng1, round(ng1 * dm))
+            g2_hi <- sample(ng2, round(ng2 * dm))
             list(
                 .nb(cs_g1[-g1_hi], d, m_g1),
                 .nb(cs_g1[ g1_hi], d, m_g1, -lfc), # lfc < 0 => 50% g1 hi
