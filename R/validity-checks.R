@@ -111,15 +111,6 @@
         # possibly update number of clusters 'nk'
         if (nk_phylo != u$nk) u$nk <- nk_phylo
     }
-    if (!length(u$phylo_pars[[2]]) %in% c(1, u$nk))
-        stop("Length of 'phylo_pars[[2]]' should be 1\n", 
-            "  or equal to the number of clusters 'nk'.")
-    if (!is.null(u$phylo_tree) && u$phylo_pars[[1]][1] == 0)
-        message("'phylo_pars[[1]][1]' is 0; ignoring 'phylo_tree'.")
-    if (!is.null(u$phylo_tree) && all(u$phylo_pars[[2]] == 0))
-        message("'phylo_pars[[2]]' is 0; won't simulate\n", 
-            "type genes for individual clusters.")
-    
     stopifnot(
         is.numeric(u$nc), length(u$nc) == 1, u$nc > 0, as.integer(u$nc) == u$nc,
         is.numeric(u$nk), length(u$nk) == 1, u$nk > 0, as.integer(u$nk) == u$nk,
@@ -132,7 +123,8 @@
         is.numeric(u$p_type), length(u$p_type) == 1, u$p_type >= 0, u$p_type <= 1,
         is.numeric(u$lfc), is.numeric(u$lfc), length(u$lfc) == 1, u$lfc >= 1,
         is.numeric(u$ng), length(u$ng) == 1, u$ng > 0, as.integer(u$ng) == u$ng,
-        is.logical(u$force), length(u$force) == 1)
+        is.logical(u$force), length(u$force) == 1,
+        is.numeric(u$phylo_pars), length(u$phylo_pars) == 2, u$phylo_pars >= 0)
     if (!is.null(u$rel_lfc))
         stopifnot(is.numeric(u$rel_lfc), 
             length(u$rel_lfc) == u$nk, u$rel_lfc >= 0)
