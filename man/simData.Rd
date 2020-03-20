@@ -19,7 +19,7 @@ simData(
   lfc = 2,
   rel_lfc = NULL,
   phylo_tree = NULL,
-  phylo_pars = list(c(0, 3), 0),
+  phylo_pars = c(ifelse(is.null(phylo_tree), 0, 0.1), 3),
   ng = nrow(x),
   force = FALSE
 )
@@ -65,23 +65,18 @@ these nodes (this relation is controlled with \code{phylo_pars}). The distance
 between two clusters is defined as the sum of the branches lengths 
 separating them.}
 
-\item{phylo_pars}{list of length 2, defining the parameters that control the 
-number of shared/ specific type-genes; \itemize{
-\item The first element of the list is a numeric vector of length 2. 
-It defines the number of shared genes as an adaptation of the 
-exponential's PDF:
+\item{phylo_pars}{vector of length 2 providing the parameters that control 
+the number of type genes. Passed to an exponential's PDF:
+\code{N = #genes x gamma1 * e^(-gamma2 x dist)},
 
-\code{N = Ngenes x gamma1 * e^(-gamma2 x dist)} ,
-
-where \code{gamma1} is the parameter that controls the percentage of shared genes
-between the nodes. By default 0.2, but it's advised to tune it depending 
-on the input \code{prep_sce}. 
-\code{gamma2} is the 'penalty' of increasing 
-the distance between clusters (\code{dist}, defined by \code{phylo_tree}),
-applied on the number of shared genes. Default to -3. 
-\item The second element can be a single numeric or a list of length nk. 
-It is an equivalent of \code{p_type} for each leaf (i.e. cluster) that is applied 
-after the determination of 'shared type genes'. 
+\itemize{
+\item  \code{gamma1} is the parameter that controls the percentage of shared 
+genes between the nodes. By default 0.1 if a tree is given, meaning that 
+maximum 10% of the genes can be used as type genes (if gamma2 = 0). 
+However it's advised to tune it depending on the input \code{prep_sce}. 
+\code{gamma2} is the 'penalty' of increasing the distance between clusters 
+(\code{dist}, defined by \code{phylo_tree}), applied on the number of 
+shared genes. Default to 3. 
 }}
 
 \item{ng}{# of genes to simulate. Importantly, for the library sizes 
@@ -104,11 +99,10 @@ Simulation of complex scRNA-seq data
 \code{simData} simulates multiple clusters and samples 
 across 2 experimental conditions from a real scRNA-seq data set.
 
-
- The simulation of type genes can be performed in 2 ways; (1) by defining 
- \code{p_type} and thus simulating independant clusters, OR (2) by defining both 
- \code{phylo_tree} and \code{phylo_pars}, which will simulate a hierarchical structure 
- between the clusters. Only one of the options is allowed.
+The simulation of type genes can be performed in 2 ways; 
+  (1) by defining \code{p_type} and thus simulating independant clusters, OR 
+  (2) by defining both \code{phylo_tree} and \code{phylo_pars}, which will 
+  simulate a hierarchical structure between the clusters.
 }
 \examples{
 data(sce)
@@ -130,7 +124,7 @@ head(gi <- metadata(sim)$gene_info)
 table(gi$category)
 
 # unbalanced sample sizes
-sim <- simData(ref, nc = 100,
+sim <- simData(ref, nc = 100, ns = 2,
   probs = list(NULL, c(0.25, 0.75), NULL),
   ng = 10, force = TRUE)
 table(sim$sample_id)
@@ -155,7 +149,7 @@ plot(read.dendrogram(text = phylo_tree))
 
 # simulate clusters accordingly
 sim <- simData(ref, phylo_tree = phylo_tree, 
-  phylo_pars = list(c(0.1, 3), 0.1), 
+  phylo_pars = c(0.1, 3), 
   ng = 500, force = TRUE)
 # view information about shared 'type' genes
 table(rowData(sim)$class)
