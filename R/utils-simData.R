@@ -102,7 +102,6 @@ cats <- factor(cats, levels = cats)
 #     ii) genes already used as 'shared' in previous recursions
 # ------------------------------------------------------------------------------
 #' @importFrom dplyr %>%
-
 .read_branch <- function(phylo_tree, class_tbl, used, phylo_pars) {
     # assure there's no linebreaks
     phylo <- gsub("\n", "", phylo_tree)
@@ -117,25 +116,24 @@ cats <- factor(cats, levels = cats)
     # compute number of shared genes b/w these clusters as 
     # Exp w/ intercept nb. genes x theta1 & rate distance x theta2
     ng <- nrow(class_tbl)
-    n_shared <- lapply(ds, function(x) {
-        ceiling(phylo_pars[1]*ng*exp(-phylo_pars[2]*x)) 
-    })
+    n_shared <- lapply(ds, function(d) 
+        ceiling(phylo_pars[1]*ng*exp(-phylo_pars[2]*d)))
     if (length(used) != 0) {
         gs <- rownames(class_tbl)
         gs <- gs[!gs %in% used]
     } else gs <- rownames(class_tbl)
-    if (sum(unlist((n_shared))) > length(gs)) stop("Ran out of genes to sample from;",
-                                                   "\n  please simulate more genes or adjust 'phylo_pars'.")
+    if (sum(unlist((n_shared))) > length(gs)) stop(
+        "Ran out of genes to sample from;\n  ",
+        "please simulate more genes or adjust 'phylo_pars'.")
     type_gs <- list()
-    for (i in 1:length(n_shared)) {
+    for (i in seq_along(n_shared)) {
         type_gs[[i]] <- sample(gs, n_shared[[i]])
         used <- c(used, type_gs[[i]])
-        gs <- gs[!gs %in% used]
+        gs <- setdiff(gs, used)
     }
     # update class table
-    for (i in 1:length(type_gs)) {
+    for (i in seq_along(type_gs))
         class_tbl[type_gs[[i]], k_shared[[i]]] <- "type" 
-    }
     # remove phylogeny groups that reached leaf (recognized by missing ",")
     is_not_leaf <- vapply(phygs, function(u) 
         length(grep("\\,", u)) > 0, logical(1))
@@ -166,12 +164,10 @@ cats <- factor(cats, levels = cats)
 #     simulation metadata stored in `metadata(x)$gene_info`
 # ------------------------------------------------------------------------------
 .impute_shared_type_genes <- function(x, gs_by_k, gs_idx, phylo_tree, phylo_pars) {
-    
     # sample gene-classes for genes of categroy EE & EP
     ex_cats <- c("ee", "ep")
     n_not_de <- sum(vapply(gs_idx[ex_cats, 1], length, numeric(1)))
     not_de <- sample(rownames(gs_by_k), n_not_de)
-    
     names(kids) <- kids <- colnames(gs_idx)
     # initialize temporary copy of 'gs_by_k' 
     # such that all genes are of class "state"
@@ -179,8 +175,7 @@ cats <- factor(cats, levels = cats)
     ij <- lapply(dim(gs_by_k), seq_len)
     class_tbl[ij[[1]], ij[[2]]] <- "state"
     # track type-genes already used while looping
-    res <- .read_branch(phylo_tree, class_tbl[not_de, ], 
-        used = c(), phylo_pars)
+    res <- .read_branch(phylo_tree, class_tbl[not_de, ], used = c(), phylo_pars)
     class_tbl[not_de, ] <- res$class_tbl[not_de, ]
     used <- res$used
     # sample genes that were defined as type 
@@ -203,8 +198,8 @@ cats <- factor(cats, levels = cats)
         ifelse(isTRUE(is.na(u)), "state", "shared"),
         character(1))
     # get single-type genes
-    is_type <- lapply(cs_by_g, function(x) ifelse(length(x[x == "type"]) == 1,  TRUE, FALSE)) %>% unlist()
-    if(!all(!is_type))  class[is_type] <- "type"
+    is_type <- unlist(lapply(cs_by_g, function(u) sum(u == "type") == 1))
+    if (!all(!is_type)) class[is_type] <- "type"
     list(gs_by_k = gs_by_k, used = used, class = class, specs = specs)
 }
 
@@ -395,4 +390,3 @@ cats <- factor(cats, levels = cats)
     names(ms) <- c("A", "B")[c(ng1, ng2) != 0]
     list(cs = cs, ms = ms)
 }
-
