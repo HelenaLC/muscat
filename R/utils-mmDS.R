@@ -245,6 +245,15 @@
     }, error = function(e) e)
 }
 
+#' @describeIn mmDS
+#'
+#' see details.
+#' 
+#' @param family character string specifying which GLMM to fit:
+#'   \code{"poisson"} for \code{\link[blme]{bglmer}},
+#'   \code{"nbinom"} for \code{\link[glmmTMB]{glmmTMB}}.
+#' @param moderate logical; whether to perform empirical Bayes moderation.
+#' 
 #' @importFrom BiocParallel bplapply MulticoreParam
 #' @importFrom dplyr %>% bind_rows last
 #' @importFrom purrr set_names
