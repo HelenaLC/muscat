@@ -143,7 +143,6 @@ test_that("Type genes & cluster phylogeny", {
         list(pt = pt, t = NULL), # type genes but no phylogeny
         list(t = t, pt = 0))     # both, type genes and phylogeny
     cs <- c("type", "state")     # possible gene classes
-    cs_ex <- c("shared", "type") # these shouldn't appear
     for (i in seq_along(args)) {
         rd <- rowData(x <- simData(ref, ng = ng, force = TRUE,
             p_type = args[[i]]$pt, phylo_tree = args[[i]]$t))
@@ -151,7 +150,6 @@ test_that("Type genes & cluster phylogeny", {
         expect_equal(dim(rd), c(ng, 2))
         expect_equal(colnames(rd), c("class", "specs"))
         ns <- as.list(table(rd$class))
-        expect_true(all(unlist(ns[[cs_ex[i]]]) == 0))
         is_state <- rd$class == "state"
         expect_true(all(is.na(unlist(rd$specs[is_state]))))
         expect_true(all(unlist(rd$specs[!is_state]) %in% levels(x$cluster_id)))
