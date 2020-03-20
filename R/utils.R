@@ -120,7 +120,7 @@
     if (is(x, "SingleCellExperiment"))
         x <- colData(x)
     cd <- data.frame(x[by], check.names = FALSE)
-    cd <- data.table(cd, cell = rownames(cd)) %>% 
+    cd <- data.table(cd, cell = seq_len(nrow(cd))) %>% 
         split(by = by, sorted = TRUE, flatten = FALSE)
     map_depth(cd, length(by), "cell")
 }
