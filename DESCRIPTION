@@ -28,19 +28,21 @@ Imports:
 	variancePartition, viridis
 Suggests: 
 	BiocStyle,
+	CATALYST,
 	countsimQC,
 	cowplot, 
 	ExperimentHub, 
+	iCOBRA,
 	knitr, 
 	phylogram,
 	RColorBrewer,
 	rmarkdown,
 	testthat, 
 	UpSetR
-biocViews: DifferentialExpression, Sequencing, SingleCell, Software, StatisticalMethod, Visualization
+biocViews: ImmunoOncology, DifferentialExpression, Sequencing, SingleCell, Software, StatisticalMethod, Visualization
 License: GPL (>= 2)
 VignetteBuilder: knitr
-RoxygenNote: 7.0.2
+RoxygenNote: 7.1.0
 Encoding: UTF-8
 LazyData: TRUE
 URL: http://bioconductor.org/packages/muscat
