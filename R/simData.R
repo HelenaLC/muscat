@@ -35,11 +35,9 @@
 #'   these nodes (this relation is controlled with \code{phylo_pars}). The distance 
 #'   between two clusters is defined as the sum of the branches lengths 
 #'   separating them. 
-#' @param phylo_pars vector of length 2, defining the parameters that control the 
-#'   number of type genes. It is passed to an adaptation of the 
-#'   exponential's PDF:
-#'   
-#'   \code{N = Ngenes x gamma1 * e^(-gamma2 x dist)} ,
+#' @param phylo_pars vector of length 2 providing the parameters that control 
+#'   the number of type genes. Passed to an exponential's PDF:
+#'   \code{N = #genes x gamma1 * e^(-gamma2 x dist)},
 #'   
 #'   \itemize{
 #'   \item  \code{gamma1} is the parameter that controls the percentage of shared 
@@ -59,11 +57,10 @@
 #' @param force logical specifying whether to force 
 #'   simulation despite \code{ng != nrow(x)}.
 #'   
-#' @details 
-#'  The simulation of type genes can be performed in 2 ways; (1) by defining 
-#'  \code{p_type} and thus simulating independant clusters, OR (2) by defining both 
-#'  \code{phylo_tree} and \code{phylo_pars}, which will simulate a hierarchical structure 
-#'  between the clusters. Only one of the options is allowed. 
+#' @details The simulation of type genes can be performed in 2 ways; 
+#'   (1) by defining \code{p_type} and thus simulating independant clusters, OR 
+#'   (2) by defining both \code{phylo_tree} and \code{phylo_pars}, which will 
+#'   simulate a hierarchical structure between the clusters.
 #'  
 #' @return a \code{\link[SingleCellExperiment]{SingleCellExperiment}}
 #'   containing multiple clusters & samples across 2 groups.
@@ -88,7 +85,7 @@
 #' table(gi$category)
 #' 
 #' # unbalanced sample sizes
-#' sim <- simData(ref, nc = 100,
+#' sim <- simData(ref, nc = 100, ns = 2,
 #'   probs = list(NULL, c(0.25, 0.75), NULL),
 #'   ng = 10, force = TRUE)
 #' table(sim$sample_id)
@@ -142,7 +139,7 @@ simData <- function(x, nc = 2e3, ns = 3, nk = 3,
     probs = NULL, p_dd = diag(6)[1, ], paired = FALSE,
     p_ep = 0.5, p_dp = 0.3, p_dm = 0.5,
     p_type = 0, lfc = 2, rel_lfc = NULL, 
-    phylo_tree = NULL, phylo_pars = c(0, 3),
+    phylo_tree = NULL, phylo_pars = c(ifelse(is.null(phylo_tree), 0, 0.1), 3),
     ng = nrow(x), force = FALSE) {
     
     # throughout this code...
@@ -151,9 +148,6 @@ simData <- function(x, nc = 2e3, ns = 3, nk = 3,
     # g: group ID
     # c: DD category
     # 0: reference
-    
-    # default shared p if phylo tree given
-    if (missing(phylo_pars)) phylo_pars[1] <- ifelse(is.null(phylo_tree), 0, 0.1)
     
     # store all input arguments to be returned in final output
     args <- c(as.list(environment()))
