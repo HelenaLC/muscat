@@ -5,6 +5,7 @@
 \alias{.mm_dream}
 \alias{.mm_dream2}
 \alias{.mm_vst}
+\alias{.mm_glmm}
 \title{DS analysis using mixed-models (MM)}
 \usage{
 mmDS(
@@ -59,6 +60,16 @@ mmDS(
   ddf = c("Satterthwaite", "Kenward-Roger", "lme4"),
   n_threads = 1,
   verbose = FALSE
+)
+
+.mm_glmm(
+  x,
+  coef = NULL,
+  covs = NULL,
+  n_threads = 1,
+  family = c("poisson", "nbinom"),
+  verbose = TRUE,
+  moderate = FALSE
 )
 }
 \arguments{
@@ -119,6 +130,12 @@ in \code{\link[limma]{eBayes}}.}
 
 \item{REML}{logical; whether to maximize REML instead of log-likelihood.}
 
+\item{moderate}{logical; whether to perform empirical Bayes moderation.}
+
+\item{family}{character string specifying which GLMM to fit:
+\code{"poisson"} for \code{\link[blme]{bglmer}},
+\code{"nbinom"} for \code{\link[glmmTMB]{glmmTMB}}.}
+
 \item{...}{additional parameters passed to the method function.}
 }
 \value{
@@ -155,6 +172,8 @@ Meant to be called by \code{mmDS} with \code{method = c("dream", "vst")} and
 \item \code{.mm_dream2}: see details.
 
 \item \code{.mm_vst}: see details.
+
+\item \code{.mm_glmm}: see details.
 }}
 
 \examples{

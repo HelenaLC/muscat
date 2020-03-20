@@ -70,7 +70,7 @@
 mmDS <- function(x, coef = NULL, covs = NULL,
     method = c("dream2", "dream", "vst", "poisson", "nbinom", "hybrid"),
     n_cells = 10, n_samples = 2, min_count = 1, min_cells = 20,
-    n_threads = 8, verbose = TRUE, vst = c("sctransform", "DESeq2"),
+    n_threads = 1, verbose = TRUE, vst = c("sctransform", "DESeq2"),
     ddf = c("Satterthwaite", "Kenward-Roger", "lme4"),
     dup_corr = FALSE, trended = FALSE, bayesian = FALSE, 
     blind = TRUE, REML = TRUE, moderate = FALSE) {
