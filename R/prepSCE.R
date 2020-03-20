@@ -31,11 +31,7 @@
 #'   colData = data.frame(group = gids, id = sids, cluster = kids, batch))
 #'     
 #' # prep. for workflow
-#' sce <- prepSCE(sce,
-#'   group_id = "group",
-#'   sample_id = "id", 
-#'   cluster_id = "cluster")
-#'     
+#' sce <- prepSCE(sce, kid = "cluster", sid = "id", gid = "group")
 #' head(colData(sce))
 #' metadata(sce)$experiment_info
 #' 
