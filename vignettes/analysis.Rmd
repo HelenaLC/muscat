@@ -60,6 +60,7 @@ multi-sample multi-condition single-cell RNA sequencing data.
 ```{r load-libs, message = FALSE,  warning = FALSE}
 library(dplyr)
 library(ggplot2)
+library(limma)
 library(muscat)
 library(purrr)
 ```
@@ -153,6 +154,8 @@ library(sctransform)
 assays(sce)$vstresiduals <- vst(counts(sce), show_progress = FALSE)$y
 ```
 
+By default, `r BiocStyle::Biocpkg("scater")`'s functions will try to access the assay data specified via argument `exprs_values` (default `logcounts`) for e.g. visualization and dimension reduction. When an alternative assay such as the `vstresiduals` above should be used, it is thus necessary to explicitly specify this, for example, via `runUMAP(sce, exprs_values = "vstresiduals")` to compute UMAP cell embedings on the assay data compute above.
+
 ## Data preparation
 
 `muscat` expects a certain format of the input SCE. Specifically, the following cell metadata (`colData`) columns have to be provided: 
@@ -244,7 +247,7 @@ for (dr in c("TSNE", "UMAP")) {
 To test for state changes across conditions, we will consider two types of approaches: i) mixed models that act directly on cell-level measurements; and ii) aggregation-based methods that act on *pseudobulk* data. For both approaches, each gene is tested for state changes in each cluster. Thus, a total of $\#(genes) \times \#(clusters)$ tests will be performed per comparison of interest. The following schematic summarizes the data representation considered by cell- and sample-level approaches, respectively:
 
 ```{r echo = FALSE, out.height = 4, fig.cap = "Schematic overview of cell- and sample-level approaches for DS analysis. Top panels show a schematic of the data distributions or aggregates across samples (each violin is a group or sample; each dot is a sample) and conditions (blue or orange). The bottom panels highlight the data organization in sub-matrix slices of the original count table."}
-knitr::include_graphics(system.file('extdata', 'ds_approaches.png', package = 'muscat'))
+knitr::include_graphics(system.file('extdata', '1d.png', package = 'muscat'))
 ```
 
 ## Aggregation of single-cell to pseudobulk data {#sec-agg}
