@@ -184,15 +184,14 @@
     stopifnot(
         is.numeric(u$top_n), length(u$top_n) == 1, u$top_n > 1,
         is.numeric(u$fdr), length(u$fdr) == 1, u$fdr > 0,
-        is.numeric(u$lfc), length(u$lfc) == 1)
-    stopifnot(
-        is.character(u$sort_by), 
-        length(u$sort_by) == 1,
-        u$sort_by %in% names(u$y$table[[1]][[1]]),
-        is.numeric(u$y$table[[1]][[1]][[u$sort_by]]))
-    stopifnot(is.function(u$fun))
-    stopifnot(is.logical(u$normalize), length(u$normalize) == 1)
-    stopifnot(
+        is.numeric(u$lfc), length(u$lfc) == 1,
+        is.character(u$sort_by), length(u$sort_by) == 1,
+        u$sort_by == "none" | 
+            u$sort_by %in% names(u$y$table[[1]][[1]]) &
+            is.numeric(u$y$table[[1]][[1]][[u$sort_by]]),
+        is.function(u$fun),
+        is.logical(u$decreasing), length(u$decreasing) == 1,
+        is.logical(u$normalize), length(u$normalize) == 1,
         is.logical(u$row_anno), length(u$row_anno) == 1,
         is.logical(u$col_anno), length(u$col_anno) == 1)
 }
