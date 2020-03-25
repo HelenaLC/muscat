@@ -17,7 +17,7 @@ mmDS(
   n_samples = 2,
   min_count = 1,
   min_cells = 20,
-  n_threads = 8,
+  n_threads = 1,
   verbose = TRUE,
   vst = c("sctransform", "DESeq2"),
   ddf = c("Satterthwaite", "Kenward-Roger", "lme4"),
@@ -135,8 +135,6 @@ in \code{\link[limma]{eBayes}}.}
 \item{family}{character string specifying which GLMM to fit:
 \code{"poisson"} for \code{\link[blme]{bglmer}},
 \code{"nbinom"} for \code{\link[glmmTMB]{glmmTMB}}.}
-
-\item{...}{additional parameters passed to the method function.}
 }
 \value{
 a data.frame

@@ -44,7 +44,8 @@ Defaults to \code{names(y$table)[1]}.}
 The specified FDR threshold is applied to \code{p_adj.loc} values.}
 
 \item{sort_by}{character string specifying 
-a numeric results table column to sort by.}
+a numeric results table column to sort by;
+\code{"none"} to retain original ordering.}
 
 \item{decreasing}{logical; whether to sort 
 in decreasing order of \code{sort_by}.}
