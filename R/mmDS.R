@@ -27,7 +27,6 @@
 #' @param n_threads number of threads to use.
 #' @param verbose logical specifying whether messages
 #'   on progress and a progress bar should be displayed.
-#' @param ... additional parameters passed to the method function.
 #'
 #' @return a data.frame
 #'
