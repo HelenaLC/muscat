@@ -109,7 +109,8 @@
 #' plot(read.dendrogram(text = phylo_tree))
 #' 
 #' # simulate clusters accordingly
-#' sim <- simData(ref, phylo_tree = phylo_tree, 
+#' sim <- simData(ref, 
+#'   phylo_tree = phylo_tree, 
 #'   phylo_pars = c(0.1, 3), 
 #'   ng = 500, force = TRUE)
 #' # view information about shared 'type' genes
