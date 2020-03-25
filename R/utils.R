@@ -61,7 +61,7 @@
 # ------------------------------------------------------------------------------
 #' @importFrom matrixStats rowQuantiles
 .scale <- function(x) {
-    qs <- rowQuantiles(as.matrix(x), probs = c(.01, .99))
+    qs <- rowQuantiles(as.matrix(x), probs = c(.01, .99), na.rm = TRUE)
     x <- (x - qs[, 1]) / (qs[, 2] - qs[, 1])
     x[x < 0] <- 0
     x[x > 1] <- 1
@@ -120,7 +120,7 @@
     if (is(x, "SingleCellExperiment"))
         x <- colData(x)
     cd <- data.frame(x[by], check.names = FALSE)
-    cd <- data.table(cd, cell = seq_len(nrow(cd))) %>% 
+    cd <- data.table(cd, cell = rownames(x)) %>% 
         split(by = by, sorted = TRUE, flatten = FALSE)
     map_depth(cd, length(by), "cell")
 }
