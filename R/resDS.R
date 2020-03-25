@@ -62,7 +62,6 @@
 #' @importFrom edgeR cpm
 #' @importFrom methods is
 #' @importFrom purrr reduce
-#' @importFrom reshape2 melt
 #' @importFrom SummarizedExperiment colData
 #' @importFrom S4Vectors metadata
 #' @export  
