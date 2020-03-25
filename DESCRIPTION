@@ -23,7 +23,6 @@ Imports:
 	limma, lmerTest, lme4, 
 	Matrix, matrixStats, methods, 
 	progress, purrr, 
-	reshape2, 
 	scales, sctransform, stats, SingleCellExperiment, SummarizedExperiment, S4Vectors, 
 	variancePartition, viridis
 Suggests: 
@@ -36,6 +35,7 @@ Suggests:
 	knitr, 
 	phylogram,
 	RColorBrewer,
+	reshape2, 
 	rmarkdown,
 	testthat, 
 	UpSetR
