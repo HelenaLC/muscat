@@ -332,10 +332,9 @@ plot(read.dendrogram(text = tree))
 ```{r simData-phylo}
 # simulate 5% of type genes; one group only
 sim <- simData(ref, 
-    p_type = 0.05, 
     phylo_tree = tree,
-    phylo_pars = c(0.2, 2),
-    nc = 2e3, ng = 1e3, force = TRUE,
+    phylo_pars = c(0.1, 1),
+    nc = 800, ng = 1e3, force = TRUE,
     probs = list(NULL, NULL, c(1, 0)))
 # do log-library size normalization
 sim <- logNormCounts(sim)
@@ -350,7 +349,7 @@ is_type <- rd$class != "state"
 is_high <- rowMeans(assay(sim, "logcounts")) > 1
 gs <- rownames(sim)[is_type & is_high]
 # sample 100 cells per cluster for plotting
-cs <- lapply(split(seq_len(ncol(sim)), sim$cluster_id), sample, 100)
+cs <- lapply(split(seq_len(ncol(sim)), sim$cluster_id), sample, 50)
 plotHeatmap(sim[, unlist(cs)], features = gs, 
     center = TRUE, show_rownames = FALSE,
     colour_columns_by = "cluster_id")
