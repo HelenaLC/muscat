@@ -67,13 +67,14 @@ For each gene \eqn{g}, \code{prepSim} fits a model to estimate
 data(sce)
 library(SingleCellExperiment)
 
-sce2 <- prepSim(sce)
+ref <- prepSim(sce)
 
 # nb. of genes/cells before vs. after
-cbind(before = dim(sce), after = dim(sce2)) 
+ns <- cbind(before = dim(sce), after = dim(ref)) 
+rownames(ns) <- c("#genes", "#cells"); ns
 
-head(rowData(sce2)) # gene parameters
-head(colData(sce2)) # cell parameters
+head(rowData(ref)) # gene parameters
+head(colData(ref)) # cell parameters
 
 }
 \references{
