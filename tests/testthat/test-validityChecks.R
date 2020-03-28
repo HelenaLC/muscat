@@ -49,3 +49,16 @@ test_that(".check_args_simData", {
     v <- u; for (val in list(-1, rep(1,u$nk+1)))
         v$rel_lfc <- val; expect_error(.check_args_simData(v))
 })
+
+test_that(".check_frq()", {
+    y <- calcExprFreqs(x <- sce)
+    expect_silent(.check_frq(x, y))
+    z <- x; class(z) <- "x"
+    expect_error(.check_frq(z, y))
+    z <- y; class(z) <- "x"
+    expect_error(.check_frq(x, z))
+    for (v in c(-1, 10)) {
+        z <- y; assay(z)[1, 1] <- v
+        expect_error(.check_frq(x, z))
+    }
+})

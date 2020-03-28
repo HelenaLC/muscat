@@ -20,6 +20,6 @@ test_that("pbMDS()", {
     cs4 <- cs1 & cs2 # remove sample in single group
     cs5 <- cs1 & cs3 # remove cluster in single group
     cs6 <- cs2 & cs3 # remove cluster-sample instance
-    for (cs in paste0("cs", seq_len(6)))
+    for (cs in paste0("cs", seq_len(6))) 
         expect_silent(pbMDS(aggregateData(x[, get(cs)])))
 })
