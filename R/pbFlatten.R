@@ -13,6 +13,7 @@
 #' 
 #' @examples 
 #' data(sce)
+#' library(SingleCellExperiment)
 #' pb_stack <- aggregateData(sce)
 #' (pb_flat <- pbFlatten(pb_stack))
 #' ncol(pb_flat) == ncol(pb_stack)*length(assays(pb_stack))
