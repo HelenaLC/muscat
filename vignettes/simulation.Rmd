@@ -52,7 +52,6 @@ multi-sample multi-condition single-cell RNA sequencing data.
 # Load packages {-}
 
 ```{r load-libs, message = FALSE,  warning = FALSE}
-library(CATALYST)
 library(cowplot)
 library(dplyr)
 library(reshape2)
@@ -178,14 +177,17 @@ table(gi$category)
 
 ```{r densities, echo = FALSE, fig.wide = TRUE, fig.width = 8, fig.height = 3, fig.cap = "Expression densities for an exemplary set of 3 genes per *differential distribution* category. Each density corresponds to one sample, lines are colored by group ID, and panels are split by gene and subpopulation."}
 # simulare genes from all DD categories
-sim <- simData(ref, nc = 2e3, 
+sim <- simData(ref, 
+    nc = 2e3, nk = 1, ns = 4,
     p_dd = c(0.5, rep(0.1, 5)),
     ng = 1e3, force = TRUE)
 # normalize 
 sim <- logNormCounts(sim)
 # get 'n' genes per category
 n <- 3
-gi <- metadata(sim)$gene_info
+gi <- metadata(sim)$gene_info %>% 
+    mutate(sim_mean = (sim_mean.A+sim_mean.B)/2) %>% 
+    filter(is.na(logFC) | abs(logFC) > 2, sim_mean > 1) 
 gs <- group_by(gi, category) %>% 
     group_modify(~head(.x, n = n)) %>% 
     mutate(id = paste0(gene, cluster_id))
@@ -194,8 +196,8 @@ df <- data.frame(t(logcounts(sim)), colData(sim)) %>%
     melt(id.vars = names(colData(sim))) %>% 
     mutate(id = paste0(variable, cluster_id)) %>% 
     mutate(id = factor(id, levels = gs$id)) %>% 
-    mutate(cat = gs$category[match(id, gs$id)]) %>% 
-    filter(id %in% gs$id)
+    filter(id %in% gs$id) %>% 
+    mutate(cat = gs$category[match(id, gs$id)])
 # use category as facet label
 labs <- setNames(toupper(df$cat), df$id)
 labs <- labs[unique(names(labs))]
@@ -232,15 +234,20 @@ rel_lfc <- list(
     c(0, 1, 2)) # cluster-specific logFC factors; no change for cluster1
 sim <- lapply(rel_lfc, function(u)
     simData(ref, rel_lfc = u,
-        nc = 1e3, nk = 3,
+        nc = (nc <- 1e3), nk = 3,
         p_dd = c(0.95, 0, 0.05, 0, 0, 0),
         ng = 1e3, force = TRUE))
 # normalize & run dimension reduction
 sim <- lapply(sim, logNormCounts)
-sim <- lapply(sim, runDR, dr = "TSNE", assay = "logcounts")
+sim <- lapply(sim, runTSNE)
 # arrange plots
-ps <- lapply(c("cluster_id", "group_id"), function(id) 
-    lapply(sim, function(u) plotDR(u, color_by = id)))
+ps <- lapply(c("cluster_id", "group_id"), 
+    function(id) lapply(sim, function(u) {
+        p <- plotTSNE(u, colour_by = id)
+        p$layers[[1]]$aes_params$stroke <- 0
+        p + guides(fill = guide_legend(
+            override.aes = list(alpha = 1, size = 3)))
+    }))
 ps <- Reduce("c", ps)
 lgd <- lapply(ps[c(1, 4)], get_legend)
 ps <- lapply(ps, "+", theme(legend.position = "none"))
@@ -257,14 +264,21 @@ The fraction of type features introduced into each subpopulation is specified vi
 
 ```{r p-type, echo = FALSE, fig.wide = TRUE, fig.cap = "t-SNEs of exemplary simulations demonstrating `p_type`'s effect to introduce *type* features. Cells are colored by cluster ID (top-row) and group ID (bottom-row), respectively. The percentage of type features increases from left to right (1, 5, 10%). Simulations are pure EE, i.e., all genes are non-differential across groups."}
 sim <- lapply(c(0.01, 0.05, 0.1), function(u)
-    simData(ref, p_type = u, nc = 1e3, nk = 3,
+    simData(ref, p_type = u, 
+        nc = 1e3, nk = 3, 
         ng = 1e3, force = TRUE))
 # normalize & run dimension reduction
 sim <- lapply(sim, logNormCounts)
-sim <- lapply(sim, runDR, dr = "TSNE", assay = "logcounts")
+sim <- lapply(sim, runTSNE)
 # arrange plots
-ps <- lapply(c("cluster_id", "group_id"), function(id) 
-    lapply(sim, function(u) plotDR(u, color_by = id)))
+# arrange plots
+ps <- lapply(c("cluster_id", "group_id"), 
+    function(id) lapply(sim, function(u) {
+        p <- plotTSNE(u, colour_by = id)
+        p$layers[[1]]$aes_params$stroke <- 0
+        p + guides(fill = guide_legend(
+            override.aes = list(alpha = 1, size = 3)))
+    }))
 ps <- Reduce("c", ps)
 lgd <- lapply(ps[c(1, 4)], get_legend)
 ps <- lapply(ps, "+", theme(legend.position = "none"))
@@ -291,7 +305,7 @@ To exemplify the effect of the parameter `p_type`, we simulate a dataset with $\
 
 ```{r simData-type}
 # simulate 5% of type genes; one group only
-sim <- simData(ref, p_type = 0.05, 
+sim <- simData(ref, p_type = 0.1, 
     nc = 2e3, ng = 1e3, force = TRUE,
     probs = list(NULL, NULL, c(1, 0)))
 # do log-library size normalization
@@ -300,7 +314,7 @@ sim <- logNormCounts(sim)
 
 For visualizing the above simulation, we select for genes that are of class *type* (`rowData()$class == "type"`) and have a decent simulated expression mean. Furthermore, we sample a subset of cells for each cluster. The resulting heatmap (Fig. \@ref(fig:heatmap-type)) shows that the 3 clusters separate well from one another, but that type genes aren't necessarily expressed higher in a single cluster. This is the case because a gene selected as reference for a type gene in a given cluster may indeed have a lower expression than the gene used for the remainder of clusters.
 
-```{r heatmap-type, fig.width = 10, fig.height = 6, fig.cap = "Exemplary heatmap demonstrating the effect of `p_type` to introduce cluster-specific *type* genes. Included are type genes (= rows) with a simulated expression mean > 1, and a random subset of 100 cells (= columns) per cluster; column annotations represent cluster IDs. Bins are colored by expression scaled in row direction, and both genes and cells are hierarchically clustered."}
+```{r heatmap-type, fig.width = 12, fig.height = 8, fig.cap = "Exemplary heatmap demonstrating the effect of `p_type` to introduce cluster-specific *type* genes. Included are type genes (= rows) with a simulated expression mean > 1, and a random subset of 100 cells (= columns) per cluster; column annotations represent cluster IDs. Bins are colored by expression scaled in row direction, and both genes and cells are hierarchically clustered."}
 # extract gene metadata & number of clusters
 rd <- rowData(sim)
 nk <- nlevels(sim$cluster_id)
@@ -454,18 +468,6 @@ pd <- prepare_data_for_plot(perf)
 plot_fdrtprcurve(pd) +
     theme(aspect.ratio = 1) +
     scale_x_continuous(trans = "sqrt")
-```
-
-Last but not least, we may be interest in how methods perform across some grouping variable, for example, the DD categoy stored in `gene_info$category` of the simulated SCE's `metadata`. To this end, let's repeatt the above evalulation and visualization, but this time specify `category` as a facetting variable:
-
-```{r tprfdr-facetted, warning = FALSE, message = FALSE, fig.wide = TRUE, fig.height = 6}
-# calculate & visualize performance by DD category
-perf <- .calc_perf(res, facet = "category")
-pd <- prepare_data_for_plot(perf, incloverall = FALSE)
-p <- plot_fdrtprcurve(pd) +
-    theme(aspect.ratio = 1) +
-    scale_x_continuous(trans = "sqrt")
-p$facet$params$ncol <- 5; p
 ```
 
 # Session info {- .smaller}
