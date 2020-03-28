@@ -61,23 +61,12 @@ and their relative distance. An explanation of the syntax can be found
 \href{http://evolution.genetics.washington.edu/phylip/newicktree.html}{here}. 
 The distance between the nodes, except for the original branch, will be 
 translated in the number of shared genes between the clusters belonging to 
-these nodes (this relation is controlled with \code{phylo_pars}). The distance 
-between two clusters is defined as the sum of the branches lengths 
-separating them.}
+these nodes (this relation is controlled with \code{phylo_pars}). 
+The distance between two clusters is defined as the sum 
+of the branches lengths separating them.}
 
 \item{phylo_pars}{vector of length 2 providing the parameters that control 
-the number of type genes. Passed to an exponential's PDF:
-\code{N = #genes x gamma1 * e^(-gamma2 x dist)},
-
-\itemize{
-\item  \code{gamma1} is the parameter that controls the percentage of shared 
-genes between the nodes. By default 0.1 if a tree is given, meaning that 
-maximum 10% of the genes can be used as type genes (if gamma2 = 0). 
-However it's advised to tune it depending on the input \code{prep_sce}. 
-\code{gamma2} is the 'penalty' of increasing the distance between clusters 
-(\code{dist}, defined by \code{phylo_tree}), applied on the number of 
-shared genes. Default to 3. 
-}}
+the number of type genes. Passed to an exponential PDF (see details).}
 
 \item{ng}{# of genes to simulate. Importantly, for the library sizes 
 computed by \code{\link{prepSim}} (= \code{exp(x$offset)}) to make sense, 
@@ -90,7 +79,26 @@ simulation despite \code{ng != nrow(x)}.}
 }
 \value{
 a \code{\link[SingleCellExperiment]{SingleCellExperiment}}
-  containing multiple clusters & samples across 2 groups.
+  containing multiple clusters & samples across 2 groups 
+  as well as the following metadata: \describe{
+  \item{cell metadata (\code{colData(.)})}{a \code{DataFrame} containing,
+  containing, for each cell, it's cluster, sample, and group ID.}
+  \item{gene metadata (\code{rowData(.)})}{a \code{DataFrame} containing, 
+  for each gene, it's \code{class} (one of "state", "type", "none") and 
+  specificity (\code{specs}; NA for genes of type "state", otherwise 
+  a character vector of clusters that share the given gene).}
+  \item{experiment metadata (\code{metadata(.)})}{
+  \describe{
+  \item{\code{experiment_info}}{a \code{data.frame} 
+  summarizing the experimental design.}
+  \item{\code{n_cells}}{the number of cells for each sample.}
+  \item{\code{gene_info}}{a \code{data.frame} containing, for each gene
+  in each cluster, it's differential distribution \code{category},
+  mean \code{logFC} (NA for genes for categories "ee" and "ep"),
+  gene used as reference (\code{sim_gene}), dispersion \code{sim_disp},
+  and simulation means for each group \code{sim_mean.A/B}.}
+  \item{\code{ref_sids/kidskids}}{the sample/cluster IDs used as reference.}
+  \item{\code{args}}{a list of the function call's input arguments.}}}}
 }
 \description{
 Simulation of complex scRNA-seq data
@@ -100,9 +108,22 @@ Simulation of complex scRNA-seq data
 across 2 experimental conditions from a real scRNA-seq data set.
 
 The simulation of type genes can be performed in 2 ways; 
-  (1) by defining \code{p_type} and thus simulating independant clusters, OR 
-  (2) by defining both \code{phylo_tree} and \code{phylo_pars}, which will 
-  simulate a hierarchical structure between the clusters.
+  (1) via \code{p_type} to simulate independant clusters, OR 
+  (2) via \code{phylo_tree} to simulate a hierarchical cluster structure.
+  
+  For (1), a subset of \code{p_type} \% of genes are selected per cluster
+  to use a different references genes than the remainder of clusters,
+  giving rise to cluster-specific NB means for count sampling.
+  
+  For (2), the number of shared/type genes at each node 
+  are given by \code{a*G*e^(-b*d)}, where \itemize{
+  \item{\code{a} -- controls the percentage of shared genes between nodes.
+  By default, at most 10\% of the genes are reserved as type genes
+  (when \code{b} = 0). However, it is advised to tune this parameter 
+  depending on the input \code{prep_sce}.}
+  \item{\code{b} -- determines how the number of shared genes 
+  decreases with increasing distance d between clusters 
+  (defined through \code{phylo_tree}).}}
 }
 \examples{
 data(sce)
@@ -112,7 +133,7 @@ library(SingleCellExperiment)
 ref <- prepSim(sce)
 
 # simulate data
-(sim <- simData(ref, nc = 10,
+(sim <- simData(ref, nc = 200,
   p_dd = c(0.9, 0, 0.1, 0, 0, 0),
   ng = 100, force = TRUE,
   probs = list(NULL, NULL, c(1, 0))))
@@ -165,5 +186,5 @@ multi-sample multi-condition single-cell RNA sequencing data.
 doi: \url{https://doi.org/10.1101/713412}
 }
 \author{
-Helena L Crowell
+Helena L Crowell & Anthony Sonrel
 }
