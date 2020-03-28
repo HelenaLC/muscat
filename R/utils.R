@@ -172,7 +172,7 @@
         sample(paste0(i, seq_len(n)), ncs, TRUE),
         i = c("k", "s", "g"), n = c(5, 4, 3))
     
-    cd <- data.frame(cd)
+    cd <- data.frame(cd, stringsAsFactors = TRUE)
     cd$s <- factor(paste(cd$s, cd$g, sep = "."))
     colnames(cd) <- paste(c("cluster", "sample", "group"), "id", sep = "_")
     
