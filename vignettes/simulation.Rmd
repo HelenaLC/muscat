@@ -456,9 +456,8 @@ gi$is_de <- as.numeric(gi$is_de)
 
 # specify methods for comparison & run them
 # (must set names for methods to show in visualizations!)
-ms <- c("edgeR", "DESeq2", "limma-trend", "limma-voom")
-res <- lapply(ms, .run_method)
-names(res) <- ms 
+names(mids) <- mids <- c("edgeR", "DESeq2", "limma-trend", "limma-voom")
+res <- lapply(mids, .run_method)
 # calculate performance measures & 
 # prepare data for plotting with 'iCOBRRA'
 library(iCOBRA)
