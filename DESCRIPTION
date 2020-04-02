@@ -48,5 +48,5 @@ VignetteBuilder: knitr
 RoxygenNote: 7.1.0
 Encoding: UTF-8
 LazyData: TRUE
-URL: http://bioconductor.org/packages/muscat
-BugReports: https://support.bioconductor.org
+URL: https://github.com/HelenaLC/muscat
+BugReports: https://github.com/HelenaLC/muscat/issues
