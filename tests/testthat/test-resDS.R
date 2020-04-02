@@ -46,7 +46,7 @@ test_that("resDS() - 'frq = TRUE'", {
     z <- resDS(x, y, frq = TRUE)
     u <- z[, grep("frq", colnames(z))]
     expect_true(ncol(u) == ns + ng)
-    expect_true(all(u <= 1 & u >= 0 || is.na(u)))
+    expect_true(all(u <= 1 & u >= 0 | is.na(u)))
     # remove single cluster-sample instance
     s <- sample(sids, 1); k <- sample(kids, 1)
     x_ <- x[, !(x$sample_id == s & x$cluster_id == k)]
@@ -55,12 +55,12 @@ test_that("resDS() - 'frq = TRUE'", {
     z <- resDS(x_, y_, frq = TRUE)
     u <- z[, grep("frq", colnames(z))]
     expect_true(ncol(u) == ns + ng)
-    expect_true(all(u <= 1 & u >= 0 || is.na(u)))
+    expect_true(all(u <= 1 & u >= 0 | is.na(u)))
     expect_true(all(z[z$cluster_id == k, paste0(s, ".frq")] == 0))
 })
 test_that("resDS() - 'cpm = TRUE'", {
     z <- resDS(x, y, cpm = TRUE)
     u <- z[, grep("cpm", colnames(z))]
     expect_true(ncol(u) == ns)
-    expect_true(all(u %% 2 == 0 || is.na(u)))
+    expect_true(all(u %% 2 == 0 | is.na(u)))
 })
