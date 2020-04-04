@@ -23,8 +23,9 @@
 #'   to filter on genes, samples, both or neither.
 #' @param treat logical specifying whether empirical Bayes moderated-t 
 #'   p-values should be computed relative to a minimum fold-change threshold. 
-#'   Only applicable for methods \code{"limma-x"} (\code{\link[limma]{treat}})
-#'   and \code{"edgeR"} (\code{\link[edgeR]{glmTreat}}), and ignored otherwise.
+#'   Only applicable for methods \code{"limma-x"} 
+#'   (\code{\link[limma:eBayes]{treat}}) and \code{"edgeR"} 
+#'   (\code{\link[edgeR]{glmTreat}}), and ignored otherwise.
 #' @param verbose logical. Should information on progress be reported?
 #'
 #' @return a list containing \itemize{
