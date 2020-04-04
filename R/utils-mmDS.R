@@ -250,7 +250,7 @@
 #' see details.
 #' 
 #' @param family character string specifying which GLMM to fit:
-#'   \code{"poisson"} for \code{\link[blme]{bglmer}},
+#'   \code{"poisson"} for \code{\link[blme:blmer]{bglmer}},
 #'   \code{"nbinom"} for \code{\link[glmmTMB]{glmmTMB}}.
 #' @param moderate logical; whether to perform empirical Bayes moderation.
 #' 

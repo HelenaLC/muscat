@@ -133,7 +133,7 @@ in \code{\link[limma]{eBayes}}.}
 \item{moderate}{logical; whether to perform empirical Bayes moderation.}
 
 \item{family}{character string specifying which GLMM to fit:
-\code{"poisson"} for \code{\link[blme]{bglmer}},
+\code{"poisson"} for \code{\link[blme:blmer]{bglmer}},
 \code{"nbinom"} for \code{\link[glmmTMB]{glmmTMB}}.}
 }
 \value{
