@@ -6,7 +6,7 @@ Description: `muscat` provides various methods and visualization tools
     aggregated “pseudobulk” data, as well as a flexible simulation platform 
     that mimics both single and multi-sample scRNA-seq data.
 Type: Package
-Version: 1.1.4
+Version: 1.1.5
 Depends: R (>= 4.0)
 Authors@R: c(
 	person("Helena L.", "Crowell", role=c("aut", "cre"), 
@@ -48,5 +48,5 @@ VignetteBuilder: knitr
 RoxygenNote: 7.1.0
 Encoding: UTF-8
 LazyData: TRUE
-URL: http://bioconductor.org/packages/muscat
-BugReports: https://support.bioconductor.org
+URL: https://github.com/HelenaLC/muscat
+BugReports: https://github.com/HelenaLC/muscat/issues
