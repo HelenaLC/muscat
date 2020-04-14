@@ -79,7 +79,7 @@ Given the emergence of multi-sample multi-group scRNA-seq datasets, the goal bec
 
 The starting point for a DS analysis is a (sparse) matrix of gene expression, either as counts or some kind of normalized data, where rows = genes and columns = cells. Each cell additionally has a cluster (subpopulation) label as well as a sample label; metadata should accompany the list of samples, such that they can be organized into comparable groups with sample-level replicates (e.g., via a design matrix). 
 
-The approach presented here is modular and thus subpopulation labels could originate from an earlier step in the analysis, such as clustering [@Duo2018; @Freytag2018], perhaps after integration  [@Butler2018; @Stuart2019] or after labeling of clusters [@Diaz-Mejia2019] or after cell-level type assignment [@Zhang2019].
+The approach presented here is modular and thus subpopulation labels could originate from an earlier step in the analysis, such as clustering [@Duo2018; @Freytag2018-clustering], perhaps after integration  [@Butler2018-Seurat; @Stuart2019] or after labeling of clusters [@Diaz-Mejia2019] or after cell-level type assignment [@Zhang2019].
 
 # Getting started
 
