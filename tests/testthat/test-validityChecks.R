@@ -1,6 +1,7 @@
-context("Check validity of input arguments")
-
-library(SingleCellExperiment)
+# load packages
+suppressMessages({
+    library(SingleCellExperiment)
+})
 sce <- .toySCE()
 
 test_that(".check_sce", {

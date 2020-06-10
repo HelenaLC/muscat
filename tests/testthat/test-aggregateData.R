@@ -1,5 +1,3 @@
-context("Aggregation of single-cell to pseudobulk data")
-
 # load packages
 suppressMessages({
     library(SingleCellExperiment)

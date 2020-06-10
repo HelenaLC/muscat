@@ -1,5 +1,3 @@
-context("Simulation of 'complex' scRNA-seq data")
-
 suppressMessages({
     library(dplyr)
     library(SingleCellExperiment)

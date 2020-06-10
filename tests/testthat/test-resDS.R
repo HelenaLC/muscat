@@ -1,5 +1,3 @@
-context("DS analysis results reformatting")
-
 # load packages
 suppressMessages({
     library(dplyr)
@@ -22,12 +20,12 @@ de_gs <- sample(rownames(x), (n_de <- 5))
 assay(x[de_gs, g23]) <- assay(x[de_gs, g23]) * 10
 
 # aggregate & run pseudobulk DS analysis
-nc <- length(cs <- c(2, 3))
+nc <- length(cs <- list(2, 3))
 y <- aggregateData(x, assay = "counts", fun = "sum")
 y <- pbDS(y, coef = cs, verbose = FALSE)
     
 test_that("resDS()", {
-    v <- list(col = list(nr = nrow(x)*nk, ng = nk, nk = nrow(x)))
+    v <- list(col = list(nr = nrow(x)*nk, ng = nrow(x), nk = nk))
     v$row <- lapply(v$col, "*", nc)
     v$col$char_cols <- c("gene", "cluster_id")
     v$row$char_cols <- c(v$col$char_cols, "coef")
@@ -35,8 +33,8 @@ test_that("resDS()", {
         z <- resDS(x, y, bind, frq = FALSE, cpm = FALSE)
         expect_is(z, "data.frame")
         expect_identical(nrow(z), v[[bind]]$nr)
-        expect_true(all(table(z$gene) == v[[bind]]$ng))
-        expect_true(all(table(z$cluster_id) == v[[bind]]$nk))
+        expect_true(all(table(z$gene) == v[[bind]]$nk))
+        expect_true(all(table(z$cluster_id) == v[[bind]]$ng))
         is_char <- colnames(z) %in% v[[bind]]$char_cols
         expect_true(all(apply(z[, !is_char], 2, class) == "numeric"))
         expect_true(all(apply(z[,  is_char], 2, class) == "character"))

@@ -1,5 +1,3 @@
-context("DS analysis using mixed-models")
-
 # load packages
 suppressPackageStartupMessages({
     library(dplyr)

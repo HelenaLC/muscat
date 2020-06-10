@@ -1,5 +1,3 @@
-context("Pseudobulk heatmap of DS analysis results")
-
 # load packages
 suppressMessages({
     library(purrr)
