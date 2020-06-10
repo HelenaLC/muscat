@@ -37,7 +37,7 @@ NULL (equal probabilities) or numeric values in [0, 1] that sum to 1.}
 Specifies the probability of a gene being
 EE, EP, DE, DP, DM, or DB, respectively.}
 
-\item{paired}{logial specifying whether a paired design should 
+\item{paired}{logical specifying whether a paired design should 
 be simulated (both groups use the same set of reference samples) 
 or not (reference samples are drawn at random).}
 
@@ -48,8 +48,8 @@ to be shifted to a different expression state in one group (see details).}
 If a gene is of class "type" in a given cluster, a unique mean 
 will be used for that gene in the respective cluster.}
 
-\item{lfc}{numeric value to use as mean logFC
-for DE, DP, DM, and DB type of genes.}
+\item{lfc}{numeric value to use as mean logFC 
+(logarithm base 2) for DE, DP, DM, and DB type of genes.}
 
 \item{rel_lfc}{numeric vector of relative logFCs for each cluster. 
 Should be of length \code{nlevels(x$cluster_id)} with 

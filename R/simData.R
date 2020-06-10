@@ -13,7 +13,7 @@
 #' @param p_dd numeric vector of length 6.
 #'   Specifies the probability of a gene being
 #'   EE, EP, DE, DP, DM, or DB, respectively.
-#' @param paired logial specifying whether a paired design should 
+#' @param paired logical specifying whether a paired design should 
 #'   be simulated (both groups use the same set of reference samples) 
 #'   or not (reference samples are drawn at random).
 #' @param p_ep,p_dp,p_dm numeric specifying the proportion of cells
@@ -21,8 +21,8 @@
 #' @param p_type numeric. Probability of EE/EP gene being a type-gene.
 #'   If a gene is of class "type" in a given cluster, a unique mean 
 #'   will be used for that gene in the respective cluster.
-#' @param lfc numeric value to use as mean logFC
-#'   for DE, DP, DM, and DB type of genes.
+#' @param lfc numeric value to use as mean logFC 
+#'   (logarithm base 2) for DE, DP, DM, and DB type of genes.
 #' @param rel_lfc numeric vector of relative logFCs for each cluster. 
 #'   Should be of length \code{nlevels(x$cluster_id)} with 
 #'   \code{levels(x$cluster_id)} as names. 
