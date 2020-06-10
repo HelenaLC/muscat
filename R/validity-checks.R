@@ -148,7 +148,7 @@
             !is.null(colnames(u$design)))
     stopifnot(
         is.null(u$contrast) | is.matrix(u$contrast),
-        is.null(u$coef) | is.numeric(u$coef),
+        is.null(u$coef) | is.numeric(unlist(u$coef)),
         is.numeric(u$min_cells), length(u$min_cells) == 1,
         is.logical(u$verbose), length(u$verbose) == 1,
         is.logical(u$treat), length(u$treat) == 1)
