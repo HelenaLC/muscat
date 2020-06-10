@@ -1,5 +1,3 @@
-context("DS analysis via pseudobulks")
-
 # load packages
 suppressMessages({
     library(dplyr)

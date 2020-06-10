@@ -29,7 +29,8 @@ Defaults to \code{~ group_id} or the corresponding \code{model.matrix}.}
 
 \item{coef}{passed to \code{\link[edgeR]{glmQLFTest}},
 \code{\link[limma]{contrasts.fit}}, \code{\link[DESeq2]{results}}
-for \code{method = "edgeR", "limma-x", "DESeq2"}, respectively.}
+for \code{method = "edgeR", "limma-x", "DESeq2"}, respectively.
+Can be a list for multiple, independent comparisons.}
 
 \item{contrast}{a matrix of contrasts to test for
 created with \code{\link[limma]{makeContrasts}}.}

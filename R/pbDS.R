@@ -17,6 +17,7 @@
 #' @param coef passed to \code{\link[edgeR]{glmQLFTest}},
 #'   \code{\link[limma]{contrasts.fit}}, \code{\link[DESeq2]{results}}
 #'   for \code{method = "edgeR", "limma-x", "DESeq2"}, respectively.
+#'   Can be a list for multiple, independent comparisons.
 #' @param min_cells a numeric. Specifies the minimum number of cells in a given 
 #'   cluster-sample required to consider the sample for differential testing.
 #' @param filter characterstring specifying whether
@@ -108,6 +109,8 @@ pbDS <- function(pb,
         coef <- NULL
         names(cs) <- cs <- colnames(contrast)
     } else if (!is.null(coef)) {
+        if (!is.list(coef)) 
+            coef <- list(coef)
         cs <- vapply(coef, function(i)
             paste(colnames(design)[i], collapse = "-"),
             character(1))
