@@ -366,7 +366,7 @@ cats <- factor(cats, levels = cats)
     ms <- ms[!rmv] %>% 
         map_depth(2, mean) %>% 
         map_depth(1, unlist) %>% 
-        bind_cols %>% 
+        data.frame %>% 
         as.matrix
     ms <- switch(cat, 
         ee = ms,
