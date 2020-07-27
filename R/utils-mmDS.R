@@ -313,7 +313,7 @@
         if (verbose) message("Applying empirical Bayes moderation..")
         fits <- .mm_eBayes(fits, coef)
     } else {
-        fits <- as.data.frame(bind_rows(fits))
+        fits <- data.frame(do.call(rbind, fits))
         colnames(fits) <- c("beta", "SE", "stat", "p_val")
     }
     i <- which(colnames(fits) == "p_val")

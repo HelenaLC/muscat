@@ -149,9 +149,11 @@ mmDS <- function(x, coef = NULL, covs = NULL,
         # call to .mm_dream/.mm_vst
         args$x <- y
         z <- do.call(fun, args)
-        z <- cbind(stringsAsFactors = FALSE, 
-            gene = rownames(y), cluster_id = unname(k), z)
-        rownames(z) <- NULL; z
+        data.frame(
+            gene = rownames(y),
+            cluster_id = k, z, 
+            row.names = NULL,
+            stringsAsFactors = FALSE)
     })
     if (verbose) pb$terminate()
     
