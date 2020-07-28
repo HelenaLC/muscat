@@ -207,7 +207,7 @@
     cd <- mutate_if(cd, is.factor, droplevels)
     if (!is.null(covs))
         cd <- mutate_at(cd, covs, function(u) 
-            if (is.numeric(u)) scale(u))
+            if (is.numeric(u)) scale(u) else u)
     rownames(cd) <- colnames(x); cd
 }
 
