@@ -51,9 +51,10 @@ calcExprFreqs <- function(x, assay = "counts", th = 0) {
     # for each gene, compute fraction of cells 
     # w/ assay value above threshold in each sample
     y <- assays(x)[[assay]]
-    fq <- lapply(cs_by_ks, vapply, function(i) 
-        Matrix::rowMeans(y[, i, drop = FALSE] > th),
-        numeric(nrow(x)))
+    fq <- lapply(cs_by_ks, vapply, function(i) {
+        if (is.null(i)) return(rep(0, nrow(x)))
+        Matrix::rowMeans(y[, i, drop = FALSE] > th)
+    }, numeric(nrow(x)))
 
     # same for ea. group (if colData column "group_id" exists)
     if ("group_id" %in% colnames(colData(x))) {

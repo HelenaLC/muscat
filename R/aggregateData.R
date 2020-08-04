@@ -78,13 +78,23 @@ aggregateData <- function(x,
     # nb. of cells that went into aggregation
     md <- metadata(x)
     md$agg_pars <- list(assay = assay, by = by, fun = fun, scale = scale)
-    md$n_cells <- table(as.data.frame(colData(x)[, by]))
     
     # get aggregation function
     fun <- switch(fun,
         sum = "rowSums",
         mean = "rowMeans",
         median = "rowMedians")
+    
+    # drop missing factor levels & tabulate number of cells
+    cd <- mutate_if(as.data.frame(colData(x)), is.factor, droplevels)
+    colData(x) <- DataFrame(cd, row.names = colnames(x),check.names = FALSE)
+    md$n_cells <- table(as.data.frame(colData(x)[, by]))
+    
+    # assure 'by' colData columns are factors
+    # so that missing combinations aren't dropped
+    for (i in by) 
+        if (!is.factor(x[[i]])) 
+            x[[i]] <- factor(x[[i]])
     
     # split cells & compute pseudo-bulks
     cs <- .split_cells(x, by)

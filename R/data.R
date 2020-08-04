@@ -20,7 +20,7 @@
 #' }
 #' 
 #' Assay \code{logcounts} corresponds to log-normalized values 
-#' obtained from \code{\link[scater]{normalize}} with default parameters.
+#' obtained from \code{\link[scater]{logNormCounts}} with default parameters.
 #'   
 #' The original measurement data, as well as gene and cell metadata 
 #' is available through the NCBI GEO accession number GSE96583;

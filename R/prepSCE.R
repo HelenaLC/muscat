@@ -4,7 +4,7 @@
 #' @description ...
 #' 
 #' @param x a \code{\link[SingleCellExperiment]{SingleCellExperiment}}.
-#' @param cluster_id,sample_id,group_id character strings specifying
+#' @param kid,sid,gid character strings specifying
 #'   the \code{colData(x)} columns containing cluster assignments,
 #'   unique sample identifiers, and group IDs (e.g., treatment).
 #' @param drop logical. Specifies whether \code{colData(x)} columns
@@ -31,11 +31,7 @@
 #'   colData = data.frame(group = gids, id = sids, cluster = kids, batch))
 #'     
 #' # prep. for workflow
-#' sce <- prepSCE(sce,
-#'   group_id = "group",
-#'   sample_id = "id", 
-#'   cluster_id = "cluster")
-#'     
+#' sce <- prepSCE(sce, kid = "cluster", sid = "id", gid = "group")
 #' head(colData(sce))
 #' metadata(sce)$experiment_info
 #' 
@@ -44,28 +40,30 @@
 #' @return a \code{\link[SingleCellExperiment]{SingleCellExperiment}}.
 #' 
 #' @importFrom dplyr mutate_all
-#' @importFrom magrittr set_colnames
 #' @importFrom S4Vectors DataFrame metadata<-
 #' @importFrom SingleCellExperiment reducedDims SingleCellExperiment
 #' @importFrom SummarizedExperiment assays colData rowData
 #' @export
 
-prepSCE <- function(x, cluster_id, sample_id, group_id, drop = FALSE) {
-    
+prepSCE <- function(x, 
+    kid = "cluster_id", 
+    sid = "sample_id", 
+    gid = "group_id", 
+    drop = FALSE) {
+
     stopifnot(is(x, "SingleCellExperiment"))
 
-    ids <- as.list(match.call())
-    ids <- ids[grep("id", names(ids))]
+    args <- as.list(environment())
+    ids <- args[grep("[a-z]id", names(args))]
     ids <- unlist(ids)
     
     stopifnot(is.character(ids))
     stopifnot(all(ids %in% colnames(colData(x))))
     
     cd0 <- colData(x)
-    cd <- cd0[ids] %>% 
-        data.frame(check.names = FALSE) %>% 
-        mutate_all(as.factor) %>% 
-        set_colnames(names(ids))
+    cd <- data.frame(cd0[ids], check.names = FALSE)
+    cd <- mutate_all(cd, as.factor)
+    colnames(cd) <- unlist(formals()[names(ids)])
     
     if (!drop)
         cd <- data.frame(cd,

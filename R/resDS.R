@@ -62,12 +62,11 @@
 #' @importFrom edgeR cpm
 #' @importFrom methods is
 #' @importFrom purrr reduce
-#' @importFrom reshape2 melt
 #' @importFrom SummarizedExperiment colData
 #' @importFrom S4Vectors metadata
 #' @export  
 
-resDS <- function(x, y, bind = c("col", "row"),
+resDS <- function(x, y, bind = c("row", "col"),
     frq = FALSE, cpm = FALSE, digits = 3, sep = "__", ...) {
     
     # check validity of input arguments
@@ -84,7 +83,10 @@ resDS <- function(x, y, bind = c("col", "row"),
     
     res <- switch(bind,
         row = {
-            ct <- ifelse(!is.null(y$contrast), "contrast", "coef")
+            bind_rows(lapply(y$table, bind_rows))
+        },
+        col = {
+            ct <- ifelse(!is.null(y$args$contrast), "contrast", "coef")
             cs <- names(y$table)
             res <- lapply(cs, function(c) {
                 df <- bind_rows(y$table[[c]])
@@ -94,9 +96,6 @@ resDS <- function(x, y, bind = c("col", "row"),
                 return(df)
             })
             reduce(res, full_join, by = c("gene", "cluster_id"))
-        },
-        col = {
-            bind_rows(lapply(y$table, bind_rows))
         })
 
     .tidy <- function(u, ei, append = "") {

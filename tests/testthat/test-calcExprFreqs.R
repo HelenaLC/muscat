@@ -1,5 +1,3 @@
-context("Expression frequencies by cluster, sample & group")
-
 # load packages
 suppressMessages({
     library(SingleCellExperiment)

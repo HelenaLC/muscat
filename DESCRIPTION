@@ -6,40 +6,47 @@ Description: `muscat` provides various methods and visualization tools
     aggregated “pseudobulk” data, as well as a flexible simulation platform 
     that mimics both single and multi-sample scRNA-seq data.
 Type: Package
-Version: 1.1.0
-Depends: R (>= 3.6), scater (>= 1.13)
+Version: 1.2.1
+Depends: R (>= 4.0)
 Authors@R: c(
 	person("Helena L.", "Crowell", role=c("aut", "cre"), 
-		email="helena.crowell@uzh.ch"),
-	person("Charlotte", "Soneson", role="aut"),
+	    email="helena.crowell@uzh.ch"),
 	person("Pierre-Luc", "Germain", role="aut"),
+	person("Charlotte", "Soneson", role="aut"),
+	person("Anthony", "Sonrel", role="aut"),
 	person("Mark D.", "Robinson", role=c("aut", "fnd"), 
-		email="mark.robinson@imls.uzh.ch"))
+	    email="mark.robinson@imls.uzh.ch"))
 Imports: 
 	BiocParallel, blme, 
 	ComplexHeatmap, 
-	data.table, DESeq2, doParallel, dplyr, 
+	data.table, DESeq2, dplyr, 
 	edgeR, 
 	ggplot2, glmmTMB, grDevices, grid, 
 	limma, lmerTest, lme4, 
-	magrittr, Matrix, matrixStats, methods, 
-	parallel, progress, purrr, 
-	reshape2, 
-	scales, sctransform, stats, SingleCellExperiment, SummarizedExperiment, S4Vectors, 
-	tibble, 
+	Matrix, matrixStats, methods, 
+	progress, purrr, 
+	S4Vectors, scales, scater, sctransform, stats, 
+	SingleCellExperiment, SummarizedExperiment, 
 	variancePartition, viridis
 Suggests: 
 	BiocStyle,
+	countsimQC,
 	cowplot, 
 	ExperimentHub, 
+	iCOBRA,
 	knitr, 
+	phylogram,
 	RColorBrewer,
+	reshape2, 
 	rmarkdown,
 	testthat, 
 	UpSetR
-biocViews: DifferentialExpression, Sequencing, SingleCell, Software, StatisticalMethod, Visualization
+biocViews: ImmunoOncology, DifferentialExpression, Sequencing, 
+    SingleCell, Software, StatisticalMethod, Visualization
 License: GPL (>= 2)
 VignetteBuilder: knitr
-RoxygenNote: 6.1.1
+RoxygenNote: 7.1.0
 Encoding: UTF-8
 LazyData: TRUE
+URL: https://github.com/HelenaLC/muscat
+BugReports: https://github.com/HelenaLC/muscat/issues

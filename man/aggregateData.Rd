@@ -4,8 +4,13 @@
 \alias{aggregateData}
 \title{Aggregation of single-cell to pseudobulk data}
 \usage{
-aggregateData(x, assay = NULL, by = c("cluster_id", "sample_id"),
-  fun = c("sum", "mean", "median"), scale = FALSE)
+aggregateData(
+  x,
+  assay = NULL,
+  by = c("cluster_id", "sample_id"),
+  fun = c("sum", "mean", "median"),
+  scale = FALSE
+)
 }
 \arguments{
 \item{x}{a \code{\link[SingleCellExperiment]{SingleCellExperiment}}.}

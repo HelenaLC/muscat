@@ -16,7 +16,8 @@
 #' @param fdr,lfc single numeric; FDR and logFC cutoffs to filter results by.
 #'   The specified FDR threshold is applied to \code{p_adj.loc} values.
 #' @param sort_by character string specifying 
-#'   a numeric results table column to sort by.
+#'   a numeric results table column to sort by;
+#'   \code{"none"} to retain original ordering.
 #' @param decreasing logical; whether to sort 
 #'   in decreasing order of \code{sort_by}.
 #' @param assay character string; specifies which assay to use;
@@ -96,12 +97,17 @@ pbHeatmap <- function(x, y,
     }
     
     # re-order results
-    vs <- map(y, sort_by)
-    os <- lapply(vs, order, decreasing = decreasing)
-    y <- lapply(kids, function(k) {
-        o <- os[[k]][seq_len(ns[k])]
-        y[[k]][o, ]
-    })
+    if (sort_by == "none") {
+        y <- lapply(kids, function(k) 
+            y[[k]][seq_len(ns[k]), ])
+    } else {
+        vs <- map(y, sort_by)
+        os <- lapply(vs, order, decreasing = decreasing)
+        y <- lapply(kids, function(k) {
+            o <- os[[k]][seq_len(ns[k])]
+            y[[k]][o, ]
+        })
+    }
     y <- bind_rows(y)
     
     # subset 'assay' data

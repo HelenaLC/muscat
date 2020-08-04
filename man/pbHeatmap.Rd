@@ -4,10 +4,24 @@
 \alias{pbHeatmap}
 \title{Heatmap of cluster-sample pseudobulks}
 \usage{
-pbHeatmap(x, y, k = NULL, g = NULL, c = NULL, top_n = 20,
-  fdr = 0.05, lfc = 1, sort_by = "p_adj.loc", decreasing = FALSE,
-  assay = "logcounts", fun = mean, normalize = TRUE,
-  col = viridis(10), row_anno = TRUE, col_anno = TRUE)
+pbHeatmap(
+  x,
+  y,
+  k = NULL,
+  g = NULL,
+  c = NULL,
+  top_n = 20,
+  fdr = 0.05,
+  lfc = 1,
+  sort_by = "p_adj.loc",
+  decreasing = FALSE,
+  assay = "logcounts",
+  fun = mean,
+  normalize = TRUE,
+  col = viridis(10),
+  row_anno = TRUE,
+  col_anno = TRUE
+)
 }
 \arguments{
 \item{x}{a \code{\link[SingleCellExperiment]{SingleCellExperiment}}.}
@@ -30,7 +44,8 @@ Defaults to \code{names(y$table)[1]}.}
 The specified FDR threshold is applied to \code{p_adj.loc} values.}
 
 \item{sort_by}{character string specifying 
-a numeric results table column to sort by.}
+a numeric results table column to sort by;
+\code{"none"} to retain original ordering.}
 
 \item{decreasing}{logical; whether to sort 
 in decreasing order of \code{sort_by}.}

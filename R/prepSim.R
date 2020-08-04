@@ -46,13 +46,14 @@
 #' data(sce)
 #' library(SingleCellExperiment)
 #' 
-#' sce2 <- prepSim(sce)
+#' ref <- prepSim(sce)
 #' 
 #' # nb. of genes/cells before vs. after
-#' cbind(before = dim(sce), after = dim(sce2)) 
+#' ns <- cbind(before = dim(sce), after = dim(ref)) 
+#' rownames(ns) <- c("#genes", "#cells"); ns
 #' 
-#' head(rowData(sce2)) # gene parameters
-#' head(colData(sce2)) # cell parameters
+#' head(rowData(ref)) # gene parameters
+#' head(colData(ref)) # cell parameters
 #' 
 #' @author Helena L Crowell
 #' 
@@ -77,9 +78,10 @@ prepSim <- function(x,
     group_keep = NULL, verbose = TRUE) {
     
     .check_sce(x, req_group = FALSE)
-    stopifnot(is.logical(verbose), length(verbose) == 1)
-    stopifnot(is.numeric(min_count), is.numeric(min_cells), 
-        is.numeric(min_genes), is.numeric(min_size))
+    stopifnot(is.numeric(min_count), 
+        is.numeric(min_cells), is.numeric(min_genes), 
+        is.null(min_size) || is.numeric(min_size),
+        is.logical(verbose), length(verbose) == 1)
     
     n_cells0 <- ncol(x)
     if (is.null(group_keep)) {
@@ -108,12 +110,15 @@ prepSim <- function(x,
     if (verbose) message(sprintf(
         "- %s/%s genes and %s/%s cells retained.",
         sum(genes_keep), nrow(x), sum(cells_keep), n_cells0))
-    x <- x[genes_keep, cells_keep]
+    x <- x[genes_keep, cells_keep, drop = FALSE]
     
-    # keep cluster-samples w/ at least 100 cells
+    # keep cluster-samples w/ at least 'min_size' cells
     if (!is.null(min_size)) {
         n_cells <- table(x$cluster_id, x$sample_id)
-        n_cells <- .filter_matrix(n_cells, n = 100)
+        n_cells <- .filter_matrix(n_cells, n = min_size)
+        if (ncol(n_cells) == 1)
+            stop("Current 'min_size' retains only 1 sample,\nbut",
+                " mean-dispersion estimation requires at least 2.")
         if (verbose) message(sprintf(
             "- %s/%s subpopulations and %s/%s samples retained.",
             nrow(n_cells), nlevels(x$cluster_id), 

@@ -4,16 +4,30 @@
 \alias{simData}
 \title{simData}
 \usage{
-simData(x, n_genes = 500, n_cells = 300, probs = NULL,
-  p_dd = diag(6)[1, ], p_type = 0, lfc = 2, rel_lfc = NULL)
+simData(
+  x,
+  nc = 2000,
+  ns = 3,
+  nk = 3,
+  probs = NULL,
+  p_dd = diag(6)[1, ],
+  paired = FALSE,
+  p_ep = 0.5,
+  p_dp = 0.3,
+  p_dm = 0.5,
+  p_type = 0,
+  lfc = 2,
+  rel_lfc = NULL,
+  phylo_tree = NULL,
+  phylo_pars = c(ifelse(is.null(phylo_tree), 0, 0.1), 3),
+  ng = nrow(x),
+  force = FALSE
+)
 }
 \arguments{
 \item{x}{a \code{\link[SingleCellExperiment]{SingleCellExperiment}}.}
 
-\item{n_genes}{# of genes to simulate.}
-
-\item{n_cells}{# of cells to simulate. 
-Either a single numeric or a range to sample from.}
+\item{nc, ns, nk}{# of cells, samples and clusters to simulate.}
 
 \item{probs}{a list of length 3 containing probabilities of a cell belonging
 to each cluster, sample, and group, respectively. List elements must be 
@@ -23,21 +37,68 @@ NULL (equal probabilities) or numeric values in [0, 1] that sum to 1.}
 Specifies the probability of a gene being
 EE, EP, DE, DP, DM, or DB, respectively.}
 
-\item{p_type}{numeric. Probaility of EE/EP gene being a type-gene.
+\item{paired}{logical specifying whether a paired design should 
+be simulated (both groups use the same set of reference samples) 
+or not (reference samples are drawn at random).}
+
+\item{p_ep, p_dp, p_dm}{numeric specifying the proportion of cells
+to be shifted to a different expression state in one group (see details).}
+
+\item{p_type}{numeric. Probability of EE/EP gene being a type-gene.
 If a gene is of class "type" in a given cluster, a unique mean 
 will be used for that gene in the respective cluster.}
 
-\item{lfc}{numeric value to use as mean logFC
-for DE, DP, DM, and DB type of genes.}
+\item{lfc}{numeric value to use as mean logFC 
+(logarithm base 2) for DE, DP, DM, and DB type of genes.}
 
 \item{rel_lfc}{numeric vector of relative logFCs for each cluster. 
 Should be of length \code{nlevels(x$cluster_id)} with 
 \code{levels(x$cluster_id)} as names. 
 Defaults to factor of 1 for all clusters.}
+
+\item{phylo_tree}{newick tree text representing cluster relations 
+and their relative distance. An explanation of the syntax can be found 
+\href{http://evolution.genetics.washington.edu/phylip/newicktree.html}{here}. 
+The distance between the nodes, except for the original branch, will be 
+translated in the number of shared genes between the clusters belonging to 
+these nodes (this relation is controlled with \code{phylo_pars}). 
+The distance between two clusters is defined as the sum 
+of the branches lengths separating them.}
+
+\item{phylo_pars}{vector of length 2 providing the parameters that control 
+the number of type genes. Passed to an exponential PDF (see details).}
+
+\item{ng}{# of genes to simulate. Importantly, for the library sizes 
+computed by \code{\link{prepSim}} (= \code{exp(x$offset)}) to make sense, 
+the number of simulated genes should match with the number of genes 
+in the reference. To simulate a reduced number of genes, e.g. for 
+testing and development purposes, please set \code{force = TRUE}.}
+
+\item{force}{logical specifying whether to force 
+simulation despite \code{ng != nrow(x)}.}
 }
 \value{
 a \code{\link[SingleCellExperiment]{SingleCellExperiment}}
-  containing multiple clusters & samples across 2 groups.
+  containing multiple clusters & samples across 2 groups 
+  as well as the following metadata: \describe{
+  \item{cell metadata (\code{colData(.)})}{a \code{DataFrame} containing,
+  containing, for each cell, it's cluster, sample, and group ID.}
+  \item{gene metadata (\code{rowData(.)})}{a \code{DataFrame} containing, 
+  for each gene, it's \code{class} (one of "state", "type", "none") and 
+  specificity (\code{specs}; NA for genes of type "state", otherwise 
+  a character vector of clusters that share the given gene).}
+  \item{experiment metadata (\code{metadata(.)})}{
+  \describe{
+  \item{\code{experiment_info}}{a \code{data.frame} 
+  summarizing the experimental design.}
+  \item{\code{n_cells}}{the number of cells for each sample.}
+  \item{\code{gene_info}}{a \code{data.frame} containing, for each gene
+  in each cluster, it's differential distribution \code{category},
+  mean \code{logFC} (NA for genes for categories "ee" and "ep"),
+  gene used as reference (\code{sim_gene}), dispersion \code{sim_disp},
+  and simulation means for each group \code{sim_mean.A/B}.}
+  \item{\code{ref_sids/kidskids}}{the sample/cluster IDs used as reference.}
+  \item{\code{args}}{a list of the function call's input arguments.}}}}
 }
 \description{
 Simulation of complex scRNA-seq data
@@ -45,18 +106,37 @@ Simulation of complex scRNA-seq data
 \details{
 \code{simData} simulates multiple clusters and samples 
 across 2 experimental conditions from a real scRNA-seq data set.
+
+The simulation of type genes can be performed in 2 ways; 
+  (1) via \code{p_type} to simulate independant clusters, OR 
+  (2) via \code{phylo_tree} to simulate a hierarchical cluster structure.
+  
+  For (1), a subset of \code{p_type} \% of genes are selected per cluster
+  to use a different references genes than the remainder of clusters,
+  giving rise to cluster-specific NB means for count sampling.
+  
+  For (2), the number of shared/type genes at each node 
+  are given by \code{a*G*e^(-b*d)}, where \itemize{
+  \item{\code{a} -- controls the percentage of shared genes between nodes.
+  By default, at most 10\% of the genes are reserved as type genes
+  (when \code{b} = 0). However, it is advised to tune this parameter 
+  depending on the input \code{prep_sce}.}
+  \item{\code{b} -- determines how the number of shared genes 
+  decreases with increasing distance d between clusters 
+  (defined through \code{phylo_tree}).}}
 }
 \examples{
 data(sce)
 library(SingleCellExperiment)
 
 # prep. SCE for simulation
-sce <- prepSim(sce)
+ref <- prepSim(sce)
 
 # simulate data
-(sim <- simData(sce,
-  n_genes = 100, n_cells = 10,
-  p_dd = c(0.9, 0, 0.1, 0, 0, 0)))
+(sim <- simData(ref, nc = 200,
+  p_dd = c(0.9, 0, 0.1, 0, 0, 0),
+  ng = 100, force = TRUE,
+  probs = list(NULL, NULL, c(1, 0))))
 
 # simulation metadata
 head(gi <- metadata(sim)$gene_info)
@@ -65,17 +145,37 @@ head(gi <- metadata(sim)$gene_info)
 table(gi$category)
 
 # unbalanced sample sizes
-sim <- simData(sce,
-  n_genes = 10, n_cells = 100,
-  probs = list(NULL, c(0.25, 0.75), NULL))
+sim <- simData(ref, nc = 100, ns = 2,
+  probs = list(NULL, c(0.25, 0.75), NULL),
+  ng = 10, force = TRUE)
 table(sim$sample_id)
 
 # one group only
-sim <- simData(sce,
-  n_genes = 10, n_cells = 100,
-  probs = list(NULL, NULL, c(1, 0)))
+sim <- simData(ref, nc = 100,
+  probs = list(NULL, NULL, c(1, 0)),
+  ng = 10, force = TRUE)
 levels(sim$group_id)
-    
+
+# HIERARCHICAL CLUSTER STRUCTURE
+# define phylogram specifying cluster relations
+phylo_tree <- "(('cluster1':0.1,'cluster2':0.1):0.4,'cluster3':0.5);"
+# verify syntax & visualize relations
+library(phylogram)
+plot(read.dendrogram(text = phylo_tree))
+
+# let's use a more complex phylogeny
+phylo_tree <- "(('cluster1':0.4,'cluster2':0.4):0.4,('cluster3':
+  0.5,('cluster4':0.2,'cluster5':0.2,'cluster6':0.2):0.4):0.4);"
+plot(read.dendrogram(text = phylo_tree))
+
+# simulate clusters accordingly
+sim <- simData(ref, 
+  phylo_tree = phylo_tree, 
+  phylo_pars = c(0.1, 3), 
+  ng = 500, force = TRUE)
+# view information about shared 'type' genes
+table(rowData(sim)$class)
+
 }
 \references{
 Crowell, HL, Soneson, C, Germain, P-L, Calini, D, 
@@ -86,5 +186,5 @@ multi-sample multi-condition single-cell RNA sequencing data.
 doi: \url{https://doi.org/10.1101/713412}
 }
 \author{
-Helena L Crowell
+Helena L Crowell & Anthony Sonrel
 }

@@ -1,0 +1,478 @@
+---
+title: "Simulating complex design scRNA-seq data with `muscat`"
+author:
+- name: Helena L Crowell
+  affiliation:
+  - &IMLS Institute for Molecular Life Sciences, University of Zurich, Zurich, Switzerland
+  - &SIB Swiss Institute of Bioinformatics (SIB), Zurich, Switzerland
+  email: helena.crowell@uzh.ch
+- name: Charlotte Soneson
+  affiliation:
+  - *IMLS
+  - 'Present address: Friedrich Miescher Institute Basel, Switzerland <br> & Swiss Institute of Bioinformatics (SIB), Basel, Switzerland'
+- name: Pierre-Luc Germain
+  affiliation:
+  - *IMLS
+  - *SIB
+- name: Mark D Robinson
+  affiliation:
+  - *IMLS
+  - *SIB
+package: "`r BiocStyle::pkg_ver('muscat')`"
+date: "`r format(Sys.Date(), '%B %d, %Y')`"
+output: 
+  BiocStyle::html_document
+vignette: >
+  %\VignetteIndexEntry{"2. Data simulation"}
+  %\VignettePackage{muscat}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+bibliography: "`r file.path(system.file('extdata', package = 'muscat'), 'refs.bib')`"
+abstract: >
+  <p> `muscat`: **mu**lti-sample **mu**lti-group **sc**RNA-seq **a**nalysis **t**ools [@Crowell2019-muscat] provides a straightforward but effective simulation framework that is anchored to a labeled multi-sample multi-subpopulation scRNA-seq reference dataset, uses (non-zero-inflated) negative binomial (NB) as the canonical distribution for droplet scRNA-seq datasets, and exposes various parameters to modulate: the number of subpopulations and samples simulated, the number of cells per subpopulation (and sample), and the type and magnitude of a wide range of patterns of differential expression.
+  <p> This vignette serves to provide the underlying theoretical background, to thoroughly describe the various input arguments, and to demonstrate the simulation framework's current capabilities using some illustrative (not necessarily realistic) examples. 
+---
+
+<style type="text/css">
+.smaller {
+  font-size: 10px
+}
+</style>
+
+*** 
+
+For details on the concepts presented here, consider having a look at our preprint:
+
+> Crowell HL, Soneson C\*, Germain P-L\*,  
+Calini D, Collin L, Raposo C, Malhotra D & Robinson MD:  
+On the discovery of population-specific state transitions from  
+multi-sample multi-condition single-cell RNA sequencing data.  
+*bioRxiv* **713412** (July, 2019). doi: [10.1101/713412](https://doi.org/10.1101/713412)
+
+# Load packages {-}
+
+```{r load-libs, message = FALSE,  warning = FALSE}
+library(cowplot)
+library(dplyr)
+library(reshape2)
+library(muscat)
+library(purrr)
+library(scater)
+library(SingleCellExperiment)
+```
+
+# Data description {-}
+
+To demonstrate `r Biocpkg("muscat")`'s simulation framework, we will use a `r Biocpkg("SingleCellExperiment")` (SCE) containing 10x droplet-based scRNA-seq PBCM data from 8 Lupus patients obtained befor and after 6h-treatment with IFN-$\beta$ [@Kang2018-demuxlet]. The complete raw data, as well as gene and cell metadata is available through the NCBI GEO, accession number [GSE96583](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE96583). 
+
+# Simulation framework
+
+`r Biocpkg("muscat")`'s simulation framework comprises: i) estimation of negative binomial (NB) parameters from a reference multi-subpopulation, multi-sample dataset; ii) sampling of gene and cell parameters to use for simulation; and, iii) simulation of gene expression data as NB distributions of mixtures thereof. See Fig. \@ref(fig:1a).
+
+Let $Y = (y_{gc})\in\mathbb{N}_0^{G\times C}$ denote the count matrix of a multi-sample multi-subpopulation reference dataset with genes $\mathcal{G} = \{ g_1, \ldots, g_G \}$ and sets of cells $\mathcal{C}_{sk} = \{ c^{sk}_1, ..., c^{sk}_{C_{sk}} \}$ for each sample $s$ and subpopulation $k$ ($C_{sk}$ is the number of cells for sample $s$, subpopulation $k$). For each gene $g$, we fit a model to estimate sample-specific means $\beta_g^s$, for each sample $s$, and dispersion parameters $\phi_g$ using \code{edgeR}'s \code{estimateDisp} function with default parameters. Thus, we model the reference count data as NB distributed:
+
+$$Y_{gc} \sim NB(\mu_{gc}, \phi_g)$$
+
+for gene $g$ and cell $c$, where the mean $\mu_{gc} = \exp(\beta_{g}^{s(c)}) \cdot \lambda_c$. Here, $\beta_{g}^{s(c)}$ is the relative abundance of gene $g$ in sample $s(c)$, $\lambda_c$ is the library size (total number of counts), and $\phi_g$ is the dispersion.
+
+![(\#fig:1a) Schematic overview of muscat’s simulation framework. Given a count matrix of features by cells and, for each cell, pre-determined subpopulation identifiers as well as sample labels (0), dispersion and sample-wise means are estimated from a negative binomial distribution for each gene (for each subpopulation) (1.1); and library sizes are recorded (1.2). From this set of parameters (dispersions, means, library sizes), gene expression is sampled from a negative binomial distribution. Here, genes are selected to be “type” (subpopulation-specifically expressed; e.g., via marker genes), “state” (change in expression in a condition-specific manner) or equally expressed (relatively) across all samples (2). The result is a matrix of synthetic gene expression data (3).](../inst/extdata/1a.png)
+
+For each subpopulation, we randomly assign each gene to a given *differential distribution* (DD) category [@Korthauer2016-scDD] according to a probability vector `p_dd` $=(p_{EE},p_{EP},p_{DE},p_{DP},p_{DM},p_{DB})$. For each gene and subpopulation, we draw a vector of fold changes (FCs) from a Gamma distribution with shape parameter $\alpha=4$ and rate $\beta=4/\mu_\text{logFC}$, where $\mu_\text{logFC}$ is the desired average logFC across all genes and subpopulations specified via argument `lfc`. The direction of differential expression is randomized for each gene, with equal probability of up- and down-regulation. 
+
+Next, we split the cells in a given subpopulations into two sets (representing treatment groups), $\mathcal{T}_A$ and $\mathcal{T}_B$, which are in turn split again into two sets each (representing subpopulations within the given treatment group.), $\mathcal{T}_{A_1}/\mathcal{T}_{A_2}$ and $\mathcal{T}_{B_1}/\mathcal{T}_{B_2}$.
+
+For EE genes, counts for $\mathcal{T}_A$ and $\mathcal{T}_B$ are drawn using identical means.For EP genes, we multiply the effective means for identical fractions of cells per group by the sample FCs, i.e., cells are split such that $\dim\mathcal{T}_{A_1} = \dim\mathcal{T}_{B_1}$ and $\dim\mathcal{T}_{A_2} = \dim\mathcal{T}_{B_2}$. For DE genes, the means of one group, $A$ or $B$, are multiplied with the samples FCs. DP genes are simulated analogously to EP genes with $\dim\mathcal{T}_{A_1} = a\cdot\dim\mathcal{T}_A$ and $\dim\mathcal{T}_{B_1} = b\cdot\dim\mathcal{T}_B$, where $a+b=1$ and $a\neq b$. For DM genes, 50% of cells from one group are simulated at $\mu\cdot\text{logFC}$. For DB genes, all cells from one group are simulated at $\mu\cdot\text{logFC}/2$, and the second group is split into equal proportions of cells simulated at $\mu$ and $\mu\cdot\text{logFC}$, respectively. See Fig. \@ref(fig:1b). 
+
+ ![(\#fig:1b) Schematic of the various types of *differential distributions* supported by `muscat`'s simulation framework. Differential distributions are simulated from a NB distribution or mixtures thereof, according to the definitions of random variables X, Y and Z.](../inst/extdata/1b.png){width="80%"}
+ 
+## `prepSim`: Preparing data for simulation
+
+To prepare a reference `r Biocpkg("SingleCellExperiment")` (SCE) for simulation of multi-sample multi-group scRNA-seq data, `prepSim` will 
+
+1. perform basic filtering of genes and cells
+1. (optionally) filter for subpopulation-sample instances with a threshold number of cells to assure accurate parameter estimation
+1. estimate cell (library sizes) and gene parameters (dispersions and sample-specific means)
+
+Importantly, we want to introduce *known* changes in states across conditions; thus, only replicates from a single condition should go into the simulation. The group to be kept for simulation may be specified via `group_keep`, in which case samples from all other groups (`sce$group_id != group_keep`) will be droped. By default (`group_keep = NULL`), `prepSim` will select the first group available as reference.
+
+Arguments `min_count`, `min_cells`, `min_genes` and `min_size` are used to tune the filtering of genes, cells and subpopulation-instances as follows:
+
+- only genes with a count `> min_count` in `>= min_cells` will be retained
+- only cells with a count `> 0` in `>= min_genes` will be retained
+- only subpopulation-sample instances with `>= min_size` cells will be retained; `min_size = NULL` will skip this step
+
+```{r prepSim}
+data(sce)
+ref <- prepSim(sce, verbose = FALSE)
+# only samples from `ctrl` group are retained
+table(ref$sample_id)
+# cell parameters: library sizes
+sub <- assay(sce[rownames(ref), colnames(ref)])
+all.equal(exp(ref$offset), as.numeric(colSums(sub)))
+# gene parameters: dispersions & sample-specific means
+head(rowData(ref))
+```
+ 
+## `simData`: Simulating complex designs
+ 
+Provided with a reference SCE as returned by `prepSim`, a variery of simulation scenarios can be generated using the `simData` function, which will again return an SCE containg the following elements: 
+
+- `assay` `counts` containing the simulated count data
+- `colData` columns `cluster/sample/group_id` containing each cells cluster, sample, and group ID (A or B).
+- `metadata$gene_info` containing a `data.frame` listing, for each gene and cluster
+  - the simulationed DD `category`
+  - the sampled `logFC`; note that this will only approximate `log2(sim_mean.B/sim_mean.A)` for genes of the `de` category as other types of state changes use mixtures for NBs, and will consequently not exhibit a shift in means of the same magnitude as `logFC`
+  - the reference `sim_gene` from which dispersion `sim_disp` and sample-specific means `beta.<sample_id>` were used
+  - the simulated expression means `sim_mean.A/B` for each group
+
+In the code chunk that follows, we run a simple simulation with
+
+- `p_dd = c(1,0,...0)`, i.e., 10% of EE genes
+- `nk = 3` subpopulations and `ns = 3` replicates for each of 2 groups
+- `ng = 1000` genes and `nc = 2000` cells, resulting in `2000/2/ns/nk` $\approx111$ cells for 2 groups with 3 samples each and 3 subpopulations
+
+```{r simData}
+# simulated 10% EE genes
+sim <- simData(ref, p_dd = diag(6)[1, ],
+    nk = 3, ns = 3, nc = 2e3,
+    ng = 1e3, force = TRUE)
+# number of cells per sample and subpopulation
+table(sim$sample_id, sim$cluster_id)
+```
+
+By default, we have drawn a random reference sample from `levels(ref$sample_id)` for every simulated sample in each group, resulting in an unpaired design:
+
+```{r paired-false}
+metadata(sim)$ref_sids
+```
+
+Alternatively, we can re-run the above simulation with `paired = TRUE` such that both groups will use the same set of reference samples, resulting in a paired design:
+
+```{r paired-true}
+# simulated paired design
+sim <- simData(ref, paired = TRUE, 
+    nk = 3, ns = 3, nc = 2e3,
+    ng = 1e3, force = TRUE)
+# same set of reference samples for both groups
+ref_sids <- metadata(sim)$ref_sids
+all(ref_sids[, 1] == ref_sids[, 2])
+```
+
+### `p_dd`: Simulating differential distributions
+
+Argument `p_dd` specifies the fraction of cells to simulate for each DD category. Its values should thus lie in $[0,1]$ and sum to 1. Expression densities for an exemplary set of genes simulated from the code below is shown in Fig. \@ref(fig:densities).
+
+```{r p_dd}
+# simulare genes from all DD categories
+sim <- simData(ref, p_dd = c(0.5, rep(0.1, 5)),
+    nc = 2e3, ng = 1e3, force = TRUE)
+```
+
+We can retrieve the category assigned to each gene in each cluster from the `gene_info` table stored in the output SCE's `metadata`:
+
+```{r gi_category}
+gi <- metadata(sim)$gene_info
+table(gi$category)
+```
+
+```{r densities, echo = FALSE, fig.wide = TRUE, fig.width = 8, fig.height = 3, fig.cap = "Expression densities for an exemplary set of 3 genes per *differential distribution* category. Each density corresponds to one sample, lines are colored by group ID, and panels are split by gene and subpopulation."}
+# simulare genes from all DD categories
+sim <- simData(ref, 
+    nc = 2e3, nk = 1, ns = 4,
+    p_dd = c(0.5, rep(0.1, 5)),
+    ng = 1e3, force = TRUE)
+# normalize 
+sim <- logNormCounts(sim)
+# get 'n' genes per category
+n <- 3
+gi <- metadata(sim)$gene_info %>% 
+    mutate(sim_mean = (sim_mean.A+sim_mean.B)/2) %>% 
+    filter(is.na(logFC) | abs(logFC) > 2, sim_mean > 1) 
+gs <- group_by(gi, category) %>% 
+    group_modify(~head(.x, n = n)) %>% 
+    mutate(id = paste0(gene, cluster_id))
+# construct data.frame for ggplot
+df <- data.frame(t(logcounts(sim)), colData(sim)) %>% 
+    melt(id.vars = names(colData(sim))) %>% 
+    mutate(id = paste0(variable, cluster_id)) %>% 
+    mutate(id = factor(id, levels = gs$id)) %>% 
+    filter(id %in% gs$id) %>% 
+    mutate(cat = gs$category[match(id, gs$id)])
+# use category as facet label
+labs <- setNames(toupper(df$cat), df$id)
+labs <- labs[unique(names(labs))]
+# keep labels only for top row
+labs_keep <- levels(df$id)[seq(1, length(labs), n)]
+labs[setdiff(names(labs), labs_keep)] <- ""
+labs <- as_labeller(labs)
+# plot expression densities
+ggplot(df, aes(x = value, col = group_id)) +
+    facet_wrap("id", scales = "free",
+        dir = "v", ncol = 6, labeller = labs) +
+    geom_density() + xlab("expression") + 
+    theme_minimal() + theme(
+        axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        panel.spacing = unit(0, "mm"),
+        panel.grid = element_blank())
+```
+
+### `rel_lfc`: Simulating cluster-specific state changes
+
+By default, for each gene and subpopulation, we draw a vector of fold changes (FCs) from a Gamma distribution with rate parameter $\beta\propto\mu_\text{logFC}$, where $\mu_\text{logFC}$ is the desired average logFC across all genes and subpopulations specified via argument `lfc`. This results in state changes that are of same magnitute for each subpopulation.
+
+Now, suppose we wanted to have a subpopulation that does *not* exhibit any state changes across conditions, or vary the magnitute of changes across subpopulations. To this end, argument `rel_lfc` supplies a subpopulation-specific factor applied to the FCs sampled for subpopulation. Fig. \@ref(fig:rel-lfc) demonstrates how this manifests in in two-dimensional embeddings of the cells: Here, we generate a set of 3 simulations with
+
+i. equal magnitute of change for all subpopulations: `rel_lfc=c(1,1,1)`
+i. stronger change for one cluster: `rel_lfc=c(1,1,3)`
+i. cluster-specific FC factors with no change for one cluster: `rel_lfc=c(0,1,2)`
+
+```{r rel-lfc, echo = FALSE, fig.wide = TRUE, fig.cap = "t-SNEs of exemplary simulations demonstrating `rel_lfc`'s effect to induce cluster-specific state changes. Cells are colored by cluster ID (top-row) and group ID (bottom-row), respectively. From left to right: No cluster-specific changes, stronger change for `cluster3`, different logFC factors for all clusters with no change for `cluster1`."}
+rel_lfc <- list(
+    c(1, 1, 1), # same FC factor for all clusters
+    c(1, 1, 2), # stronger change for cluster3 only
+    c(0, 1, 2)) # cluster-specific logFC factors; no change for cluster1
+sim <- lapply(rel_lfc, function(u)
+    simData(ref, rel_lfc = u,
+        nc = (nc <- 1e3), nk = 3,
+        p_dd = c(0.95, 0, 0.05, 0, 0, 0),
+        ng = 1e3, force = TRUE))
+# normalize & run dimension reduction
+sim <- lapply(sim, logNormCounts)
+sim <- lapply(sim, runTSNE)
+# arrange plots
+ps <- lapply(c("cluster_id", "group_id"), 
+    function(id) lapply(sim, function(u) {
+        p <- plotTSNE(u, colour_by = id)
+        p$layers[[1]]$aes_params$stroke <- 0
+        p + guides(fill = guide_legend(
+            override.aes = list(alpha = 1, size = 3)))
+    }))
+ps <- Reduce("c", ps)
+lgd <- lapply(ps[c(1, 4)], get_legend)
+ps <- lapply(ps, "+", theme(legend.position = "none"))
+plot_grid(nrow = 1, rel_widths = c(8, 1),
+    plot_grid(plotlist = ps, ncol = 3, align = "hv"),
+    plot_grid(plotlist = lgd, ncol = 1))
+```
+
+### `p_type`: Simulating *type* features
+
+The idea underlying *differential state* (DS) analysis to test for subpopulation-specific changes in expression across experimental conditions is based on the idea that we i) use stable moleculare signatures (i.e., *type* features) to group cells into meaningful subpopulations; and, ii) perform statistical tests on *state* features that are more transiently expression and may be subject to changes in expression upon, for example, treatment or during disease.
+
+The fraction of type features introduced into each subpopulation is specified via argument `p_type`. Note that, without introducing any differential states, a non-zero fraction of type genes will result in separation of cells into clusters. Fig. \@ref(fig:p-type) demonstrates how increasing values for `p_type` lead to more and more separation of the cells when coloring by cluster ID, but that the lack of state changes leads to homogenous mixing of cells when coloring by group ID.
+
+```{r p-type, echo = FALSE, fig.wide = TRUE, fig.cap = "t-SNEs of exemplary simulations demonstrating `p_type`'s effect to introduce *type* features. Cells are colored by cluster ID (top-row) and group ID (bottom-row), respectively. The percentage of type features increases from left to right (1, 5, 10%). Simulations are pure EE, i.e., all genes are non-differential across groups."}
+sim <- lapply(c(0.01, 0.05, 0.1), function(u)
+    simData(ref, p_type = u, 
+        nc = 1e3, nk = 3, 
+        ng = 1e3, force = TRUE))
+# normalize & run dimension reduction
+sim <- lapply(sim, logNormCounts)
+sim <- lapply(sim, runTSNE)
+# arrange plots
+# arrange plots
+ps <- lapply(c("cluster_id", "group_id"), 
+    function(id) lapply(sim, function(u) {
+        p <- plotTSNE(u, colour_by = id)
+        p$layers[[1]]$aes_params$stroke <- 0
+        p + guides(fill = guide_legend(
+            override.aes = list(alpha = 1, size = 3)))
+    }))
+ps <- Reduce("c", ps)
+lgd <- lapply(ps[c(1, 4)], get_legend)
+ps <- lapply(ps, "+", theme(legend.position = "none"))
+plot_grid(nrow = 1, rel_widths = c(5, 1),
+    plot_grid(plotlist = ps, ncol = 3, align = "hv"),
+    plot_grid(plotlist = lgd, ncol = 1))
+```
+
+## Simulation a hierarchical cluster structure
+
+> under development.
+
+`simData` contains three parameters that control how subpopulations relate to and differ from one another: 
+
+i. `p_type` determines the percentage of type genes exclusice to each cluster
+i. `phylo_tree` represents a phylogenetic tree specifying of clusters relate to one another
+i. `phylo_pars` controls how branch distances are to be interpreted 
+
+Note that, when supplied with a cluster phylogeny, argument `nk` is ignored and `simData` extracts the number of clusters to be simulated from `phylo_tree`.
+
+### `p_type`: Introducing *type* features
+
+To exemplify the effect of the parameter `p_type`, we simulate a dataset with $\approx5\%$ of type genes per cluster, and one group only via `probs = list(..., c(1, 0)` (i.e., $\text{Prob}(\textit{cell is in group 2}) = 0$):
+
+```{r simData-type}
+# simulate 5% of type genes; one group only
+sim <- simData(ref, p_type = 0.1, 
+    nc = 2e3, ng = 1e3, force = TRUE,
+    probs = list(NULL, NULL, c(1, 0)))
+# do log-library size normalization
+sim <- logNormCounts(sim)
+```
+
+For visualizing the above simulation, we select for genes that are of class *type* (`rowData()$class == "type"`) and have a decent simulated expression mean. Furthermore, we sample a subset of cells for each cluster. The resulting heatmap (Fig. \@ref(fig:heatmap-type)) shows that the 3 clusters separate well from one another, but that type genes aren't necessarily expressed higher in a single cluster. This is the case because a gene selected as reference for a type gene in a given cluster may indeed have a lower expression than the gene used for the remainder of clusters.
+
+```{r heatmap-type, fig.width = 12, fig.height = 8, fig.cap = "Exemplary heatmap demonstrating the effect of `p_type` to introduce cluster-specific *type* genes. Included are type genes (= rows) with a simulated expression mean > 1, and a random subset of 100 cells (= columns) per cluster; column annotations represent cluster IDs. Bins are colored by expression scaled in row direction, and both genes and cells are hierarchically clustered."}
+# extract gene metadata & number of clusters
+rd <- rowData(sim)
+nk <- nlevels(sim$cluster_id)
+# filter for type genes with high expression mean
+is_type <- rd$class == "type"
+is_high <- rowMeans(assay(sim, "logcounts")) > 1
+gs <- rownames(sim)[is_type & is_high]
+# sample 100 cells per cluster for plotting
+cs <- lapply(split(seq_len(ncol(sim)), sim$cluster_id), sample, 100)
+plotHeatmap(sim[, unlist(cs)], features = gs, center = TRUE,
+    colour_columns_by = "cluster_id", cutree_cols = nk)
+```
+
+### `phylo_tree`: Introducing a cluster phylogeny
+
+The scenario illustrated above is arguably not very realistic. Instead, in a biology setting, subpopulations don't differ from one another by a specific subset of genes, but may share some of the genes decisive for their biologigcal role. I.e., the set *type* features is not exclusive for every given subpopulation, and some subpopulations are more similar to one another than others. 
+
+To introduce a more realistic subpopulation structure, `simData` can be supplied with a phylogenetic tree, `phylo_tree`, that specifies the relationship and distances between clusters. The tree should be written in Newick format as in the following example:
+
+```{r phylo-tree, fig.small = TRUE, fig.height = 4, fig.cap = "Exemplary phylogeny. The phylogenetic tree specified via `phylo` relates 3 clusters such that there are 2 main branches, and clusters 1 and 2 should be more similar to one another than cluster 3."}
+# specify cluster phylogeny 
+tree <- "(('cluster1':0.4,'cluster2':0.4):0.4,('cluster3':
+    0.5,('cluster4':0.2,'cluster5':0.2,'cluster6':0.2):0.4):0.4);"
+# visualize cluster tree
+library(phylogram)
+plot(read.dendrogram(text = tree))
+```
+
+```{r simData-phylo}
+# simulate 5% of type genes; one group only
+sim <- simData(ref, 
+    phylo_tree = tree,
+    phylo_pars = c(0.1, 1),
+    nc = 800, ng = 1e3, force = TRUE,
+    probs = list(NULL, NULL, c(1, 0)))
+# do log-library size normalization
+sim <- logNormCounts(sim)
+```
+
+```{r heatmap-phylo, fig.width = 12, fig.height = 8, fig.cap = "Exemplary heatmap demonstrating the effect of `phylo_tree` to introduce a hierarchical cluster structure. Included are 100 randomly sampled non-state, i.e. type or shared, genes (= rows) with a simulated expression mean > 1, and a random subset of 100 cells (= columns) per cluster; column annotations represent cluster IDs. Bins are colored by expression scaled in row direction, and both genes and cells are hierarchically clustered."}
+# extract gene metadata & number of clusters
+rd <- rowData(sim)
+nk <- nlevels(sim$cluster_id)
+# filter for type & shared genes with high expression mean
+is_type <- rd$class != "state"
+is_high <- rowMeans(assay(sim, "logcounts")) > 1
+gs <- rownames(sim)[is_type & is_high]
+# sample 100 cells per cluster for plotting
+cs <- lapply(split(seq_len(ncol(sim)), sim$cluster_id), sample, 50)
+plotHeatmap(sim[, unlist(cs)], features = gs, 
+    center = TRUE, show_rownames = FALSE,
+    colour_columns_by = "cluster_id")
+```
+
+## Simulating batch effects
+
+> under development.
+
+# Quality control
+
+As is the case with any simulation, it is crutial to verify the qualitation of the simulated data; i.e., how well key characteristics of the reference data are captured in the simulation. While we have demonstrated that `muscat`s simulation framework is capable of reproducing key features of scRNA-seq dataset at both the single-cell and pseudobulk level [@Crowell2019-muscat], simulation quality will vary depending on the reference dataset and could suffer from too extreme simulation parameters. Therefore, we advise anyone interested in using the framework presented herein for any type of method evaluation or comparison to generate `r Biocpkg("countsimQC")` report [@Soneson2018-countsimQC] as it is extremly simple to make and very comprehensive.
+
+The code chunk below (not evaluated here) illustrates how to generate a report comparing an exemplary `simData` simulation with the reference data provided in `ref`. Runtimes are mainly determined by argument `maxNForCorr` and `maxNForDisp`, and computing a full-blown report can be *very* time intensive. We thus advice using a sufficient but low number of cells/genes for these steps. 
+
+```{r countsimQC, eval = FALSE}
+# load required packages
+library(countsimQC)
+library(DESeq2)
+# simulate data
+sim <- simData(ref, 
+    ng = nrow(ref), 
+    nc = ncol(ref),
+    probs = list(NULL, NULL, c(0, 1)))
+# construct 'DESeqDataSet's for both, 
+# simulated and reference dataset
+dds_sim <- DESeqDataSetFromMatrix(
+    countData = counts(sim),
+    colData = colData(sim),
+    design = ~ sample_id)
+dds_ref <- DESeqDataSetFromMatrix(
+    countData = counts(ref),
+    colData = colData(ref),
+    design = ~ sample_id)
+dds_list <- list(sim = dds_sim, data = dds_ref)
+# generate 'countsimQC' report
+countsimQCReport(
+    ddsList = dds_list,
+    outputFile = "<file_name>.html",
+    outputDir = "<output_path>",
+    outputFormat = "html_document",
+    maxNForCorr = 200, 
+    maxNForDisp = 500)
+```
+
+# Method benchmarking
+
+A variety of functions for calculation and visualizing performance metrics for evaluation of ranking and binary classification (assignment) methods is provided in the `r Biocpkg("iCOBRA")` package [@Soneson2016-iCOBRA]. 
+
+We firstly define a wrapper that takes as input a `method` passed `pbDS` and reformats the results as a `data.frame` in tidy format, which is in turn `right_join`ed with simulation gene metadata. As each methods may return results for different subsets of gene-subpopulation instances, the latter steps assures that the dimensions of all method results will match. 
+
+```{r iCOBRA-run-method-wrapper}
+# 'm' is a character string specifying a valid `pbDS` method
+.run_method <- function(m) {
+    res <- pbDS(pb, method = m, verbose = FALSE)
+    tbl <- resDS(sim, res)
+    right_join(tbl, gi, by = c("gene", "cluster_id"))
+}
+```
+
+Having computed result `data.frame`s for a set of methods, we next define a wrapper that prepares the data for evaluation with `iCOBRA` using the `COBRAData` constructor, and calculates any performance measures of interest (specified via `aspects`) with `calculate_performance`:
+
+```{r iCOBRA-calc-perf-wrapper}
+# 'x' is a list of result 'data.frame's
+.calc_perf <- function(x, facet = NULL) {
+    cd <- COBRAData(truth = gi,
+        pval = data.frame(bind_cols(map(x, "p_val"))),
+        padj = data.frame(bind_cols(map(x, "p_adj.loc"))))
+    perf <- calculate_performance(cd, 
+        binary_truth = "is_de", maxsplit = 1e6,
+        splv = ifelse(is.null(facet), "none", facet),
+        aspects = c("fdrtpr", "fdrtprcurve", "curve"))
+}
+```
+
+Putting it all together, we can finally simulate some data, run a set of DS analysis methods, calculate their performance, and plot a variety of performance metrics depending on the `aspects` calculated by `.calc_perf`:
+
+```{r tprfdr, warning = FALSE, message = FALSE, fig.small = TRUE}
+# simulation including all DD categories
+sim <- simData(ref, nc = 2e3, 
+    p_dd = c(0.3, 0.3, rep(0.1, 4)),
+    ng = 2e3, force = TRUE)
+# aggregate to pseudobulks
+pb <- aggregateData(sim)
+# extract gene metadata
+gi <- metadata(sim)$gene_info
+# add truth column (must be numeric!)
+gi$is_de <- !gi$category %in% c("ee", "ep")
+gi$is_de <- as.numeric(gi$is_de) 
+
+# specify methods for comparison & run them
+# (must set names for methods to show in visualizations!)
+names(mids) <- mids <- c("edgeR", "DESeq2", "limma-trend", "limma-voom")
+res <- lapply(mids, .run_method)
+# calculate performance measures & 
+# prepare data for plotting with 'iCOBRRA'
+library(iCOBRA)
+perf <- .calc_perf(res)
+pd <- prepare_data_for_plot(perf)
+# plot FDR-TPR-curves
+plot_fdrtprcurve(pd) +
+    theme(aspect.ratio = 1) +
+    scale_x_continuous(trans = "sqrt")
+```
+
+# Session info {- .smaller}
+
+```{r session-info}
+sessionInfo()
+```
+
+# References

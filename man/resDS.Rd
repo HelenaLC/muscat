@@ -5,8 +5,16 @@
 \title{resDS
 Formatting of DS analysis results}
 \usage{
-resDS(x, y, bind = c("col", "row"), frq = FALSE, cpm = FALSE,
-  digits = 3, sep = "__", ...)
+resDS(
+  x,
+  y,
+  bind = c("row", "col"),
+  frq = FALSE,
+  cpm = FALSE,
+  digits = 3,
+  sep = "__",
+  ...
+)
 }
 \arguments{
 \item{x}{a \code{\link[SingleCellExperiment]{SingleCellExperiment}}.}

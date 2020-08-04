@@ -31,10 +31,11 @@
     cd <- mutate_if(cd, is.factor, droplevels) 
     colData(sce) <- DataFrame(cd, row.names = colnames(sce))
     # update metadata
-    ei <- metadata(sce)$experiment_info
-    ei <- ei[ei$sample_id %in% levels(sce$sample_id), ]
-    ei <- mutate_if(ei, is.factor, droplevels)
-    metadata(sce)$experiment_info <- ei
+    if(!is.null(ei <- metadata(sce)$experiment_info)){
+        ei <- ei[ei$sample_id %in% levels(sce$sample_id), ]
+        ei <- mutate_if(ei, is.factor, droplevels)
+        metadata(sce)$experiment_info <- ei
+    }
     return(sce)
 }
 
@@ -60,7 +61,7 @@
 # ------------------------------------------------------------------------------
 #' @importFrom matrixStats rowQuantiles
 .scale <- function(x) {
-    qs <- rowQuantiles(as.matrix(x), probs = c(.01, .99))
+    qs <- rowQuantiles(as.matrix(x), probs = c(.01, .99), na.rm = TRUE)
     x <- (x - qs[, 1]) / (qs[, 2] - qs[, 1])
     x[x < 0] <- 0
     x[x > 1] <- 1
@@ -85,6 +86,8 @@
 # generate experimental design metadata table 
 # for an input SCE or colData data.frame
 # ------------------------------------------------------------------------------
+#' @importFrom dplyr mutate_at 
+#' @importFrom methods is
 #' @importFrom SummarizedExperiment colData
 .make_ei <- function(x) {
     if (is(x, "SingleCellExperiment"))
@@ -117,7 +120,7 @@
     if (is(x, "SingleCellExperiment"))
         x <- colData(x)
     cd <- data.frame(x[by], check.names = FALSE)
-    cd <- data.table(cd, cell = rownames(cd)) %>% 
+    cd <- data.table(cd, cell = rownames(x)) %>% 
         split(by = by, sorted = TRUE, flatten = FALSE)
     map_depth(cd, length(by), "cell")
 }
@@ -127,24 +130,30 @@
 # ------------------------------------------------------------------------------
 #   x: results table; a nested list w/ 
 #      1st level = comparisons and 2nd level = clusters
-# > adds 'p_adj.glb' column to the result table of ea. comparison & cluster
+# > adds 'p_adj.glb' column containing globally adjusted p-values
+#   to the result table of ea. cluster for each comparison
 # ------------------------------------------------------------------------------
+#' @importFrom purrr map map_depth
+#' @importFrom stats p.adjust
 .p_adj_global <- function(x) {
-    cs <- names(x)
-    ks <- names(x[[1]])
-    names(cs) <- cs
-    names(ks) <- ks
+    names(ks) <- ks <- names(x)
+    names(cs) <- cs <- names(x[[1]])
     lapply(cs, function(c) {
         # get p-values
-        p_val <- map(x[[c]], "p_val")
+        tbl <- map_depth(x, 1, c)
+        p_val <- map(tbl, "p_val")
         # adjust for each comparison
         p_adj <- p.adjust(unlist(p_val))
         # re-split by cluster
         ns <- vapply(p_val, length, numeric(1))
         p_adj <- split(p_adj, rep.int(ks, ns))
         # insert into results tables
-        lapply(ks, function(k) x[[c]][[k]] %>% add_column(
-            p_adj.glb = p_adj[[k]], .after = "p_adj.loc"))
+        lapply(ks, function(k) {
+            u <- x[[k]][[c]]
+            i <- which(colnames(u) == "p_adj.loc")
+            u[["p_adj.glb"]] <- p_adj[[k]]
+            u[, c(seq_len(i), ncol(u), seq(i+1, ncol(u)-1))]
+        })
     })
 }
 
@@ -163,7 +172,7 @@
         sample(paste0(i, seq_len(n)), ncs, TRUE),
         i = c("k", "s", "g"), n = c(5, 4, 3))
     
-    cd <- data.frame(cd)
+    cd <- data.frame(cd, stringsAsFactors = TRUE)
     cd$s <- factor(paste(cd$s, cd$g, sep = "."))
     colnames(cd) <- paste(c("cluster", "sample", "group"), "id", sep = "_")
     

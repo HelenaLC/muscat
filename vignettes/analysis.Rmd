@@ -1,5 +1,5 @@
 ---
-title: "muscat: Multi-sample multi-group scRNA-seq analysis tools"
+title: "Differential state analysis with `muscat`"
 author:
 - name: Helena L Crowell
   affiliation:
@@ -20,18 +20,18 @@ author:
   - *SIB
 package: "`r BiocStyle::pkg_ver('muscat')`"
 date: "`r format(Sys.Date(), '%B %d, %Y')`"
-abstract: > 
-  <p> Single-cell RNA sequencing (scRNA-seq) has quickly become an empowering technology to profile the transcriptomes of individual cells on a large scale. Many early analyses of differential expression have aimed at identifying differences between subpopulations, and thus are focused on finding subpopulation markers either in a single sample or across multiple samples. More generally, such methods can compare expression levels in multiple sets of cells, thus leading to cross-condition analyses.
-  <p> However, given the emergence of replicated multi-condition scRNA-seq  datasets,  an  area  of  increasing  focus  is making  sample-level inferences, termed here as *differential state* (DS) analysis. For example, one could investigate the condition-specific responses of cell subpopulations measured from patients in each condition.
-  <p> `muscat` provides various methods and visualization tools for DS analysis in multi-sample, multi-group, multi-(cell-)subpopulation scRNA-seq data, including cell-level mixed models and methods based on aggregated “pseudobulk” data, as well as a flexible simulation platform that mimics both single and multi-sample scRNA-seq data.
-  
 output: 
   BiocStyle::html_document
 vignette: >
-  %\VignetteIndexEntry{Untitled}
+  %\VignetteIndexEntry{"1. DS analysis"}
+  %\VignettePackage{muscat}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 bibliography: "`r file.path(system.file('extdata', package = 'muscat'), 'refs.bib')`"
+abstract: > 
+  <p> Single-cell RNA sequencing (scRNA-seq) has quickly become an empowering technology to profile the transcriptomes of individual cells on a large scale. Many early analyses of differential expression have aimed at identifying differences between subpopulations, and thus are focused on finding subpopulation markers either in a single sample or across multiple samples. More generally, such methods can compare expression levels in multiple sets of cells, thus leading to cross-condition analyses.
+  <p> However, given the emergence of replicated multi-condition scRNA-seq  datasets,  an  area  of  increasing  focus  is making  sample-level inferences, termed here as *differential state* (DS) analysis. For example, one could investigate the condition-specific responses of cell subpopulations measured from patients in each condition.
+  <p> `muscat`: **mu**lti-sample **mu**lti-group **sc**RNA-seq **a**nalysis **t**ools [@Crowell2019-muscat] provides various methods and visualization tools for DS analysis in multi-sample, multi-group, multi-(cell-)subpopulation scRNA-seq data, including cell-level mixed models and methods based on aggregated “pseudobulk” data, as well as a flexible simulation platform that mimics both single and multi-sample scRNA-seq data.
 ---
 
 <style type="text/css">
@@ -60,6 +60,7 @@ multi-sample multi-condition single-cell RNA sequencing data.
 ```{r load-libs, message = FALSE,  warning = FALSE}
 library(dplyr)
 library(ggplot2)
+library(limma)
 library(muscat)
 library(purrr)
 ```
@@ -78,7 +79,7 @@ Given the emergence of multi-sample multi-group scRNA-seq datasets, the goal bec
 
 The starting point for a DS analysis is a (sparse) matrix of gene expression, either as counts or some kind of normalized data, where rows = genes and columns = cells. Each cell additionally has a cluster (subpopulation) label as well as a sample label; metadata should accompany the list of samples, such that they can be organized into comparable groups with sample-level replicates (e.g., via a design matrix). 
 
-The approach presented here is modular and thus subpopulation labels could originate from an earlier step in the analysis, such as clustering [@Duo2018; @Freytag2018], perhaps after integration  [@Butler2018; @Stuart2019] or after labeling of clusters [@Diaz-Mejia2019] or after cell-level type assignment [@Zhang2019].
+The approach presented here is modular and thus subpopulation labels could originate from an earlier step in the analysis, such as clustering [@Duo2018; @Freytag2018-clustering], perhaps after integration  [@Butler2018-Seurat; @Stuart2019] or after labeling of clusters [@Diaz-Mejia2019] or after cell-level type assignment [@Zhang2019].
 
 # Getting started
 
@@ -90,7 +91,7 @@ For this vignette, we will use a `r Biocpkg("SingleCellExperiment")` (SCE) conta
 
 The @Kang2018-demuxlet dataset has been made available through Biocondcutor's `ExperimentHub` and can be loaded into R as follows: We first initialize a Hub instance to search for and load available data with the `ExperimentHub` function, and store the complete list of records in the variable `eh`. Using `query`, we then retrieve any records that match our keyword(s) of interest, as well as their corresponding accession ID (EH1234).
 
-```{r eh, cache = TRUE, message = FALSE}
+```{r eh, message = FALSE}
 library(ExperimentHub)
 eh <- ExperimentHub()
 query(eh, "Kang")
@@ -153,6 +154,8 @@ library(sctransform)
 assays(sce)$vstresiduals <- vst(counts(sce), show_progress = FALSE)$y
 ```
 
+By default, `r BiocStyle::Biocpkg("scater")`'s functions will try to access the assay data specified via argument `exprs_values` (default `logcounts`) for e.g. visualization and dimension reduction. When an alternative assay such as the `vstresiduals` above should be used, it is thus necessary to explicitly specify this, for example, via `runUMAP(sce, exprs_values = "vstresiduals")` to compute UMAP cell embedings on the assay data compute above.
+
 ## Data preparation
 
 `muscat` expects a certain format of the input SCE. Specifically, the following cell metadata (`colData`) columns have to be provided: 
@@ -164,10 +167,10 @@ assays(sce)$vstresiduals <- vst(counts(sce), show_progress = FALSE)$y
 ```{r prep-sce} 
 sce$id <- paste0(sce$stim, sce$ind)
 (sce <- prepSCE(sce, 
-    cluster_id = "cell", # subpopulation assignments
-    group_id = "stim",   # group IDs (ctrl/stim)
-    sample_id = "id",    # sample IDs (ctrl/stim.1234)
-    drop = TRUE))        # drop all other colData columns
+    kid = "cell", # subpopulation assignments
+    gid = "stim",  # group IDs (ctrl/stim)
+    sid = "id",   # sample IDs (ctrl/stim.1234)
+    drop = TRUE))  # drop all other colData columns
 ```
 
 For consistency and easy accession throughout this vignette, we will store cluster and sample IDs, as well as the number of clusters and samples into the following *simple* variables:
@@ -244,7 +247,7 @@ for (dr in c("TSNE", "UMAP")) {
 To test for state changes across conditions, we will consider two types of approaches: i) mixed models that act directly on cell-level measurements; and ii) aggregation-based methods that act on *pseudobulk* data. For both approaches, each gene is tested for state changes in each cluster. Thus, a total of $\#(genes) \times \#(clusters)$ tests will be performed per comparison of interest. The following schematic summarizes the data representation considered by cell- and sample-level approaches, respectively:
 
 ```{r echo = FALSE, out.height = 4, fig.cap = "Schematic overview of cell- and sample-level approaches for DS analysis. Top panels show a schematic of the data distributions or aggregates across samples (each violin is a group or sample; each dot is a sample) and conditions (blue or orange). The bottom panels highlight the data organization in sub-matrix slices of the original count table."}
-knitr::include_graphics(system.file('extdata', 'ds_approaches.png', package = 'muscat'))
+knitr::include_graphics(system.file('extdata', '1d.png', package = 'muscat'))
 ```
 
 ## Aggregation of single-cell to pseudobulk data {#sec-agg}
@@ -501,7 +504,7 @@ pbHeatmap(sce, res, g = "ISG20")
 
 # Session info {- .smaller}
 
-```{r}
+```{r session-info}
 sessionInfo()
 ```
 

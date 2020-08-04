@@ -17,8 +17,16 @@
 #' @param coef passed to \code{\link[edgeR]{glmQLFTest}},
 #'   \code{\link[limma]{contrasts.fit}}, \code{\link[DESeq2]{results}}
 #'   for \code{method = "edgeR", "limma-x", "DESeq2"}, respectively.
+#'   Can be a list for multiple, independent comparisons.
 #' @param min_cells a numeric. Specifies the minimum number of cells in a given 
 #'   cluster-sample required to consider the sample for differential testing.
+#' @param filter characterstring specifying whether
+#'   to filter on genes, samples, both or neither.
+#' @param treat logical specifying whether empirical Bayes moderated-t 
+#'   p-values should be computed relative to a minimum fold-change threshold. 
+#'   Only applicable for methods \code{"limma-x"} 
+#'   (\code{\link[limma:eBayes]{treat}}) and \code{"edgeR"} 
+#'   (\code{\link[edgeR]{glmTreat}}), and ignored otherwise.
 #' @param verbose logical. Should information on progress be reported?
 #'
 #' @return a list containing \itemize{
@@ -59,137 +67,104 @@
 #' \emph{bioRxiv} \strong{713412} (2018). 
 #' doi: \url{https://doi.org/10.1101/713412}
 #'
-#' @importFrom DESeq2 DESeq results
-#' @importFrom edgeR calcNormFactors DGEList 
-#'   estimateDisp glmQLFit glmQLFTest topTags
+#' @importFrom edgeR filterByExpr
 #' @importFrom dplyr last rename
-#' @importFrom limma makeContrasts contrasts.fit eBayes lmFit topTable voom
+#' @importFrom limma makeContrasts
+#' @importFrom Matrix qr rowSums
 #' @importFrom methods is
+#' @importFrom scater isOutlier
 #' @importFrom stats model.matrix
-#' @importFrom SummarizedExperiment colData
-#' @importFrom tibble add_column
+#' @importFrom SummarizedExperiment assay colData
 #' @export
 
 pbDS <- function(pb, 
     method = c("edgeR", "DESeq2", "limma-trend", "limma-voom"),
-    design = NULL, coef  = NULL, contrast = NULL, 
-    min_cells = 10, verbose = TRUE) {
-
+    design = NULL, coef  = NULL, contrast = NULL, min_cells = 10, 
+    filter = c("both", "genes", "samples", "none"), 
+    treat = FALSE, verbose = TRUE) {
+    
     # check validity of input arguments
+    args <- as.list(environment())
     method <- match.arg(method)
+    filter <- match.arg(filter)
     .check_pbs(pb, check_by = TRUE)
-    .check_args_pbDS(as.list(environment()))
+    .check_args_pbDS(args)
     
     if (is.null(design)) {
         formula <- ~ group_id
         cd <- as.data.frame(colData(pb))
         design <- model.matrix(formula, cd)
         colnames(design) <- levels(pb$group_id)
+        args$design <- design
     }
     if (is.null(coef) & is.null(contrast)) {
-        #c <- colnames(design)[c(ncol(design), 1)]
-        #c <- paste(c, collapse = "-")
         c <- colnames(design)[ncol(design)]
         contrast <- makeContrasts(contrasts = c, levels = design)
+        args$contrast <- contrast
     }
 
+    # ct: type of comparison - "contrast" or "coef"
+    # cs: named list of 'coef's or 'contrast's
     if (!is.null(contrast)) {
         coef <- NULL
-        ct <- "contrast"
         names(cs) <- cs <- colnames(contrast)
     } else if (!is.null(coef)) {
-        ct <- "coef"
+        if (!is.list(coef)) 
+            coef <- list(coef)
         cs <- vapply(coef, function(i)
             paste(colnames(design)[i], collapse = "-"),
             character(1))
         names(cs) <- names(coef) <- cs
     }
-    
-    # ct <- ifelse(!is.null(contrast), "contrast", "coef")
-    # if (is.null(contrast) & is.null(coef)) cs <- 1
+    ct <- ifelse(is.null(coef), "contrast", "coef")
     
     # compute cluster-sample counts
     n_cells <- metadata(pb)$n_cells
-    kids <- assayNames(pb)
-    names(kids) <- kids
+    names(kids) <- kids <- assayNames(pb)
+    
+    if (!is.function(method)) {
+        fun <- switch(method,
+            "DESeq2" = .DESeq2,
+            "edgeR" = .edgeR, 
+            "limma-trend" = .limma_trend, 
+            "limma-voom" = .limma_voom)
+    } else {
+        fun_call <- 1
+    }
+    fun_args <- names(as.list(args(fun)))
+    fun_args <- fun_args[-length(fun_args)]
     
     # for ea. cluster, run DEA
     res <- lapply(kids, function (k) {
         if (verbose) cat(k, "..", sep = "")
         rmv <- n_cells[k, ] < min_cells
-        y <- assays(pb)[[k]][, !rmv]
-        d <- design[colnames(y), ]
-        if (method == "DESeq2") {
-            mode(y) <- "integer"
-            cd <- colData(pb)[!rmv, , drop = FALSE]
-            y <- DESeqDataSetFromMatrix(y, cd, d)
-            y <- suppressMessages(DESeq(y))
-            tt <- lapply(cs, function(c) {
-                res <- results(y, contrast = contrast[, c])
-                .res_df(k, res, ct, c) %>% 
-                    rename(logFC = "log2FoldChange",
-                        p_val = "pvalue", p_adj.loc = "padj")
-            })
-        } else {
-            if (!is.null(d) & any(colSums(d) < 2)) 
-                return(NULL)
-            if (method == "edgeR") {
-                y <- suppressMessages(DGEList(y, 
-                    group = pb$group_id[!rmv], 
-                    remove.zeros = TRUE))
-                y <- calcNormFactors(y)
-                y <- estimateDisp(y, d)
-                fit <- glmQLFit(y, d)
-                tt <- lapply(cs, function(c) {
-                    qlf <- glmQLFTest(fit, coef[[c]], contrast[, c])
-                    tt <- topTags(qlf, n = Inf, sort.by = "none")
-                    .res_df(k, tt, ct, c) %>% 
-                        rename(p_val = "PValue", p_adj.loc = "FDR")
-                })
-            } else {
-                if (method == "limma-trend") {
-                    trend <- robust <- TRUE
-                } else if (method == "limma-voom") {
-                    trend <- robust <- FALSE
-                    y <- suppressMessages(DGEList(y, remove.zeros = TRUE))
-                    y <- calcNormFactors(y)
-                    y <- voom(y, d)
-                }
-                w <- n_cells[k, !rmv]
-                fit <- lmFit(y, d, weights = w)
-                tt <- lapply(cs, function(c) {
-                    cfit <- contrasts.fit(fit, contrast[, c], coef[[c]])
-                    efit <- eBayes(cfit, trend = trend, robust = robust)
-                    tt <- topTable(efit, number = Inf, sort.by = "none")  
-                    .res_df(k, tt, ct, c) %>% 
-                        rename(p_val = "P.Value", p_adj.loc = "adj.P.Val")
-                })
-            }
+        d <- design[colnames(y <- pb[ , !rmv]), , drop = FALSE]
+        if (filter %in% c("samples", "both")) {
+            ls <- colSums(assay(y, k))
+            ol <- isOutlier(ls, log = TRUE, type = "lower", nmads = 3)
+            d <- d[colnames(y <- y[, !ol]), , drop = FALSE]
         }
-        return(list(tt = tt, data = y))
+        if (any(tabulate(y$group_id) < 2) 
+            || qr(d)$rank == nrow(d) 
+            || qr(d)$rank < ncol(d)) 
+            return(NULL)
+        y <- y[rowSums(assay(y, k)) != 0, ]
+        if (filter %in% c("genes", "both") & max(assay(y, k)) > 100) 
+            y <- y[filterByExpr(assay(y, k), d), ]
+        args <- list(x = y, k = k, design = d, coef = coef, 
+            contrast = contrast, ct = ct, cs = cs, treat = treat)
+        args <- args[intersect(names(args), fun_args)]
+        suppressWarnings(do.call(fun, args))
     })
+    
     # remove empty clusters
-    skipped <- vapply(res, is.null, logical(1))
-    if (any(skipped) & verbose)
-        message("Cluster(s) ", paste(dQuote(kids[skipped]), collapse = ", "), 
-            " skipped due to an insufficient number of cells", 
-            " in at least 2 samples per group.")
-    res <- res[!skipped]
+    rmv <- vapply(res, is.null, logical(1))
+    res <- res[!rmv]
     kids <- kids[names(res)]
     
-    # re-organize by contrast & 
-    # do global p-value adjustment
-    tt <- map(res, "tt")
-    if (!is.null(cs)) {
-        tt <- lapply(cs, map, .x = tt)
-        tt <- .p_adj_global(tt)
-    } else {
-        tt <- lapply(tt, function(u) 
-            add_column(u, .after = "p_adj.loc",
-                p_adj.glb = p.adjust(u$p_adj.loc)))
-    }
-
-    # return results
-    list(table = tt, data = map(res, "data"), method = method, 
-        design = design, contrast = contrast, coef = coef)
+    # reorganize & do global p-value adjustment
+    names(i) <- i <- c("table", "data", "fit")
+    res <- lapply(i, map, .x = res)
+    res$table <- .p_adj_global(res$table)
+    return(c(res, list(args = args)))
 }

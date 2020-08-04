@@ -4,9 +4,17 @@
 \alias{pbDS}
 \title{pseudobulk DS analysis}
 \usage{
-pbDS(pb, method = c("edgeR", "DESeq2", "limma-trend", "limma-voom"),
-  design = NULL, coef = NULL, contrast = NULL, min_cells = 10,
-  verbose = TRUE)
+pbDS(
+  pb,
+  method = c("edgeR", "DESeq2", "limma-trend", "limma-voom"),
+  design = NULL,
+  coef = NULL,
+  contrast = NULL,
+  min_cells = 10,
+  filter = c("both", "genes", "samples", "none"),
+  treat = FALSE,
+  verbose = TRUE
+)
 }
 \arguments{
 \item{pb}{a \code{\link[SingleCellExperiment]{SingleCellExperiment}}
@@ -21,13 +29,23 @@ Defaults to \code{~ group_id} or the corresponding \code{model.matrix}.}
 
 \item{coef}{passed to \code{\link[edgeR]{glmQLFTest}},
 \code{\link[limma]{contrasts.fit}}, \code{\link[DESeq2]{results}}
-for \code{method = "edgeR", "limma-x", "DESeq2"}, respectively.}
+for \code{method = "edgeR", "limma-x", "DESeq2"}, respectively.
+Can be a list for multiple, independent comparisons.}
 
 \item{contrast}{a matrix of contrasts to test for
 created with \code{\link[limma]{makeContrasts}}.}
 
 \item{min_cells}{a numeric. Specifies the minimum number of cells in a given 
 cluster-sample required to consider the sample for differential testing.}
+
+\item{filter}{characterstring specifying whether
+to filter on genes, samples, both or neither.}
+
+\item{treat}{logical specifying whether empirical Bayes moderated-t 
+p-values should be computed relative to a minimum fold-change threshold. 
+Only applicable for methods \code{"limma-x"} 
+(\code{\link[limma:eBayes]{treat}}) and \code{"edgeR"} 
+(\code{\link[edgeR]{glmTreat}}), and ignored otherwise.}
 
 \item{verbose}{logical. Should information on progress be reported?}
 }
