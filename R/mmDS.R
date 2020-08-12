@@ -126,9 +126,9 @@ mmDS <- function(x, coef = NULL, covs = NULL,
             sctransform = expression(.vst_sctransform(x, verbose)),
             DESeq2 = expression(.vst_DESeq2(x, covs, blind)))
         if (verbose) {
-            counts(x) <- eval(vst_call)
+            assay(x, "vstresiduals") <- eval(vst_call)
         } else {
-            counts(x) <- suppressMessages(eval(vst_call))
+            assay(x, "vstresiduals") <- suppressMessages(eval(vst_call))
         }
     }
     

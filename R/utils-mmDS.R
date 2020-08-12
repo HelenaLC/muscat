@@ -170,7 +170,7 @@
     vst <- match.arg(vst)
     ddf <- match.arg(ddf)
     cd <- .prep_cd(x, covs)
-    y <- counts(x)
+    y <- assay(x, "vstresiduals")
 
     # get formula
     formula <- paste(c("~(1|sample_id)", covs, "group_id"), collapse = "+")
