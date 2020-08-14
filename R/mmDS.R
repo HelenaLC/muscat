@@ -121,14 +121,14 @@ mmDS <- function(x, coef = NULL, covs = NULL,
     names(min_count) <- kids
     
     # variance-stabilizing transformation
-    if (args$method == "vst") {
+    if (args$method == "vst" && !"vstresiduals" %in% assayNames(x)) {
         vst_call <- switch(args$vst,
             sctransform = expression(.vst_sctransform(x, verbose)),
             DESeq2 = expression(.vst_DESeq2(x, covs, blind)))
         if (verbose) {
-            assay(x, "vstresiduals") <- eval(vst_call)
+            assay(x, "vstresiduals", FALSE) <- eval(vst_call)
         } else {
-            assay(x, "vstresiduals") <- suppressMessages(eval(vst_call))
+            assay(x, "vstresiduals", FALSE) <- suppressMessages(eval(vst_call))
         }
     }
     
