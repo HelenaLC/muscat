@@ -505,7 +505,9 @@
 #' @importFrom sctransform vst
 #' @importFrom SingleCellExperiment counts
 .vst_sctransform <- function(x, verbose) {
-    sctransform::vst(counts(x), show_progress = verbose)$y
+    sctransform::vst(counts(x), 
+        min_cells = 0, # assure that all genes are retained
+        show_progress = verbose)$y
 }
 # ------------------------------------------------------------------------------
 #' @importFrom DESeq2 varianceStabilizingTransformation
