@@ -54,7 +54,7 @@
 
     ddf <- match.arg(ddf)
     x <- x[rowSds(as.matrix(counts(x))) > 0, ]
-    y <- DGEList(counts(x), lib.sizes=sizeFactors(x), norm.factors = rep(1,ncol(x)))
+    y <- DGEList(counts(x), lib.size=sizeFactors(x), norm.factors = rep(1,ncol(x)))
 
     cd <- .prep_cd(x, covs)
 
