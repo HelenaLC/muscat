@@ -47,9 +47,6 @@ pbFlatten <- function(pb, normalize = TRUE){
         colData = cd, 
         rowData = rowData(pb),
         metadata = metadata(pb))
-    # (optionally) do logCPM normalization
-    if (normalize) assay(sce, "logcpm") <- 
-        log1p(cpm(calcNormFactors(DGEList(assay(sce)))))
     # (optionally) add number of cells per cluster-sample
     if (!is.null(metadata(pb)$n_cells)) {
         n_cells <- tryCatch(mapply(
@@ -58,6 +55,13 @@ pbFlatten <- function(pb, normalize = TRUE){
             error = function(e) {warning(e); NULL})
         if (!is.null(n_cells)) 
             sce$n_cells <- as.numeric(n_cells)
+    }
+    # (optionally) do logCPM normalization
+    if (normalize){
+	# remove empty columns (samples that lack a cluster)
+	sce <- sce[,colSums(a!=0)>0]
+        assay(sce, "logcpm") <-
+          log1p(cpm(calcNormFactors(DGEList(assay(sce)))))
     }
     return(sce)
 }

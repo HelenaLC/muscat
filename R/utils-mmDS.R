@@ -54,7 +54,7 @@
 
     ddf <- match.arg(ddf)
     x <- x[rowSds(as.matrix(counts(x))) > 0, ]
-    y <- DGEList(counts(x), norm.factors = 1/sizeFactors(x))
+    y <- DGEList(counts(x), lib.size=sizeFactors(x), norm.factors = rep(1,ncol(x)))
 
     cd <- .prep_cd(x, covs)
 
@@ -115,7 +115,7 @@
 
     ddf <- match.arg(ddf)
     x <- x[rowSds(as.matrix(counts(x))) > 0, ]
-    y <- DGEList(counts(x), norm.factors = 1 / sizeFactors(x))
+    y <- DGEList(counts(x), lib.size=sizeFactors(x), norm.factors = rep(1,ncol(x)))
 
     cd <- .prep_cd(x, covs)
     formula <- paste0(c("~(1|sample_id)", covs, "group_id"), collapse = "+")
