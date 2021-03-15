@@ -31,7 +31,7 @@ code to reproduce this example dataset from the original data
 is provided in the examples section.
 }
 \examples{
-\dontrun{
+\donttest{
 # set random seed for cell sampling
 set.seed(2929)
 

@@ -13,7 +13,8 @@ pbDS(
   min_cells = 10,
   filter = c("both", "genes", "samples", "none"),
   treat = FALSE,
-  verbose = TRUE
+  verbose = TRUE,
+  BPPARAM = SerialParam(progressbar = verbose)
 )
 }
 \arguments{
@@ -48,6 +49,9 @@ Only applicable for methods \code{"limma-x"}
 (\code{\link[edgeR]{glmTreat}}), and ignored otherwise.}
 
 \item{verbose}{logical. Should information on progress be reported?}
+
+\item{BPPARAM}{a \code{\link[BiocParallel]{BiocParallelParam}}
+object specifying how differential testing should be parallelized.}
 }
 \value{
 a list containing \itemize{
@@ -70,15 +74,15 @@ res <- pbDS(pb, method = "limma-trend")
 
 names(res)
 names(res$table)
-head(res$table$`stim-ctrl`$`B cells`)
+head(res$table$stim$`B cells`)
 
 # count nb. of DE genes by cluster
-vapply(res$table$`stim-ctrl`, function(u) 
+vapply(res$table$stim, function(u) 
   sum(u$p_adj.loc < 0.05), numeric(1))
 
 # get top 5 hits for ea. cluster w/ abs(logFC) > 1
 library(dplyr)
-lapply(res$table$`stim-ctrl`, function(u)
+lapply(res$table$stim, function(u)
   filter(u, abs(logFC) > 1) \%>\% 
     arrange(p_adj.loc) \%>\% 
     slice(seq_len(5)))
