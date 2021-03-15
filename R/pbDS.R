@@ -27,6 +27,8 @@
 #'   Only applicable for methods \code{"limma-x"} 
 #'   (\code{\link[limma:eBayes]{treat}}) and \code{"edgeR"} 
 #'   (\code{\link[edgeR]{glmTreat}}), and ignored otherwise.
+#' @param BPPARAM a \code{\link[BiocParallel]{BiocParallelParam}}
+#'   object specifying how differential testing should be parallelized.
 #' @param verbose logical. Should information on progress be reported?
 #'
 #' @return a list containing \itemize{
@@ -44,15 +46,15 @@
 #'
 #' names(res)
 #' names(res$table)
-#' head(res$table$`stim-ctrl`$`B cells`)
+#' head(res$table$stim$`B cells`)
 #' 
 #' # count nb. of DE genes by cluster
-#' vapply(res$table$`stim-ctrl`, function(u) 
+#' vapply(res$table$stim, function(u) 
 #'   sum(u$p_adj.loc < 0.05), numeric(1))
 #' 
 #' # get top 5 hits for ea. cluster w/ abs(logFC) > 1
 #' library(dplyr)
-#' lapply(res$table$`stim-ctrl`, function(u)
+#' lapply(res$table$stim, function(u)
 #'   filter(u, abs(logFC) > 1) %>% 
 #'     arrange(p_adj.loc) %>% 
 #'     slice(seq_len(5)))
@@ -67,6 +69,7 @@
 #' \emph{bioRxiv} \strong{713412} (2018). 
 #' doi: \url{https://doi.org/10.1101/713412}
 #'
+#' @importFrom BiocParallel bplapply SerialParam 
 #' @importFrom edgeR filterByExpr
 #' @importFrom dplyr last rename
 #' @importFrom limma makeContrasts
@@ -80,8 +83,8 @@
 pbDS <- function(pb, 
     method = c("edgeR", "DESeq2", "limma-trend", "limma-voom"),
     design = NULL, coef  = NULL, contrast = NULL, min_cells = 10, 
-    filter = c("both", "genes", "samples", "none"), 
-    treat = FALSE, verbose = TRUE) {
+    filter = c("both", "genes", "samples", "none"), treat = FALSE, 
+    verbose = TRUE, BPPARAM = SerialParam(progressbar = verbose)) {
     
     # check validity of input arguments
     args <- as.list(environment())
@@ -89,6 +92,7 @@ pbDS <- function(pb,
     filter <- match.arg(filter)
     .check_pbs(pb, check_by = TRUE)
     .check_args_pbDS(args)
+    stopifnot(is(BPPARAM, "BiocParallelParam"))
     
     if (is.null(design)) {
         formula <- ~ group_id
@@ -118,10 +122,6 @@ pbDS <- function(pb,
     }
     ct <- ifelse(is.null(coef), "contrast", "coef")
     
-    # compute cluster-sample counts
-    n_cells <- metadata(pb)$n_cells
-    names(kids) <- kids <- assayNames(pb)
-    
     if (!is.function(method)) {
         fun <- switch(method,
             "DESeq2" = .DESeq2,
@@ -135,8 +135,11 @@ pbDS <- function(pb,
     fun_args <- fun_args[-length(fun_args)]
     
     # for ea. cluster, run DEA
-    res <- lapply(kids, function (k) {
-        if (verbose) cat(k, "..", sep = "")
+    n_cells <- .n_cells(pb)
+    names(kids) <- kids <- assayNames(pb)
+    res <- bplapply(
+        BPPARAM = BPPARAM, 
+        kids, function (k) {
         rmv <- n_cells[k, ] < min_cells
         d <- design[colnames(y <- pb[ , !rmv]), , drop = FALSE]
         if (filter %in% c("samples", "both")) {

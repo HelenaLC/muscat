@@ -1,21 +1,51 @@
-#' @importFrom Matrix rowMeans rowSums
-#' @importFrom matrixStats rowMedians
-#' @importFrom purrr map_depth
-#' @importFrom SummarizedExperiment assays
-.pb <- function(x, cs, assay, fun) {
-    fun <- switch(fun,
-        rowSums = Matrix::rowSums,
-        rowMeans = Matrix::rowMeans,
-        rowMedians = function(u) 
-            matrixStats::rowMedians(as.matrix(u)))
-    pb <- map_depth(cs, -1, function(i) {
-        if (length(i) == 0) return(numeric(nrow(x)))
-        fun(assays(x)[[assay]][, i, drop = FALSE])
-    })
-    map_depth(pb, -2, function(u)
-        as.matrix(data.frame(u,
-            row.names = rownames(x),
-            check.names = FALSE)))
+#' @importFrom BiocParallel SerialParam
+#' @importFrom purrr map
+#' @importFrom scater sumCountsAcrossCells
+#' @importFrom SummarizedExperiment assay colData
+.pb <- function(x, by, assay, fun, BPPARAM = SerialParam()) {
+  # compute pseudobulks
+  y <- sumCountsAcrossCells(x,
+    assay.type = assay, 
+    ids = (ids <- colData(x)[by]),
+    average = ifelse(fun == "sum", "none", fun),
+    BPPARAM = BPPARAM)
+  colnames(y) <- y[[by[length(by)]]]
+  
+  if (length(by) == 1) 
+      return(assay(y))
+  
+  # reformat into one assay per 'by[1]'
+  if (is.factor(ids <- y[[by[1]]]))
+      ids <- droplevels(ids)
+  is <- split(seq_len(ncol(y)), ids)
+  ys <- map(is, ~assay(y)[, .])
+  
+  # fill in missing combinations
+  for (i in seq_along(ys)) {
+      fill <- setdiff(
+          unique(y[[by[2]]]), 
+          colnames(ys[[i]]))
+      if (length(fill != 0)) {
+          foo <- matrix(0, nrow(x), length(fill))
+          colnames(foo) <- fill
+          foo <- cbind(ys[[i]], foo)
+          o <- paste(sort(unique(y[[by[2]]])))
+          ys[[i]] <- foo[, o]
+      }
+  }
+  return(ys)
+}
+
+# extract table of cell counts from 'int_colData'
+# of pseudobulks as returned by 'aggregateData'
+#' @importFrom S4Vectors metadata
+#' @importFrom SingleCellExperiment int_colData
+.n_cells <- function(x) {
+    y <- int_colData(x)$n_cells
+    if (is.null(y)) return(NULL)
+    if (length(metadata(x)$agg_pars$by) == 2)
+        y <- as.matrix(data.frame(y, check.names = FALSE))
+    return(as.table(y))
 }
 
 # wrapper to create output tables
@@ -70,7 +100,7 @@
         y <- calcNormFactors(y)
         y <- voom(y, design)
     } 
-    w <- metadata(x)$n_cells[k, colnames(x)]   
+    w <- .n_cells(x)[k, colnames(x)]   
     fit <- lmFit(y, design, weights = w)
     # treat: eBayes moderated-t p-val relative to min logFC threshold
     # else:  eBayes moderated t-stat testing each contrast equal to 0 
