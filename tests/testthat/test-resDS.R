@@ -21,8 +21,8 @@ assay(x[de_gs, g23]) <- assay(x[de_gs, g23]) * 10
 
 # aggregate & run pseudobulk DS analysis
 nc <- length(cs <- list(2, 3))
-y <- aggregateData(x, assay = "counts", fun = "sum")
-y <- pbDS(y, coef = cs, verbose = FALSE)
+pbs <- aggregateData(x, assay = "counts", fun = "sum")
+y <- pbDS(pbs, coef = cs, verbose = FALSE)
     
 test_that("resDS()", {
     v <- list(col = list(nr = nrow(x)*nk, ng = nrow(x), nk = nk))
@@ -61,4 +61,31 @@ test_that("resDS() - 'cpm = TRUE'", {
     u <- z[, grep("cpm", colnames(z))]
     expect_true(ncol(u) == ns)
     expect_true(all(u %% 2 == 0 | is.na(u)))
+})
+
+test_that("missing cluster is handled", {
+    k <- sample(kids, 1)
+    i <- !(x$cluster_id == k)
+    pbs <- aggregateData(x[, i], verbose = FALSE)
+    res <- pbDS(pbs, verbose = FALSE)
+    tbl <- resDS(x, res, cpm = TRUE)
+    expect_true(!k %in% unique(tbl$cluster_id))
+})
+test_that("missing sample is handled", {
+    s <- sample(sids, 1)
+    i <- !(x$sample_id == s)
+    pbs <- aggregateData(x[, i], verbose = FALSE)
+    res <- pbDS(pbs, verbose = FALSE)
+    tbl <- resDS(x, res, cpm = TRUE)
+    expect_true(sum(grepl(s, names(tbl))) == 0)
+})
+test_that("missing cluster-sample is handled", {
+    k <- sample(kids, 1)
+    s <- sample(sids, 1)
+    i <- !(x$cluster_id == k & x$sample_id == s)
+    pbs <- aggregateData(x[, i], verbose = FALSE)
+    res <- pbDS(pbs, verbose = FALSE)
+    tbl <- resDS(x, res, cpm = TRUE)
+    sub <- tbl[tbl$cluster_id == k, ]
+    expect_true(all(is.na(sub[, grep(s, names(sub))])))
 })

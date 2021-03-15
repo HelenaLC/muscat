@@ -33,8 +33,7 @@ test_that("aggregation across 2 factors", {
         expect_identical(rownames(pb), rownames(sce))
         expect_identical(colnames(pb), sids)
         
-        expect_equivalent(metadata(pb)$n_cells,
-            table(sce$cluster_id, sce$sample_id))
+        expect_equivalent(.n_cells(pb), table(sce$cluster_id, sce$sample_id))
         
         # 10x random spot check
         replicate(10, {
@@ -55,7 +54,7 @@ test_that("aggregation across 1 factor", {
         expect_identical(ncol(pb), nk)
         expect_identical(rownames(pb), rownames(sce))
         expect_identical(colnames(pb), kids)
-        expect_equivalent(table(sce$cluster_id), metadata(pb)$n_cells)
+        expect_equivalent(table(sce$cluster_id), .n_cells(pb))
         # random spot check
         k <- sample(kids, 1)
         g <- sample(rownames(sce), 1)

@@ -8,7 +8,7 @@ suppressMessages({
 # generate toy dataset
 seed <- as.numeric(format(Sys.time(), "%s"))
 set.seed(seed)
-sce <- .toySCE()
+sce <- .toySCE(c(100, 2e3))
 
 nk <- length(kids <- levels(sce$cluster_id))
 ns <- length(sids <- levels(sce$sample_id))
@@ -22,6 +22,13 @@ degs <- sample(rownames(sce), (nde <- 5))
 assay(sce[degs, g23]) <- assay(sce[degs, g23]) * 10
 pb <- aggregateData(sce, assay = "counts", fun = "sum")
 
+# specify design & contrast matrix
+ei <- metadata(sce)$experiment_info
+design <- model.matrix(~ 0 + ei$group_id)
+dimnames(design) <- list(ei$sample_id, levels(ei$group_id))
+contrast <- limma::makeContrasts("g2-g1", "g3-g1", levels = design)
+
+# default method settings ------------------------------------------------------
 for (method in eval(as.list(args(pbDS))$method)) {
     test_that(paste("defaults - pbDS", method, sep = "."), {
         res <- pbDS(pb, method = method, verbose = FALSE)
@@ -35,12 +42,7 @@ for (method in eval(as.list(args(pbDS))$method)) {
     })
 }
 
-# specify design & contrast matrix
-ei <- metadata(sce)$experiment_info
-design <- model.matrix(~ 0 + ei$group_id)
-dimnames(design) <- list(ei$sample_id, levels(ei$group_id))
-contrast <- limma::makeContrasts("g2-g1", "g3-g1", levels = design)
-
+# multiple contrast w/ & w/o 'treat' -------------------------------------------
 for (method in eval(as.list(args(pbDS))$method)) {
     if (grepl("edgeR|limma", method)) {
         treat <- c(FALSE, TRUE)

@@ -40,9 +40,8 @@ test_that("mmDS() - filtering", {
     ls <- rowSums(assay(x[, cs]))
     o <- order(ls, decreasing = TRUE)
     gs <- rownames(x)[o][seq_len(5)]
-    y <- computeLibraryFactors(x[gs, cs])
-    y <- y[, sizeFactors(y) > 0]
-    z <- mmDS(y, n_threads = 1, verbose = FALSE)
+    z <- suppressWarnings(
+        mmDS(x[gs, cs], verbose = FALSE))
     expect_setequal(names(z), ks)
     expect_true(all(vapply(map(z, "gene"), 
         function(u) all(u == gs), logical(1))))
@@ -65,7 +64,8 @@ test_that("mmDS-utils", {
         # either there's a bug I cannot find 
         # or the toydata is too simplistic
         # c("poisson", "hybrid", "nbinom"))) {
-        y <- get(fun)(x[gs, cs], n_threads = 1, verbose = FALSE)
+        y <- suppressWarnings(
+            get(fun)(x[gs, cs], verbose = FALSE))
         expect_is(y, "data.frame")
         expect_identical(rownames(y), gs)
         top <- order(y$p_adj.loc)[seq_len(n_de)]

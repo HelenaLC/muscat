@@ -61,7 +61,7 @@ test_that("pbHeatmap() - subset of clusters", {
     expect_identical(colnames(y), sids)
     for (i in seq_len(nks)) {
         k <- kids[match(ks, kids)][i]
-        expect_identical(y[seq_len(nds)+nds*(i-1), ], assay(pb, k)[gs, ])
+        expect_equal(y[seq_len(nds)+nds*(i-1), ], assay(pb, k)[gs, ])
     }
 })
 
