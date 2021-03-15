@@ -24,7 +24,8 @@
 #'   at least \code{min_cells} must have a count >= \code{min_count}.
 #' @param min_cells number (or fraction, if < 1) of cells with a count >
 #'   \code{min_count} required for a gene to be tested in a given cluster.
-#' @param n_threads number of threads to use.
+#' @param BPPARAM a \code{\link[BiocParallel]{BiocParallelParam}}
+#'   object specifying how differential testing should be parallelized.
 #' @param verbose logical specifying whether messages
 #'   on progress and a progress bar should be displayed.
 #'
@@ -40,8 +41,7 @@
 #' gs <- sample(nrow(sce), 100)
 #' sce <- sce[gs, ]
 #'
-#' res <- mmDS(sce, method = "dream",
-#'     n_threads = 2, verbose = FALSE)
+#' res <- mmDS(sce, method = "dream", verbose = FALSE)
 #' head(res$`B cells`)
 #'
 #' @author Pierre-Luc Germain & Helena L Crowell
@@ -69,7 +69,8 @@
 mmDS <- function(x, coef = NULL, covs = NULL,
     method = c("dream2", "dream", "vst", "poisson", "nbinom", "hybrid"),
     n_cells = 10, n_samples = 2, min_count = 1, min_cells = 20,
-    n_threads = 1, verbose = TRUE, vst = c("sctransform", "DESeq2"),
+    verbose = TRUE, BPPARAM = SerialParam(progressbar = verbose), 
+    vst = c("sctransform", "DESeq2"),
     ddf = c("Satterthwaite", "Kenward-Roger", "lme4"),
     dup_corr = FALSE, trended = FALSE, bayesian = FALSE, 
     blind = TRUE, REML = TRUE, moderate = FALSE) {
@@ -78,6 +79,7 @@ mmDS <- function(x, coef = NULL, covs = NULL,
     .check_sce(x, req_group = TRUE)
     .check_arg_assay(x, "counts")
     .check_args_mmDS(as.list(environment()))
+    stopifnot(is(BPPARAM, "BiocParallelParam"))
     
     args <- as.list(environment())
     args$method <- match.arg(method)
