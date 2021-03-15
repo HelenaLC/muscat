@@ -34,7 +34,7 @@ pbMDS <- function(x) {
     
     y <- as.list(assays(x))
     y <- do.call("cbind", y)
-    y <- y[, (j <- c(t(metadata(x)$n_cells)) != 0)]
+    y <- y[, (j <- c(t(.n_cells(x))) != 0)]
     d <- DGEList(unname(y), remove.zeros = TRUE)
     d <- calcNormFactors(d)
     
