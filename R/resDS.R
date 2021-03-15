@@ -99,10 +99,10 @@ resDS <- function(x, y, bind = c("row", "col"),
         })
 
     .tidy <- function(u, ei, append = "") {
-        m1 <- match(ei$sample_id, colnames(u))
+        m1 <- match(ei$sample_id, colnames(u), nomatch = 0)
         m2 <- match(levels(ei$group_id), colnames(u))
         if (all(is.na(m2))) m2 <- 0
-        colnames(u)[m1] <- paste0(ei$sample_id, append)
+        colnames(u)[m1] <- paste0(ei$sample_id, append)[m1 != 0]
         colnames(u)[m2] <- paste0(colnames(u)[m2], append)
         k <- seq_len(ncol(u))[-c(m1, m2)]
         u[, c(k, m1[order(ei$group)], m2)]
@@ -124,10 +124,15 @@ resDS <- function(x, y, bind = c("row", "col"),
     # append CPMs
     if (cpm) {
         cpm <- lapply(kids, function(k) {
-            if (is.null(y$data[[k]])) return(NULL)
+            if (is.null(y$data[[k]])) 
+                return(NULL)
             cpm <- cpm(y$data[[k]])
-            data.frame(gene = rownames(cpm), cluster_id = k, cpm, 
-                row.names = NULL, check.names = FALSE, stringsAsFactors = FALSE)
+            data.frame(cpm, 
+                gene = rownames(cpm),
+                cluster_id = k,
+                row.names = NULL, 
+                check.names = FALSE, 
+                stringsAsFactors = FALSE)
         })
         cpm <- bind_rows(cpm)
         cpm <- .tidy(cpm, ei, append = ".cpm")
