@@ -1,13 +1,13 @@
 #' @importFrom BiocParallel SerialParam
 #' @importFrom purrr map
-#' @importFrom scater sumCountsAcrossCells
+#' @importFrom scuttle summarizeAssayByGroup
 #' @importFrom SummarizedExperiment assay colData
 .pb <- function(x, by, assay, fun, BPPARAM = SerialParam()) {
   # compute pseudobulks
-  y <- sumCountsAcrossCells(x,
+  y <- summarizeAssayByGroup(x,
     assay.type = assay, 
     ids = (ids <- colData(x)[by]),
-    average = ifelse(fun == "sum", "none", fun),
+    statistics = fun,
     BPPARAM = BPPARAM)
   colnames(y) <- y[[by[length(by)]]]
   

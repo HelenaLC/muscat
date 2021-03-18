@@ -8,7 +8,7 @@ aggregateData(
   x,
   assay = NULL,
   by = c("cluster_id", "sample_id"),
-  fun = c("sum", "mean", "median"),
+  fun = c("sum", "mean", "median", "prop.detected", "num.detected"),
   scale = FALSE,
   verbose = TRUE,
   BPPARAM = SerialParam(progressbar = verbose)
@@ -24,7 +24,8 @@ input data. Defaults to the 1st available (\code{assayNames(x)[1]}).}
 \code{colData(x)} columns to summarize by (at most 2!).}
 
 \item{fun}{a character string.
-Specifies the function to use as summary statistic.}
+Specifies the function to use as summary statistic.
+Passed to \code{\link[scuttle]{summarizeAssayByGroup}}.}
 
 \item{scale}{logical. Should pseudo-bulks be scaled
 with the effective library size & multiplied by 1M?}

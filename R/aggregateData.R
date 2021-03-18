@@ -10,6 +10,7 @@
 #'   \code{colData(x)} columns to summarize by (at most 2!).
 #' @param fun a character string.
 #'   Specifies the function to use as summary statistic.
+#'   Passed to \code{\link[scuttle]{summarizeAssayByGroup}}.
 #' @param scale logical. Should pseudo-bulks be scaled
 #'   with the effective library size & multiplied by 1M?
 #' @param BPPARAM a \code{\link[BiocParallel]{BiocParallelParam}}
@@ -66,10 +67,10 @@
 #' @importFrom SummarizedExperiment colData colData<-
 #' @export
 
-aggregateData <- function(x,
-    assay = NULL, by = c("cluster_id", "sample_id"),
-    fun = c("sum", "mean", "median"), scale = FALSE, 
-    verbose = TRUE, BPPARAM = SerialParam(progressbar = verbose)) {
+aggregateData <- function(x, 
+    assay = NULL, by = c("cluster_id", "sample_id"), 
+    fun = c("sum", "mean", "median", "prop.detected", "num.detected"), 
+    scale = FALSE, verbose = TRUE, BPPARAM = SerialParam(progressbar = verbose)) {
     
     # check validity of input arguments
     fun <- match.arg(fun)
