@@ -25,7 +25,7 @@ Imports:
 	limma, lmerTest, lme4, 
 	Matrix, matrixStats, methods, 
 	progress, purrr, 
-	S4Vectors, scales, scater, sctransform, stats, 
+	S4Vectors, scales, scater, scuttle, sctransform, stats, 
 	SingleCellExperiment, SummarizedExperiment, 
 	variancePartition, viridis
 Suggests: 
