@@ -23,7 +23,7 @@ sce <- logNormCounts(computeLibraryFactors(sce))
 
 # run DS analysis using 'edgeR' on pseudobulks
 pb <- aggregateData(sce, assay = "counts", fun = "sum")
-res <- pbDS(pb, method = "edgeR", verbose = FALSE)
+res <- pbDS(pb, method = "edgeR", min_cells = 0, filter = "none", verbose = FALSE)
 
 # compute pseudobulk mean of logcounts
 pb <- aggregateData(sce, assay = "logcounts", fun = "mean")
