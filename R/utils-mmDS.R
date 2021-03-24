@@ -501,7 +501,7 @@
 .vst_sctransform <- function(x, verbose) {
     sctransform::vst(counts(x), 
         min_cells = 0, # assure that all genes are retained
-        show_progress = verbose)$y
+        verbosity = verbose)$y
 }
 # ------------------------------------------------------------------------------
 #' @importFrom DESeq2 varianceStabilizingTransformation
