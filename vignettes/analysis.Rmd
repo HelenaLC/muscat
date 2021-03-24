@@ -151,7 +151,7 @@ Alternatively, expression values could be obtained via `vst` (variance stabilizi
 
 ```{r vst, eval = FALSE}
 library(sctransform)
-assays(sce)$vstresiduals <- vst(counts(sce), show_progress = FALSE)$y
+assays(sce)$vstresiduals <- vst(counts(sce), verbosity = FALSE)$y
 ```
 
 By default, `r BiocStyle::Biocpkg("scater")`'s functions will try to access the assay data specified via argument `exprs_values` (default `logcounts`) for e.g. visualization and dimension reduction. When an alternative assay such as the `vstresiduals` above should be used, it is thus necessary to explicitly specify this, for example, via `runUMAP(sce, exprs_values = "vstresiduals")` to compute UMAP cell embedings on the assay data compute above.
