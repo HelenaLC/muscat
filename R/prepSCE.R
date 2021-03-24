@@ -69,17 +69,13 @@ prepSCE <- function(x,
         cd <- data.frame(cd,
             cd0[setdiff(colnames(cd0), ids)], 
             check.names = FALSE)
-        
-    # construct SCE
-    sce <- SingleCellExperiment(
-        assays = assays(x),
-        colData = DataFrame(cd),
-        rowData = rowData(x),
-        reducedDims = reducedDims(x))
-    
+
+    # replace colData in SCE
+    colData(x) <- DataFrame(cd)
+
     # construct metadata
-    ei <- .make_ei(sce)
-    metadata(sce)$experiment_info <- ei
+    ei <- .make_ei(x)
+    metadata(x)$experiment_info <- ei
     
-    return(sce)
+    return(x)
 }
