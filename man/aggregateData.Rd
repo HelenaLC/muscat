@@ -8,8 +8,10 @@ aggregateData(
   x,
   assay = NULL,
   by = c("cluster_id", "sample_id"),
-  fun = c("sum", "mean", "median"),
-  scale = FALSE
+  fun = c("sum", "mean", "median", "prop.detected", "num.detected"),
+  scale = FALSE,
+  verbose = TRUE,
+  BPPARAM = SerialParam(progressbar = verbose)
 )
 }
 \arguments{
@@ -22,10 +24,16 @@ input data. Defaults to the 1st available (\code{assayNames(x)[1]}).}
 \code{colData(x)} columns to summarize by (at most 2!).}
 
 \item{fun}{a character string.
-Specifies the function to use as summary statistic.}
+Specifies the function to use as summary statistic.
+Passed to \code{\link[scuttle]{summarizeAssayByGroup}}.}
 
 \item{scale}{logical. Should pseudo-bulks be scaled
 with the effective library size & multiplied by 1M?}
+
+\item{verbose}{logical. Should information on progress be reported?}
+
+\item{BPPARAM}{a \code{\link[BiocParallel]{BiocParallelParam}}
+object specifying how aggregation should be parallelized.}
 }
 \value{
 a \code{\link[SingleCellExperiment]{SingleCellExperiment}}.
@@ -39,7 +47,7 @@ a \code{\link[SingleCellExperiment]{SingleCellExperiment}}.
   
   Aggregation parameters (\code{assay, by, fun, scaled}) are stored in 
   \code{metadata()$agg_pars}, and the number of cells that were aggregated 
-  are accessible in \code{metadata()$n_cells}.
+  are accessible in \code{int_colData()$n_cells}.
 }
 \description{
 ...

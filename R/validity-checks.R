@@ -32,7 +32,7 @@
     stopifnot(is(pbs, "SingleCellExperiment"),
         !is.null(ei <- metadata(pbs)$experiment_info),
         !is.null(agg_pars <- metadata(pbs)$agg_pars),
-        !is.null(n_cells <- metadata(pbs)$n_cells),
+        !is.null(n_cells <- .n_cells(pbs)),
         identical(assayNames(pbs), rownames(n_cells)),
         identical(colnames(pbs), colnames(n_cells)))
     if (!is.null(sce)) {
@@ -165,7 +165,6 @@
         is.numeric(u$n_samples), length(u$n_samples) == 1, u$n_samples >= 2,
         is.numeric(u$min_count), length(u$min_count) == 1, u$min_count >= 0,
         is.numeric(u$min_cells), length(u$min_cells) == 1, u$min_cells >= 0,
-        is.numeric(u$n_threads), length(u$n_threads) == 1, u$n_threads >= 1,
         is.logical(u$verbose), length(u$verbose) == 1,
         is.logical(u$dup_corr), length(u$dup_corr) == 1,
         is.logical(u$trended), length(u$trended) == 1,

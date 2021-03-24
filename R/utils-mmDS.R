@@ -47,7 +47,7 @@
     coef = NULL, covs = NULL,
     dup_corr = FALSE, trended = FALSE,
     ddf = c("Satterthwaite", "Kenward-Roger"),
-    n_threads = 1, verbose = FALSE) {
+    verbose = FALSE, BPPARAM = SerialParam(progressbar = verbose)) {
 
     if (is.null(sizeFactors(x)))
         x <- computeLibraryFactors(x)
@@ -67,12 +67,6 @@
         v <- voom(y, mm, block = x$sample_id, correlation = dc$consensus)
     }
 
-    if (n_threads > 1) {
-        bp <- MulticoreParam(n_threads, progressbar = verbose)
-    } else {
-        bp <- SerialParam(progressbar = verbose)
-    }
-
     formula <- paste0(formula, "+(1|sample_id)")
     if (verbose) print(formula)
 
@@ -85,7 +79,7 @@
 
     contrast <- getContrast(v, as.formula(formula), cd, coef)
     .dream <- expression(dream(v, formula, cd, contrast, ddf, 
-        BPPARAM = bp, suppressWarnings = !verbose, quiet  = !verbose))
+        BPPARAM = BPPARAM, suppressWarnings = !verbose, quiet  = !verbose))
     if (verbose) fit <- eval(.dream) else suppressWarnings(fit <- eval(.dream))
     #fit <- eBayes(fit, trend = trended, robust = TRUE)
 
@@ -108,7 +102,7 @@
 #' @importFrom variancePartition dream voomWithDreamWeights
 .mm_dream2 <- function(x, coef = NULL, covs = NULL,
     ddf = c("Satterthwaite", "Kenward-Roger"),
-    n_threads = 1, verbose = FALSE) {
+    verbose = FALSE, BPPARAM =  SerialParam(progressbar = verbose)) {
 
     if (is.null(sizeFactors(x)))
         x <- computeLibraryFactors(x)
@@ -119,12 +113,6 @@
 
     cd <- .prep_cd(x, covs)
     formula <- paste0(c("~(1|sample_id)", covs, "group_id"), collapse = "+")
-
-    if (n_threads > 1) {
-        bp <- MulticoreParam(n_threads, progressbar = verbose)
-    } else {
-        bp <- SerialParam(progressbar = verbose)
-    }
 
     if (is.null(coef)) {
         coef <- paste0("group_id", last(levels(cd$group_id)))
@@ -137,9 +125,9 @@
     formula <- as.formula(formula)
     
     .dream <- expression(voomWithDreamWeights(y, 
-        formula, cd, BPPARAM = bp, quiet = !verbose))
+        formula, cd, BPPARAM = BPPARAM, quiet = !verbose))
     if (verbose) v <- eval(.dream) else suppressMessages(v <- eval(.dream))
-    res <- dream(v, formula, cd, BPPARAM = bp, ddf = ddf, 
+    res <- dream(v, formula, cd, BPPARAM = BPPARAM, ddf = ddf, 
         suppressWarnings = !verbose, quiet = !verbose)
     tbl <- topTable(res, coef = coef, Inf, sort.by = "none")
     rename(tbl, p_val = "P.Value", p_adj.loc = "adj.P.Val")
@@ -165,7 +153,7 @@
     coef = NULL, covs = NULL,
     bayesian = FALSE, blind = TRUE, REML = TRUE,
     ddf = c("Satterthwaite", "Kenward-Roger", "lme4"),
-    n_threads = 1, verbose = FALSE) {
+    verbose = FALSE, BPPARAM = SerialParam(progressbar = verbose)) {
 
     vst <- match.arg(vst)
     ddf <- match.arg(ddf)
@@ -188,7 +176,7 @@
     # fit mixed models for ea. gene
     fits <- bplapply(seq_len(nrow(y)), function(i)
         .fit_lmer(cbind(u = y[i, ], cd), formula, coef, bayesian, REML, ddf),
-        BPPARAM = MulticoreParam(n_threads)) %>%
+        BPPARAM = BPPARAM) %>%
         set_names(rownames(y))
 
     if (verbose) message("Applying empirical Bayes moderation..")
@@ -259,8 +247,9 @@
 #' @importFrom purrr set_names
 #' @importFrom SingleCellExperiment counts
 #' @importFrom SummarizedExperiment assay
-.mm_glmm <- function(x, coef = NULL, covs = NULL, n_threads = 1,
-    family = c("poisson","nbinom"), verbose = TRUE, moderate = FALSE) {
+.mm_glmm <- function(x, coef = NULL, covs = NULL, 
+    family = c("poisson","nbinom"), moderate = FALSE,
+    verbose = TRUE, BPPARAM = SerialParam(progressbar = verbose)) {
 
     family <- match.arg(family)
     cd <- .prep_cd(x, covs)
@@ -307,7 +296,7 @@
                         coef(summary(mod))[coef, ] })
             }, error=function(e) rep(NA_real_, 4))
         }
-    }, BPPARAM = MulticoreParam(n_threads, progressbar=verbose))
+    }, BPPARAM = BPPARAM)
 
     if (moderate){
         if (verbose) message("Applying empirical Bayes moderation..")
@@ -321,15 +310,19 @@
     fits[, c(seq_len(i), ncol(fits), seq_len(ncol(fits)-1)[-seq_len(i)])]
 }
 
-.mm_poisson <- function(x, coef = NULL, covs = NULL,
-    n_threads = 1, verbose = TRUE, moderate = FALSE)
-    .mm_glmm(x, coef, covs, n_threads, family = "poisson",
-        verbose = verbose, moderate = moderate)
+.mm_poisson <- function(x, 
+    coef = NULL, covs = NULL, moderate = FALSE,
+    verbose = TRUE, BPPARAM = SerialParam(progressbar = verbose))
+    .mm_glmm(x, coef = coef, covs = covs, 
+        family = "poisson", moderate = moderate,
+        verbose = verbose, BPPARAM = BPPARAM)
 
-.mm_nbinom <- function(x, coef = NULL, covs = NULL,
-    n_threads = 1, verbose = TRUE, moderate = FALSE)
-    .mm_glmm(x, coef, covs, n_threads, family = "nbinom",
-        verbose = verbose, moderate = moderate)
+.mm_nbinom <- function(x, 
+    coef = NULL, covs = NULL, moderate = FALSE,
+    verbose = TRUE, BPPARAM = SerialParam(progressbar = verbose))
+    .mm_glmm(x, coef = coef, covs = covs, 
+        family = "nbinom", moderate = moderate,
+        verbose = verbose, BPPARAM = BPPARAM)
 
 #' @importFrom BiocParallel bplapply MulticoreParam
 #' @importFrom blme bglmer
@@ -339,8 +332,9 @@
 #' @importFrom SingleCellExperiment counts sizeFactors
 #' @importFrom stats model.matrix
 #' @importFrom SummarizedExperiment colData
-.mm_hybrid <- function(x, coef = NULL, covs = NULL, n_threads = 1, 
-    verbose = TRUE, fam = c("nbinom","poisson"), th = 0.1) {
+.mm_hybrid <- function(x, 
+    coef = NULL, covs = NULL, fam = c("nbinom","poisson"), th = 0.1,
+    verbose = TRUE, BPPARAM = SerialParam(progressbar = verbose)) {
 
     fam <- match.arg(fam)
     x$cluster_id <- droplevels(x$cluster_id)
@@ -403,7 +397,7 @@
                     coef(summary(mod))[coef, ]
                 })
         }, error = function(e) rep(NA_real_, 4))
-    }, BPPARAM = MulticoreParam(n_threads, progressbar = verbose))
+    }, BPPARAM = BPPARAM)
 
     res$glmm.est <- res$p_val.glmm <- NA_real_
     res[gs, c("glmm.est", "p_val.glmm")] <- t(bind_rows(fits))[, c(1,4)]

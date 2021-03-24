@@ -30,7 +30,7 @@
 #' @return a \code{\link[SingleCellExperiment]{SingleCellExperiment}}.
 #' 
 #' @examples
-#' \dontrun{
+#' \donttest{
 #' # set random seed for cell sampling
 #' set.seed(2929)
 #' 

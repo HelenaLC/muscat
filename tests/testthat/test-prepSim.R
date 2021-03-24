@@ -18,3 +18,9 @@ test_that("prepSim()", {
     y <- prepSim(x, 0, 0, 0, 0, group_keep = g)
     expect_true(ncol(y) == sum(x$group_id == g))
 })
+
+test_that("non-factor ID columns work", {
+    y <- x; for (i in names(colData(y))) 
+        y[[i]] <- as.character(y[[i]])
+    expect_silent(prepSim(y, 0, 0, 0, 0, verbose = FALSE))
+})

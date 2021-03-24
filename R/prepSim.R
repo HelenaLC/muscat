@@ -84,6 +84,7 @@ prepSim <- function(x,
         is.logical(verbose), length(verbose) == 1)
     
     n_cells0 <- ncol(x)
+    x <- .update_sce(x)
     if (is.null(group_keep)) {
         if ("group_id" %in% colnames(colData(x))) {
             group_keep <- levels(x$group_id)[1]
@@ -100,7 +101,8 @@ prepSim <- function(x,
             group_keep %in% levels(x$group_id))
         cells_keep <- x$group_id %in% group_keep
     }
-    x <- .update_sce(x[, cells_keep])
+    x <- x[, cells_keep]
+    x <- .update_sce(x)
     
     # keep genes w/ count > `min_count` in at least `min_cells`;
     # keep cells w/ at least `min_genes` detected genes

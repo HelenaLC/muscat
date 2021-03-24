@@ -23,7 +23,7 @@ sce <- logNormCounts(computeLibraryFactors(sce))
 
 # run DS analysis using 'edgeR' on pseudobulks
 pb <- aggregateData(sce, assay = "counts", fun = "sum")
-res <- pbDS(pb, method = "edgeR", verbose = FALSE)
+res <- pbDS(pb, method = "edgeR", min_cells = 0, filter = "none", verbose = FALSE)
 
 # compute pseudobulk mean of logcounts
 pb <- aggregateData(sce, assay = "logcounts", fun = "mean")
@@ -61,7 +61,7 @@ test_that("pbHeatmap() - subset of clusters", {
     expect_identical(colnames(y), sids)
     for (i in seq_len(nks)) {
         k <- kids[match(ks, kids)][i]
-        expect_identical(y[seq_len(nds)+nds*(i-1), ], assay(pb, k)[gs, ])
+        expect_equal(y[seq_len(nds)+nds*(i-1), ], assay(pb, k)[gs, ])
     }
 })
 

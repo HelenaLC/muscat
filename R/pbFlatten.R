@@ -48,9 +48,9 @@ pbFlatten <- function(pb, normalize = TRUE){
         rowData = rowData(pb),
         metadata = metadata(pb))
     # (optionally) add number of cells per cluster-sample
-    if (!is.null(metadata(pb)$n_cells)) {
+    if (!is.null(n_cells <- .n_cells(pb))) {
         n_cells <- tryCatch(mapply(
-            function(k, s) metadata(pb)$n_cells[k, s],
+            function(k, s) n_cells[k, s],
             k = as.character(kids), s = as.character(sids)),
             error = function(e) {warning(e); NULL})
         if (!is.null(n_cells)) 

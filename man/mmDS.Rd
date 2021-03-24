@@ -17,8 +17,8 @@ mmDS(
   n_samples = 2,
   min_count = 1,
   min_cells = 20,
-  n_threads = 1,
   verbose = TRUE,
+  BPPARAM = SerialParam(progressbar = verbose),
   vst = c("sctransform", "DESeq2"),
   ddf = c("Satterthwaite", "Kenward-Roger", "lme4"),
   dup_corr = FALSE,
@@ -36,8 +36,8 @@ mmDS(
   dup_corr = FALSE,
   trended = FALSE,
   ddf = c("Satterthwaite", "Kenward-Roger"),
-  n_threads = 1,
-  verbose = FALSE
+  verbose = FALSE,
+  BPPARAM = SerialParam(progressbar = verbose)
 )
 
 .mm_dream2(
@@ -45,8 +45,8 @@ mmDS(
   coef = NULL,
   covs = NULL,
   ddf = c("Satterthwaite", "Kenward-Roger"),
-  n_threads = 1,
-  verbose = FALSE
+  verbose = FALSE,
+  BPPARAM = SerialParam(progressbar = verbose)
 )
 
 .mm_vst(
@@ -58,18 +58,18 @@ mmDS(
   blind = TRUE,
   REML = TRUE,
   ddf = c("Satterthwaite", "Kenward-Roger", "lme4"),
-  n_threads = 1,
-  verbose = FALSE
+  verbose = FALSE,
+  BPPARAM = SerialParam(progressbar = verbose)
 )
 
 .mm_glmm(
   x,
   coef = NULL,
   covs = NULL,
-  n_threads = 1,
   family = c("poisson", "nbinom"),
+  moderate = FALSE,
   verbose = TRUE,
-  moderate = FALSE
+  BPPARAM = SerialParam(progressbar = verbose)
 )
 }
 \arguments{
@@ -102,10 +102,11 @@ at least \code{min_cells} must have a count >= \code{min_count}.}
 \item{min_cells}{number (or fraction, if < 1) of cells with a count >
 \code{min_count} required for a gene to be tested in a given cluster.}
 
-\item{n_threads}{number of threads to use.}
-
 \item{verbose}{logical specifying whether messages
 on progress and a progress bar should be displayed.}
+
+\item{BPPARAM}{a \code{\link[BiocParallel]{BiocParallelParam}}
+object specifying how differential testing should be parallelized.}
 
 \item{vst}{method to use as variance-stabilizing transformations.
 \code{"sctransform"} for \code{\link[sctransform]{vst}}; \code{"DESeq2"}
@@ -184,8 +185,7 @@ sce$cluster_id <- droplevels(sce$cluster_id)
 gs <- sample(nrow(sce), 100)
 sce <- sce[gs, ]
 
-res <- mmDS(sce, method = "dream",
-    n_threads = 2, verbose = FALSE)
+res <- mmDS(sce, method = "dream", verbose = FALSE)
 head(res$`B cells`)
 
 }

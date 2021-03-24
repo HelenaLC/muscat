@@ -10,8 +10,12 @@
 #'   \code{colData(x)} columns to summarize by (at most 2!).
 #' @param fun a character string.
 #'   Specifies the function to use as summary statistic.
+#'   Passed to \code{\link[scuttle]{summarizeAssayByGroup}}.
 #' @param scale logical. Should pseudo-bulks be scaled
 #'   with the effective library size & multiplied by 1M?
+#' @param BPPARAM a \code{\link[BiocParallel]{BiocParallelParam}}
+#'   object specifying how aggregation should be parallelized.
+#' @param verbose logical. Should information on progress be reported?
 #' 
 #' @return a \code{\link[SingleCellExperiment]{SingleCellExperiment}}.
 #' \itemize{
@@ -24,7 +28,7 @@
 #'   
 #'   Aggregation parameters (\code{assay, by, fun, scaled}) are stored in 
 #'   \code{metadata()$agg_pars}, and the number of cells that were aggregated 
-#'   are accessible in \code{metadata()$n_cells}.
+#'   are accessible in \code{int_colData()$n_cells}.
 #' 
 #' @examples 
 #' data(sce)
@@ -56,16 +60,17 @@
 #' \emph{bioRxiv} \strong{713412} (2018). 
 #' doi: \url{https://doi.org/10.1101/713412}
 #' 
-#' @importFrom Matrix colSums rowSums rowMeans
-#' @importFrom matrixStats rowMedians
+#' @importFrom Matrix colSums
+#' @importFrom purrr map
 #' @importFrom S4Vectors DataFrame metadata
-#' @importFrom SingleCellExperiment SingleCellExperiment
+#' @importFrom SingleCellExperiment SingleCellExperiment int_colData<-
 #' @importFrom SummarizedExperiment colData colData<-
 #' @export
 
-aggregateData <- function(x,
-    assay = NULL, by = c("cluster_id", "sample_id"),
-    fun = c("sum", "mean", "median"), scale = FALSE) {
+aggregateData <- function(x, 
+    assay = NULL, by = c("cluster_id", "sample_id"), 
+    fun = c("sum", "mean", "median", "prop.detected", "num.detected"), 
+    scale = FALSE, verbose = TRUE, BPPARAM = SerialParam(progressbar = verbose)) {
     
     # check validity of input arguments
     fun <- match.arg(fun)
@@ -73,22 +78,7 @@ aggregateData <- function(x,
         assay <- assayNames(x)[1] 
     .check_arg_assay(x, assay)
     .check_args_aggData(as.list(environment()))
-    
-    # store aggregation parameters &
-    # nb. of cells that went into aggregation
-    md <- metadata(x)
-    md$agg_pars <- list(assay = assay, by = by, fun = fun, scale = scale)
-    
-    # get aggregation function
-    fun <- switch(fun,
-        sum = "rowSums",
-        mean = "rowMeans",
-        median = "rowMedians")
-    
-    # drop missing factor levels & tabulate number of cells
-    cd <- mutate_if(as.data.frame(colData(x)), is.factor, droplevels)
-    colData(x) <- DataFrame(cd, row.names = colnames(x),check.names = FALSE)
-    md$n_cells <- table(as.data.frame(colData(x)[, by]))
+    stopifnot(is(BPPARAM, "BiocParallelParam"))
     
     # assure 'by' colData columns are factors
     # so that missing combinations aren't dropped
@@ -96,17 +86,34 @@ aggregateData <- function(x,
         if (!is.factor(x[[i]])) 
             x[[i]] <- factor(x[[i]])
     
-    # split cells & compute pseudo-bulks
-    cs <- .split_cells(x, by)
-    pb <- .pb(x, cs, assay, fun)
+    # compute pseudo-bulks
+    pb <- .pb(x, by, assay, fun, BPPARAM)
     if (scale & length(by) == 2) {
-        ls <- lapply(.pb(x, cs, "counts", "rowSums"), colSums)
+        # compute library sizes
+        cs <- if (assay == "counts" && fun == "sum")
+            pb else .pb(x, by, "counts", "sum", BPPARAM)
+        ls <- lapply(cs, colSums)
+        # scale pseudobulks by CPM
         pb <- lapply(seq_along(pb), function(i) pb[[i]] / 1e6 * ls[[i]])
         names(pb) <- names(ls)
     }
     
     # construct SCE
+    md <- metadata(x)
+    md$agg_pars <- list(assay = assay, by = by, fun = fun, scale = scale)
     pb <- SingleCellExperiment(pb, metadata = md)
+    
+    # tabulate number of cells
+    cd <- data.frame(colData(x)[, by])
+    for (i in names(cd))
+        if (is.factor(cd[[i]]))
+            cd[[i]] <- droplevels(cd[[i]])
+    ns <- table(cd)
+    if (length(by) == 2) {
+        ns <- asplit(ns, 2)
+        ns <- map(ns, ~c(unclass(.)))
+    } else ns <- c(unclass(ns))
+    int_colData(pb)$n_cells <- ns
     
     # propagate 'colData' columns that are unique across 2nd 'by'
     if (length(by) == 2) {

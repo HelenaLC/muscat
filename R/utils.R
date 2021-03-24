@@ -25,10 +25,15 @@
     return(m)
 }
 
+#' @importFrom dplyr mutate_if 
+#' @importFrom purrr negate
+#' @importFrom S4Vectors DataFrame metadata metadata<-
+#' @importFrom SummarizedExperiment colData colData<-
 .update_sce <- function(sce) {
     # update colData
     cd <- as.data.frame(colData(sce))
     cd <- mutate_if(cd, is.factor, droplevels) 
+    cd <- mutate_if(cd, negate(is.factor), factor) 
     colData(sce) <- DataFrame(cd, row.names = colnames(sce))
     # update metadata
     if(!is.null(ei <- metadata(sce)$experiment_info)){
@@ -161,9 +166,9 @@
 # toy SCE for unit-testing
 # ------------------------------------------------------------------------------
 #' @importFrom SingleCellExperiment SingleCellExperiment
-.toySCE <- function() {
-    gs <- paste0("gene", seq_len(ngs <- 300))
-    cs <- paste0("cell", seq_len(ncs <- 2e3))
+.toySCE <- function(dim = c(200, 800)) {
+    gs <- paste0("gene", seq_len(ngs <- dim[1]))
+    cs <- paste0("cell", seq_len(ncs <- dim[2]))
 
     y <- rnbinom(ngs * ncs, size = 2, mu = 4)
     y <- matrix(y, ngs, ncs, TRUE, list(gs, cs))

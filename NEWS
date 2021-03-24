@@ -1,0 +1,22 @@
+Changes in version 1.1.1
+
+o significant speed-up of aggregateData() by replacing usage
+  of rowX() over a list with scuttle::summarizeAssayByGroup()
+  
+o added options use "prop.detected" and "num.detected" 
+  as summary statistic (argument 'fun') in aggregateData()
+
+o added parallelization support in aggregateData() and pbDS() through argument BBPARAM
+  (passed to scater::sumCountsAcrossCells() and BiocParallel::bplapply, respectively)
+
+o aggregateData() now stores the number of cells that went into aggregation under
+  int_colData(.)$n_cells (vs. metadata(.)$n_cells) to support automated subsetting
+  
+o replaced argument n_threads with BPPARAM throughout all 
+  parallelizable functions (aggregateData(), pbDS(), mmDS())
+  
+o bug fix in prepSim(): the function previously failed when 
+  cluster/sample/group_id cell metadata columns were non-factors
+  
+o bug fix in resDS(): cpm = TRUE previously didn't handle
+  missing cluster-sample combinations correctly
