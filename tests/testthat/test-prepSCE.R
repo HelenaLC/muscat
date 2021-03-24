@@ -21,4 +21,5 @@ test_that("prepSCE()", {
     expect_true(is.null(y$foo))
     y <- prepSCE(x, drop = FALSE)
     expect_identical(y$foo, x$foo)
+    expect_false(is.null(metadata(y)$experiment_info))
 })
