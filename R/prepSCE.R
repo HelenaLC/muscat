@@ -3,7 +3,7 @@
 #' 
 #' @description ...
 #' 
-#' @param x a \code{\link[SingleCellExperiment]{SingleCellExperiment}}.
+#' @param x a \linkS4class{SingleCellExperiment}.
 #' @param kid,sid,gid character strings specifying
 #'   the \code{colData(x)} columns containing cluster assignments,
 #'   unique sample identifiers, and group IDs (e.g., treatment).
@@ -16,28 +16,28 @@
 #' # generate random counts
 #' ng <- 50
 #' nc <- 200
-#' counts <- matrix(sample(ng * nc), nrow = ng, ncol = nc)
 #'     
 #' # generate some cell metadata
 #' gids <- sample(c("groupA", "groupB"), nc, TRUE)   
 #' sids <- sample(paste0("sample", seq_len(3)), nc, TRUE) 
 #' kids <- sample(paste0("cluster", seq_len(5)), nc, TRUE) 
 #' batch <- sample(seq_len(3), nc, TRUE)
+#' cd <- data.frame(group = gids, id = sids, cluster = kids, batch)
 #' 
 #' # construct SCE
-#' library(SingleCellExperiment)
-#' sce <- SingleCellExperiment(
-#'   assays = list(counts = counts),
-#'   colData = data.frame(group = gids, id = sids, cluster = kids, batch))
-#'     
+#' library(scuttle)
+#' sce <- mockSCE(ncells = nc, ngenes = ng)
+#' colData(sce) <- cbind(colData(sce), cd)
+#' 
 #' # prep. for workflow
 #' sce <- prepSCE(sce, kid = "cluster", sid = "id", gid = "group")
 #' head(colData(sce))
 #' metadata(sce)$experiment_info
+#' sce
 #' 
 #' @author Helena L Crowell
 #' 
-#' @return a \code{\link[SingleCellExperiment]{SingleCellExperiment}}.
+#' @return a \linkS4class{SingleCellExperiment}.
 #' 
 #' @importFrom dplyr mutate_all
 #' @importFrom S4Vectors DataFrame metadata<-
@@ -69,17 +69,13 @@ prepSCE <- function(x,
         cd <- data.frame(cd,
             cd0[setdiff(colnames(cd0), ids)], 
             check.names = FALSE)
-        
-    # construct SCE
-    sce <- SingleCellExperiment(
-        assays = assays(x),
-        colData = DataFrame(cd),
-        rowData = rowData(x),
-        reducedDims = reducedDims(x))
-    
+
+    # replace colData in SCE
+    colData(x) <- DataFrame(cd)
+
     # construct metadata
-    ei <- .make_ei(sce)
-    metadata(sce)$experiment_info <- ei
+    ei <- .make_ei(x)
+    metadata(x)$experiment_info <- ei
     
-    return(sce)
+    return(x)
 }

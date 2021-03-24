@@ -13,7 +13,7 @@ prepSCE(
 )
 }
 \arguments{
-\item{x}{a \code{\link[SingleCellExperiment]{SingleCellExperiment}}.}
+\item{x}{a \linkS4class{SingleCellExperiment}.}
 
 \item{kid, sid, gid}{character strings specifying
 the \code{colData(x)} columns containing cluster assignments,
@@ -25,7 +25,7 @@ should be retained (default \code{drop = FALSE})
 or removed (\code{drop = TRUE}).}
 }
 \value{
-a \code{\link[SingleCellExperiment]{SingleCellExperiment}}.
+a \linkS4class{SingleCellExperiment}.
 }
 \description{
 ...
@@ -34,24 +34,24 @@ a \code{\link[SingleCellExperiment]{SingleCellExperiment}}.
 # generate random counts
 ng <- 50
 nc <- 200
-counts <- matrix(sample(ng * nc), nrow = ng, ncol = nc)
     
 # generate some cell metadata
 gids <- sample(c("groupA", "groupB"), nc, TRUE)   
 sids <- sample(paste0("sample", seq_len(3)), nc, TRUE) 
 kids <- sample(paste0("cluster", seq_len(5)), nc, TRUE) 
 batch <- sample(seq_len(3), nc, TRUE)
+cd <- data.frame(group = gids, id = sids, cluster = kids, batch)
 
 # construct SCE
-library(SingleCellExperiment)
-sce <- SingleCellExperiment(
-  assays = list(counts = counts),
-  colData = data.frame(group = gids, id = sids, cluster = kids, batch))
-    
+library(scuttle)
+sce <- mockSCE(ncells = nc, ngenes = ng)
+colData(sce) <- cbind(colData(sce), cd)
+
 # prep. for workflow
 sce <- prepSCE(sce, kid = "cluster", sid = "id", gid = "group")
 head(colData(sce))
 metadata(sce)$experiment_info
+sce
 
 }
 \author{
