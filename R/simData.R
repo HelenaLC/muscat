@@ -299,6 +299,7 @@ simData <- function(x,
         bs$cluster_id <- cbind(0, bs$cluster_id)
         names(bs$cluster_id) <- kids0
     }
+    os <- x$offset
     b0 <- bs$beta0
     ds <- rowData(x)$disp
     
@@ -337,8 +338,8 @@ simData <- function(x,
                 ds_kc <- ds[gs0]
                 lfc_kc <- lfc[[c, k]]
                 bs_ksc <- exp(rowSums(bs_ks[gs0, , drop = FALSE]))
-                ms_g1 <- outer(bs_ksc, exp(x$offset[cs_g1]), "*")
-                ms_g2 <- outer(bs_ksc, exp(x$offset[cs_g2]), "*")
+                ms_g1 <- outer(bs_ksc, exp(os[cs_g1]), "*")
+                ms_g2 <- outer(bs_ksc, exp(os[cs_g2]), "*")
                 
                 re <- .sim(c, cs_g1, cs_g2, ms_g1, ms_g2, ds_kc, lfc_kc, p_ep, p_dp, p_dm)
                 y[gi, unlist(ci)] <- re$cs

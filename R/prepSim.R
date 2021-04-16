@@ -149,6 +149,9 @@ prepSim <- function(x,
         x <- .filter_sce(x, rownames(n_cells), colnames(n_cells))
     }
     
+    if (is.null(rownames(x))) rownames(x) <- paste0("gene", seq(nrow(x)))
+    if (is.null(colnames(x))) colnames(x) <- paste0("cell", seq(ncol(x)))
+    
     # construct model formula
     f <- "~ 1"
     for (v in vars)
