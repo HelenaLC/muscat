@@ -92,6 +92,31 @@
 }
 
 .check_args_simData <- function(u) {
+    stopifnot(is.logical(u$dd), length(u$dd) == 1)
+    if (!is.null(u$ns)) {
+        stopifnot(
+            is.numeric(u$ns), length(u$ns) %in% c(1, 2), 
+            u$ns > 0, as.integer(u$ns) == u$ns)
+        if (!u$force && 2*sum(u$dd)*u$ns > nlevels(u$x$sample_id))
+            stop("Simulating more samples than will lead to",
+                " duplicates and can reduce within-group variability;",
+                " please specify 'force = TRUE' to force simulation.")
+        
+    } else {
+        ns <- nlevels(u$x$sample_id)
+        u$ns <- if (u$dd) floor(ns/2) else ns
+        if (u$ns == 0) 
+            if (!u$paired) {
+                stop("Cannot simulate 2 groups from one reference sample;",
+                    " please set 'paired = TRUE' or 'dd = FALSE'.")
+            } else u$ns <- 1
+    }
+    if (!is.null(u$nk)) {
+        stopifnot(
+            is.numeric(u$nk), length(u$nk) == 1, 
+            u$nk > 0, as.integer(u$nk) == u$nk)
+    } else u$nk <- nlevels(u$x$cluster_id)
+    
     if (!u$force && u$ng != nrow(u$x))
         stop("Number of simulated genes should match with reference,\n", 
             "  but 'ng != nrow(x)'; please specify 'force = TRUE' if\n", 
@@ -113,8 +138,6 @@
     }
     stopifnot(
         is.numeric(u$nc), length(u$nc) == 1, u$nc > 0, as.integer(u$nc) == u$nc,
-        is.numeric(u$nk), length(u$nk) == 1, u$nk > 0, as.integer(u$nk) == u$nk,
-        is.numeric(u$ns), length(u$ns) %in% c(1, 2), u$ns > 0, as.integer(u$ns) == u$ns,
         is.numeric(u$p_dd), length(u$p_dd) == 6, sum(u$p_dd) == 1, u$p_dd >= 0, u$p_dd <= 1,
         is.logical(u$paired), length(u$paired) == 1,
         is.numeric(u$p_ep), length(u$p_ep) == 1, u$p_ep > 0, u$p_ep < 1,
@@ -128,7 +151,7 @@
     if (!is.null(u$rel_lfc))
         stopifnot(is.numeric(u$rel_lfc), 
             length(u$rel_lfc) == u$nk, u$rel_lfc >= 0)
-    return(list(nk = u$nk))
+    return(list(nk = u$nk, ns = u$ns))
 }
 
 #' @importFrom SummarizedExperiment colData

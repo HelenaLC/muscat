@@ -67,9 +67,11 @@
 #' 
 #' @importFrom edgeR DGEList estimateDisp glmFit
 #' @importFrom Matrix colSums rowSums
+#' @importFrom matrixStats rowAnyNAs
 #' @importFrom SingleCellExperiment SingleCellExperiment counts
 #' @importFrom SummarizedExperiment colData rowData<-
 #' @importFrom stats model.matrix
+#' @importFrom S4Vectors DataFrame
 #' @export
 
 prepSim <- function(x, 
@@ -82,6 +84,25 @@ prepSim <- function(x,
         is.numeric(min_cells), is.numeric(min_genes), 
         is.null(min_size) || is.numeric(min_size),
         is.logical(verbose), length(verbose) == 1)
+    
+    # get model variables
+    vars <- c("sample_id", "cluster_id")
+    names(vars) <- vars <- intersect(vars, names(colData(x)))
+    
+    # assure these are factors
+    for (v in vars) {
+        # drop singular variables
+        n <- length(unique(x[[v]]))
+        if (n == 1) {
+            x[[v]] <- NULL
+            rmv <- grep(v, vars)
+            vars <- vars[-rmv]
+            next
+        }
+        if (!is.factor(x[[v]]))
+            x[[v]] <- as.factor(x[[v]])
+        x[[v]] <- droplevels(x[[v]])
+    }
     
     n_cells0 <- ncol(x)
     x <- .update_sce(x)
@@ -128,20 +149,46 @@ prepSim <- function(x,
         x <- .filter_sce(x, rownames(n_cells), colnames(n_cells))
     }
     
-    # estimate gene/cell parameters 
+    # construct model formula
+    f <- "~ 1"
+    for (v in vars)
+        f <- paste(f, v, sep = "+")
+    cd <- as.data.frame(droplevels(colData(x)))
+    mm <- model.matrix(as.formula(f), data = cd)
+    
+    # fit NB model
     if (verbose) 
         message("Estimating gene and cell parameters...")
     y <- DGEList(counts(x))
-    mm <- model.matrix(~ 0 + x$sample_id)
+    y <- calcNormFactors(y)
     y <- estimateDisp(y, mm)
     y <- glmFit(y, prior.count = 0)
     
-    # update row- & colData
-    x$offset <- c(y$offset)
-    rowData(x)$dispersion <- y$dispersion
-    betas <- paste0("beta.", levels(x$sample_id))
-    colnames(y$coefficients) <- betas
-    rowData(x)[, betas] <- y$coefficients
+    # drop genes for which estimation failed
+    cs <- y$coefficients
+    x <- x[!rowAnyNAs(cs), ]
+    
+    # group betas by variable
+    bs <- DataFrame(
+        beta0 = cs[, 1],
+        row.names = rownames(x))
+    for (v in vars) {
+        pat <- paste0("^", v)
+        i <- grep(pat, colnames(cs))
+        df <- DataFrame(cs[, i])
+        nms <- colnames(cs)[i]
+        names(df) <- gsub(pat, "", nms)
+        bs[[v]] <- df
+    }
+    rowData(x)$beta <- bs
+    
+    # store dispersions in row- & offsets in colData
+    ds <- y$dispersion
+    names(ds) <- rownames(x)
+    rowData(x)$disp <- ds
+    os <- c(y$offset)
+    names(os) <- colnames(x)
+    x$offset <- os
     
     # return SCE
     return(x)
