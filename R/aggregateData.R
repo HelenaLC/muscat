@@ -106,7 +106,9 @@ aggregateData <- function(x,
     }
     
     # construct SCE
-    pb <- SingleCellExperiment(pb, metadata = md)
+    pb <- SingleCellExperiment(pb, 
+        rowData = rowData(x),
+        metadata = md)
     
     # propagate 'colData' columns that are unique across 2nd 'by'
     if (length(by) == 2) {
