@@ -7,6 +7,8 @@
 #' 
 #' @param x a \code{\link[SingleCellExperiment]{SingleCellExperiment}}.
 #' @param nc,ns,nk # of cells, samples and clusters to simulate. 
+#'   By default, \code{ns = NULL} will simulated as many samples as 
+#'   available in the reference to avoid duplicated reference samples.
 #' @param probs a list of length 3 containing probabilities of a cell belonging
 #'   to each cluster, sample, and group, respectively. List elements must be 
 #'   NULL (equal probabilities) or numeric values in [0, 1] that sum to 1.
@@ -157,12 +159,14 @@
 #' @importFrom S4Vectors split unfactor
 #' @export
 
-simData <- function(x, nc = 2e3, ns = 3, nk = 3,
-    probs = NULL, p_dd = diag(6)[1, ], paired = FALSE,
+simData <- function(x, 
+    ng = nrow(x), nc = ncol(x), 
+    ns = NULL, nk = NULL, probs = NULL, 
+    dd = TRUE, p_dd = diag(6)[1, ], paired = FALSE,
     p_ep = 0.5, p_dp = 0.3, p_dm = 0.5,
     p_type = 0, lfc = 2, rel_lfc = NULL, 
     phylo_tree = NULL, phylo_pars = c(ifelse(is.null(phylo_tree), 0, 0.1), 3),
-    ng = nrow(x), force = FALSE) {
+    force = FALSE) {
     
     # throughout this code...
     # k: cluster ID
@@ -171,6 +175,16 @@ simData <- function(x, nc = 2e3, ns = 3, nk = 3,
     # c: DD category
     # 0: reference
     
+    # add mock cluster/sample ID if missing
+    if (is.null(x$cluster_id)) {
+        x$cluster_id <- factor("foo")
+        no_k <- TRUE
+    } else no_k <- FALSE
+    if (is.null(x$sample_id)) {
+        x$sample_id <- factor("foo")
+        no_s <- TRUE
+    } else no_s <- FALSE
+    
     # store all input arguments to be returned in final output
     args <- c(as.list(environment()))
     
@@ -178,6 +192,7 @@ simData <- function(x, nc = 2e3, ns = 3, nk = 3,
     .check_sce(x, req_group = FALSE)
     args_tmp <- .check_args_simData(as.list(environment()))
     nk <- args$nk <- args_tmp$nk
+    ns <- args$ns <- args_tmp$ns
     
     # reference IDs
     nk0 <- length(kids0 <- set_names(levels(x$cluster_id)))
@@ -190,17 +205,18 @@ simData <- function(x, nc = 2e3, ns = 3, nk = 3,
     
     # sample reference clusters & samples
     ref_kids <- setNames(sample(kids0, nk, nk > nk0), kids)
-    if (paired) { 
+    if (!dd || paired) {
         # use same set of reference samples for both groups
         ref_sids <- sample(sids0, ns, ns > ns0)
-        ref_sids <- replicate(length(gids), ref_sids)
+        ref_sids <- cbind(ref_sids, ref_sids)
     } else {
         # draw reference samples at random for each group
-        ref_sids <- replicate(length(gids), 
-            sample(sids0, ns, ns > ns0))
+        sidsA <- sample(sids0, ns, ns > ns0)
+        sidsB <- sample(setdiff(sids0, sidsA), ns, ns > ns0)
+        ref_sids <- cbind(sidsA, sidsB)
     }
     dimnames(ref_sids) <- list(sids, gids)
-    
+
     if (is.null(rel_lfc)) 
         rel_lfc <- rep(1, nk)
     if (is.null(names(rel_lfc))) {
@@ -274,14 +290,17 @@ simData <- function(x, nc = 2e3, ns = 3, nk = 3,
         }), vector("list", length(cats)))
 
     # compute NB parameters
-    m <- lapply(sids0, function(s) {
-        b <- paste0("beta.", s)
-        b <- exp(rowData(x)[[b]])
-        m <- outer(b, exp(x$offset), "*")
-        dimnames(m) <- dimnames(x); m
-    })
-    d <- rowData(x)$dispersion 
-    names(d) <- rownames(x)
+    bs <- rowData(x)$beta
+    if (!is.null(bs$sample_id)) {
+        bs$sample_id <- cbind(0, bs$sample_id)
+        names(bs$sample_id) <- sids0
+    }
+    if (!is.null(bs$cluster_id)) {
+        bs$cluster_id <- cbind(0, bs$cluster_id)
+        names(bs$cluster_id) <- kids0
+    }
+    b0 <- bs$beta0
+    ds <- rowData(x)$disp
     
     # initialize list of depth two to store 
     # simulation means in each cluster & group
@@ -292,13 +311,18 @@ simData <- function(x, nc = 2e3, ns = 3, nk = 3,
     # run simulation -----------------------------------------------------------
     for (k in kids) {
         for (s in sids) {
+            # get output cell indices
+            ci <- cs_idx[[k]][[s]]
+            
             # get reference samples, clusters & cells
             s0 <- ref_sids[s, ]
             k0 <- ref_kids[k]
             cs0 <- cs_by_ks[[k0]][s0]
             
-            # get output cell indices
-            ci <- cs_idx[[k]][[s]]
+            # get NB parameters
+            bs_ks <- cbind(b0,
+                bs$cluster_id[[k0]],
+                bs$sample_id[[s0[1]]])
             
             for (c in cats[n_dd[, k] != 0]) {
                 # sample cells to simulate from
@@ -310,12 +334,13 @@ simData <- function(x, nc = 2e3, ns = 3, nk = 3,
                 gi <- gs_idx[[c, k]]
                 
                 # get NB parameters
-                m_g1 <- m[[s0[[1]]]][gs0, cs_g1, drop = FALSE]
-                m_g2 <- m[[s0[[2]]]][gs0, cs_g2, drop = FALSE]
-                d_kc <- d[gs0]
+                ds_kc <- ds[gs0]
                 lfc_kc <- lfc[[c, k]]
+                bs_ksc <- exp(rowSums(bs_ks[gs0, , drop = FALSE]))
+                ms_g1 <- outer(bs_ksc, exp(x$offset[cs_g1]), "*")
+                ms_g2 <- outer(bs_ksc, exp(x$offset[cs_g2]), "*")
                 
-                re <- .sim(c, cs_g1, cs_g2, m_g1, m_g2, d_kc, lfc_kc, p_ep, p_dp, p_dm)
+                re <- .sim(c, cs_g1, cs_g2, ms_g1, ms_g2, ds_kc, lfc_kc, p_ep, p_dp, p_dm)
                 y[gi, unlist(ci)] <- re$cs
                 
                 for (g in gids) sim_mean[[k]][[g]][gi] <- ifelse(
@@ -331,7 +356,7 @@ simData <- function(x, nc = 2e3, ns = 3, nk = 3,
         category = rep.int(rep(cats, nk), c(n_dd)),
         logFC = unlist(lfc),
         sim_gene = unlist(gs_by_kc),
-        sim_disp = d[unlist(gs_by_kc)]) %>% 
+        sim_disp = ds[unlist(gs_by_kc)]) %>% 
         mutate_at("gene", as.character)
     # add true simulation means
     sim_mean <- sim_mean %>%
@@ -348,14 +373,22 @@ simData <- function(x, nc = 2e3, ns = 3, nk = 3,
     # construct SCE ------------------------------------------------------------
     # cell metadata including group, sample, cluster IDs
     cd$group_id <- droplevels(cd$group_id)
-    cd$sample_id <- factor(paste(cd$sample_id, cd$group_id, sep = "."))
+    cd$sample_id <- if (dd) {
+        factor(paste(cd$sample_id, cd$group_id, sep = "."))
+    } else factor(cd$sample_id)
     m <- match(levels(cd$sample_id), cd$sample_id)
     gids <- cd$group_id[m]
     o <- order(gids)
     sids <- levels(cd$sample_id)[o]
     cd <- cd %>% 
-        mutate_at("cluster_id", factor, levels = kids) %>% 
-        mutate_at("sample_id", factor, levels = sids) 
+        mutate_at("sample_id", factor, levels = sids) %>% 
+        mutate_at("cluster_id", factor, levels = kids)
+    if (!dd) {
+        cd$group_id <- NULL
+        ref_sids <- ref_sids[, 1]
+    }
+    if (no_s) cd$sample_id <- NULL
+    if (no_k) cd$cluster_id <- NULL
     # gene metadata storing gene classes & specificities
     rd <- DataFrame(class = factor(class, 
         levels = c("state", "shared", "type")))

@@ -101,7 +101,7 @@ aggregateData <- function(x,
     # construct SCE
     md <- metadata(x)
     md$agg_pars <- list(assay = assay, by = by, fun = fun, scale = scale)
-    pb <- SingleCellExperiment(pb, metadata = md)
+    pb <- SingleCellExperiment(pb, rowData = rowData(x), metadata = md)
     
     # tabulate number of cells
     cd <- data.frame(colData(x)[, by])

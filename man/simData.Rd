@@ -6,9 +6,10 @@
 \usage{
 simData(
   x,
-  nc = 2000,
-  ns = 3,
-  nk = 3,
+  ng = nrow(x),
+  nc = ncol(x),
+  ns = NULL,
+  nk = NULL,
   probs = NULL,
   p_dd = diag(6)[1, ],
   paired = FALSE,
@@ -20,14 +21,21 @@ simData(
   rel_lfc = NULL,
   phylo_tree = NULL,
   phylo_pars = c(ifelse(is.null(phylo_tree), 0, 0.1), 3),
-  ng = nrow(x),
   force = FALSE
 )
 }
 \arguments{
 \item{x}{a \code{\link[SingleCellExperiment]{SingleCellExperiment}}.}
 
-\item{nc, ns, nk}{# of cells, samples and clusters to simulate.}
+\item{ng}{# of genes to simulate. Importantly, for the library sizes 
+computed by \code{\link{prepSim}} (= \code{exp(x$offset)}) to make sense, 
+the number of simulated genes should match with the number of genes 
+in the reference. To simulate a reduced number of genes, e.g. for 
+testing and development purposes, please set \code{force = TRUE}.}
+
+\item{nc, ns, nk}{# of cells, samples and clusters to simulate. 
+By default, \code{ns = NULL} will simulated as many samples as 
+available in the reference to avoid duplicated reference samples.}
 
 \item{probs}{a list of length 3 containing probabilities of a cell belonging
 to each cluster, sample, and group, respectively. List elements must be 
@@ -67,12 +75,6 @@ of the branches lengths separating them.}
 
 \item{phylo_pars}{vector of length 2 providing the parameters that control 
 the number of type genes. Passed to an exponential PDF (see details).}
-
-\item{ng}{# of genes to simulate. Importantly, for the library sizes 
-computed by \code{\link{prepSim}} (= \code{exp(x$offset)}) to make sense, 
-the number of simulated genes should match with the number of genes 
-in the reference. To simulate a reduced number of genes, e.g. for 
-testing and development purposes, please set \code{force = TRUE}.}
 
 \item{force}{logical specifying whether to force 
 simulation despite \code{ng != nrow(x)}.}
