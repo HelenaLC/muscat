@@ -12,27 +12,36 @@ names(cats) <- cats <- c("ee", "ep", "de", "dp", "dm", "db")
 cats <- factor(cats, levels = cats)
 
 # ------------------------------------------------------------------------------
-# for ea. cluster-sample, samples the number of cells for 2 groups
+# get number of samples to simulate
 # ------------------------------------------------------------------------------
-#   n: single numeric or range to sample from
-#   k: character vector of cluster IDs
-#   s: sample IDs
-# > array of dim. #s x #k x 2 with row names = sample IDs & 
-#   column names = cluster IDs. Ea. entry is a list of length 2 
-#   with numberic values equal to or in the range of n.
+#  ns_ref = number of samples available in the reference
+#  ns_sim = desired number of samples to simulate
+#      dd = whether or not to simulate differential distributions
+#  paired = whether or not to have a paired design
+#           (sample set of reference samples in both groups)
+#   force = whether to force the specified number of samples,
+#           independent of design and duplication
 # ------------------------------------------------------------------------------
-.sample_n_cells <- function(n, k, s) {
-    nk <- length(k)
-    ns <- length(s)
-    if (length(n) == 1) {
-        n <- list(rep(n, 2))
+.get_ns <- function(ns_ref, ns_sim, dd, paired, force) {
+    stopifnot(
+        is.logical(dd), length(dd) == 1, 
+        is.logical(paired), length(paired) == 1)
+    if (is.null(ns_sim)) {
+        # dd = F & dd,paired = T uses all samples
+        # dd = T, paired = F avoids duplication
+        ns <- ifelse(dd, ifelse(paired, ns_ref, floor(ns_ref/2)), ns_ref)
+        if (ns == 0) if (paired) ns <- 1 else stop(
+            "Cannot simulate 2 groups from one reference sample;",
+            " please set 'paired = TRUE' or 'dd = FALSE'.")
     } else {
-        n <- replicate(nk * ns, 
-            list(sample(seq(n[1], n[2]), 2)))
+        stopifnot(
+            is.numeric(ns_sim), length(ns_sim) == 1, 
+            ns_sim == round(ns_sim), ns_sim > 0)
+        if (force || ns_ref >= ns_sim*ifelse(dd, 2, 1)) ns <- ns_sim else stop(
+            "Trying to simulate more samples than available",
+            " as reference; please set 'force = TRUE'.")
     }
-    matrix(n, 
-        nrow = ns, ncol = nk, 
-        dimnames = list(s, k))
+    return(ns)
 }
 
 # ------------------------------------------------------------------------------

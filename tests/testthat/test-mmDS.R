@@ -8,7 +8,7 @@ suppressPackageStartupMessages({
 # generate toy dataset
 seed <- as.numeric(format(Sys.time(), "%s"))
 set.seed(seed)
-x <- .toySCE()
+x <- .toySCE(c(200, 2e3))
 x <- x[, x$group_id != "g3"]
 
 nk <- length(kids <- x$cluster_id)
@@ -54,21 +54,26 @@ test_that("mmDS() - filtering", {
 # randomly select 'n_de' genes & bump counts for group 2
 n_de <- 5; g2 <- gids == "g2"
 de_gs <- sample(rownames(x), n_de)
-assay(x[de_gs, g2]) <- (assay(x[de_gs, g2])+1)*5
+de_es <- rnbinom(n_de * sum(g2), size = 4, mu = 8)
+de_es <- matrix(de_es, n_de, sum(g2))
+assay(x[de_gs, g2], withDimnames = FALSE) <- de_es
+vst <- .vst_sctransform(x, verbose = FALSE)
+assay(x, "vstresiduals") <- vst
 
-test_that("mmDS-utils", {
-    cs <- x$cluster_id == kids[1]
-    gs <- c(de_gs, sample(setdiff(rownames(x), de_gs), 5))
-    for (fun in paste0(".mm_", c("dream", "dream2", "vst"))) {
-        # currently not passing; 
-        # either there's a bug I cannot find 
-        # or the toydata is too simplistic
-        # c("poisson", "hybrid", "nbinom"))) {
+for (fun in paste0(".mm_", c("dream", "dream2", "vst"))) {
+    test_that(paste("mmDS-utils;", fun), {
+        cs <- x$cluster_id == kids[1]
+        gs <- c(de_gs, sample(setdiff(rownames(x), de_gs), 15))
+        # currently not passing; likely because 
+        # the toy data is too simplistic...
+        # "poisson", "hybrid", "nbinom"
         y <- suppressWarnings(
             get(fun)(x[gs, cs], verbose = FALSE))
         expect_is(y, "data.frame")
         expect_identical(rownames(y), gs)
+        if (grepl("dream", fun))
+            y <- y[y$logFC > 0, ]
         top <- order(y$p_adj.loc)[seq_len(n_de)]
         expect_setequal(rownames(y)[top], de_gs)
-    }
-})
+    })
+}

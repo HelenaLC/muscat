@@ -19,10 +19,10 @@
 #'   of expressing cells in each each group will be included as well.
 #'   
 #' @examples
-#' data(sce)
+#' data(example_sce)
 #' library(SingleCellExperiment)
 #' 
-#' frq <- calcExprFreqs(sce)
+#' frq <- calcExprFreqs(example_sce)
 #' 
 #' # one assay per cluster
 #' assayNames(frq)  

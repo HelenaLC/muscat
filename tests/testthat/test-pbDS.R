@@ -77,11 +77,11 @@ test_that(".p_adj_global", {
     names(ns) <- ks
     df <- lapply(ks, function(k) lapply(cs, function(c) {
         df <- data.frame(p_val = rgamma(ns[k], 0.1))
-        df$p_adj.loc <- p.adjust(df$p_val)
+        df$p_adj.loc <- p.adjust(df$p_val, method = "BH")
         return(df) 
     })) %>% .p_adj_global
     for (c in cs)
         expect_identical(
-            p.adjust(bind_rows(df[[c]])$p_val),
+            p.adjust(bind_rows(df[[c]])$p_val, method = "BH"),
             bind_rows(df[[c]])$p_adj.glb)
 })

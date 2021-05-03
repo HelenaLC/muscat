@@ -148,7 +148,7 @@
         tbl <- map_depth(x, 1, c)
         p_val <- map(tbl, "p_val")
         # adjust for each comparison
-        p_adj <- p.adjust(unlist(p_val))
+        p_adj <- p.adjust(unlist(p_val), method = "BH")
         # re-split by cluster
         ns <- vapply(p_val, length, numeric(1))
         p_adj <- split(p_adj, rep.int(ks, ns))

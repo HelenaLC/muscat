@@ -54,7 +54,9 @@
 
     ddf <- match.arg(ddf)
     x <- x[rowSds(as.matrix(counts(x))) > 0, ]
-    y <- DGEList(counts(x), lib.size=sizeFactors(x), norm.factors = rep(1,ncol(x)))
+    y <- DGEList(counts(x), 
+        lib.size = sizeFactors(x), 
+        norm.factors = rep(1, ncol(x)))
 
     cd <- .prep_cd(x, covs)
 
@@ -109,7 +111,9 @@
 
     ddf <- match.arg(ddf)
     x <- x[rowSds(as.matrix(counts(x))) > 0, ]
-    y <- DGEList(counts(x), lib.size=sizeFactors(x), norm.factors = rep(1,ncol(x)))
+    y <- DGEList(counts(x), 
+        lib.size = sizeFactors(x), 
+        norm.factors = rep(1, ncol(x)))
 
     cd <- .prep_cd(x, covs)
     formula <- paste0(c("~(1|sample_id)", covs, "group_id"), collapse = "+")
@@ -182,7 +186,7 @@
     if (verbose) message("Applying empirical Bayes moderation..")
     fits <- .mm_eBayes(fits, coef)
     i <- which(colnames(fits) == "p_val")
-    fits$p_adj.loc <- p.adjust(fits$p_val)
+    fits$p_adj.loc <- p.adjust(fits$p_val, method = "BH")
     fits[, c(seq_len(i), ncol(fits), seq_len(ncol(fits)-1)[-seq_len(i)])]
 }
 
@@ -245,6 +249,7 @@
 #' @importFrom BiocParallel bplapply MulticoreParam
 #' @importFrom dplyr %>% bind_rows last
 #' @importFrom purrr set_names
+#' @importFrom scater computeLibraryFactors
 #' @importFrom SingleCellExperiment counts
 #' @importFrom SummarizedExperiment assay
 .mm_glmm <- function(x, coef = NULL, covs = NULL, 
@@ -255,11 +260,9 @@
     cd <- .prep_cd(x, covs)
     y <- counts(x)
 
-    if (is.null(sizeFactors(x))) {
-        cd$ls <- log(colSums(y))
-    } else {
-        cd$ls <- sizeFactors(x)
-    }
+    if (is.null(sizeFactors(x))) 
+        x <- computeLibraryFactors(x)
+    cd$ls <- sizeFactors(x)
 
     # get formula
     str <- c("~(1|sample_id)+offset(ls)", covs, "group_id")
@@ -306,7 +309,7 @@
         colnames(fits) <- c("beta", "SE", "stat", "p_val")
     }
     i <- which(colnames(fits) == "p_val")
-    fits$p_adj.loc <- p.adjust(fits$p_val)
+    fits$p_adj.loc <- p.adjust(fits$p_val, method = "BH")
     fits[, c(seq_len(i), ncol(fits), seq_len(ncol(fits)-1)[-seq_len(i)])]
 }
 
@@ -329,6 +332,7 @@
 #' @importFrom dplyr %>% bind_rows last rename
 #' @importFrom glmmTMB glmmTMB nbinom1
 #' @importFrom Matrix colSums t
+#' @importFrom scater computeLibraryFactors
 #' @importFrom SingleCellExperiment counts sizeFactors
 #' @importFrom stats model.matrix
 #' @importFrom SummarizedExperiment colData
@@ -341,11 +345,9 @@
     cd <- .prep_cd(x, covs)
     y <- counts(x)
 
-    if (is.null(sizeFactors(x))) {
-        cd$ls <- log(colSums(y))
-    } else {
-        cd$ls <- sizeFactors(x)
-    }
+    if (is.null(sizeFactors(x))) 
+        x <- computeLibraryFactors(x)
+    cd$ls <- sizeFactors(x)
 
     # compute pseudobulks (sum of counts)
     pb <- aggregateData(x)
@@ -410,7 +412,7 @@
 
     res <- res[, -c(1, 2)]
     i <- which(colnames(res) == "p_val")
-    res$p_adj.loc <- p.adjust(res$p_val)
+    res$p_adj.loc <- p.adjust(res$p_val, method = "BH")
     res[, c(seq_len(i), ncol(res), seq_len(ncol(res)-1)[-seq_len(i)])]
 }
 
@@ -501,11 +503,12 @@
 .vst_sctransform <- function(x, verbose) {
     sctransform::vst(counts(x), 
         min_cells = 0, # assure that all genes are retained
-        show_progress = verbose)$y
+        verbosity = verbose)$y
 }
 # ------------------------------------------------------------------------------
 #' @importFrom DESeq2 varianceStabilizingTransformation
-#' @importFrom SingleCellExperiment counts sizeFactors
+#' @importFrom scater computeLibraryFactors
+#' @importFrom SingleCellExperiment counts sizeFactors sizeFactors<-
 .vst_DESeq2 <- function(x, covs, blind) {
     if (is.null(sizeFactors(x)))
         x <- computeLibraryFactors(x)

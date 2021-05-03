@@ -6,12 +6,27 @@
 #' across 2 experimental conditions from a real scRNA-seq data set.
 #' 
 #' @param x a \code{\link[SingleCellExperiment]{SingleCellExperiment}}.
-#' @param nc,ns,nk # of cells, samples and clusters to simulate. 
-#'   By default, \code{ns = NULL} will simulated as many samples as 
-#'   available in the reference to avoid duplicated reference samples.
+#' @param ng number of genes to simulate. Importantly, for the library sizes 
+#'   computed by \code{\link{prepSim}} (= \code{exp(x$offset)}) to make sense, 
+#'   the number of simulated genes should match with the number of genes 
+#'   in the reference. To simulate a reduced number of genes, e.g. for 
+#'   testing and development purposes, please set \code{force = TRUE}.
+#' @param nc number of cells to simulate.
+#' @param nk number of clusters to simulate; defaults to the number
+#'   of available reference clusters (\code{nlevels(x$cluster_id)}).  
+#' @param ns number of samples to simulate; defaults to as many as
+#'   available in the reference to avoid duplicated reference samples. 
+#'   Specifically, the number of samples will be set to 
+#'   \code{n = nlevels(x$sample_id)} when \code{dd = FALSE}, 
+#'   \code{n} per group  when \code{dd, paired = TRUE}, and 
+#'   \code{floor(n/2)} per group when \code{dd = TRUE, paired = FALSE}.
+#'   When a larger number samples should be simulated, set \code{force = TRUE}.
 #' @param probs a list of length 3 containing probabilities of a cell belonging
 #'   to each cluster, sample, and group, respectively. List elements must be 
 #'   NULL (equal probabilities) or numeric values in [0, 1] that sum to 1.
+#' @param dd whether or not to simulate differential distributions; if TRUE, 
+#'   two groups are simulated and \code{ns} corresponds to the number of 
+#'   samples per group, else one group with \code{ns} samples is simulated.
 #' @param p_dd numeric vector of length 6.
 #'   Specifies the probability of a gene being
 #'   EE, EP, DE, DP, DM, or DB, respectively.
@@ -39,17 +54,12 @@
 #'   of the branches lengths separating them. 
 #' @param phylo_pars vector of length 2 providing the parameters that control 
 #'   the number of type genes. Passed to an exponential PDF (see details).
-#'   
-#' @param ng # of genes to simulate. Importantly, for the library sizes 
-#'   computed by \code{\link{prepSim}} (= \code{exp(x$offset)}) to make sense, 
-#'   the number of simulated genes should match with the number of genes 
-#'   in the reference. To simulate a reduced number of genes, e.g. for 
-#'   testing and development purposes, please set \code{force = TRUE}.
-#' @param force logical specifying whether to force 
-#'   simulation despite \code{ng != nrow(x)}.
+#' @param force logical specifying whether to force simulation 
+#'   when \code{ng} and/or \code{ns} don't match the number of 
+#'   available reference genes and samples, respectively.
 #'   
 #' @details The simulation of type genes can be performed in 2 ways; 
-#'   (1) via \code{p_type} to simulate independant clusters, OR 
+#'   (1) via \code{p_type} to simulate independent clusters, OR 
 #'   (2) via \code{phylo_tree} to simulate a hierarchical cluster structure.
 #'   
 #'   For (1), a subset of \code{p_type} \% of genes are selected per cluster
@@ -89,11 +99,11 @@
 #'   \item{\code{args}}{a list of the function call's input arguments.}}}}
 #'   
 #' @examples
-#' data(sce)
+#' data(example_sce)
 #' library(SingleCellExperiment)
 #' 
 #' # prep. SCE for simulation
-#' ref <- prepSim(sce)
+#' ref <- prepSim(example_sce)
 #' 
 #' # simulate data
 #' (sim <- simData(ref, nc = 200,
@@ -179,11 +189,17 @@ simData <- function(x,
     if (is.null(x$cluster_id)) {
         x$cluster_id <- factor("foo")
         no_k <- TRUE
-    } else no_k <- FALSE
+    } else {
+        x$cluster_id <- droplevels(factor(x$cluster_id))
+        no_k <- nlevels(x$cluster_id) == 1
+    }
     if (is.null(x$sample_id)) {
         x$sample_id <- factor("foo")
         no_s <- TRUE
-    } else no_s <- FALSE
+    } else {
+        x$sample_id <- droplevels(factor(x$sample_id))
+        no_s <- nlevels(x$sample_id) == 1
+    }
     
     # store all input arguments to be returned in final output
     args <- c(as.list(environment()))
@@ -192,11 +208,13 @@ simData <- function(x,
     .check_sce(x, req_group = FALSE)
     args_tmp <- .check_args_simData(as.list(environment()))
     nk <- args$nk <- args_tmp$nk
-    ns <- args$ns <- args_tmp$ns
-    
+
     # reference IDs
     nk0 <- length(kids0 <- set_names(levels(x$cluster_id)))
     ns0 <- length(sids0 <- set_names(levels(x$sample_id)))
+    
+    # get number of samples to simulate
+    ns <- .get_ns(ns0, ns, dd, paired, force)
     
     # simulation IDs
     nk <- length(kids <- set_names(paste0("cluster", seq_len(nk))))
@@ -211,8 +229,13 @@ simData <- function(x,
         ref_sids <- cbind(ref_sids, ref_sids)
     } else {
         # draw reference samples at random for each group
-        sidsA <- sample(sids0, ns, ns > ns0)
-        sidsB <- sample(setdiff(sids0, sidsA), ns, ns > ns0)
+        sidsA <- sample(sids0, ns, force && ns > ns0)
+        if (force) {
+            sidsB <- sample(sids0, ns, ns > ns0)
+        } else {
+            sidsB <- setdiff(sids0, sidsA)
+            sidsB <- sample(sidsB, ns)
+        }
         ref_sids <- cbind(sidsA, sidsB)
     }
     dimnames(ref_sids) <- list(sids, gids)
