@@ -43,15 +43,18 @@
 #'   (\code{rowData(x)$dispersion} and \code{$beta.sample_id}, respectively).
 #' 
 #' @examples
-#' data(sce)
+#' # estimate simulation parameters
+#' data(example_sce)
+#' ref <- prepSim(example_sce)
+#' 
+#' # tabulate number of genes/cells before vs. after
+#' ns <- cbind(
+#'   before = dim(example_sce), 
+#'   after = dim(ref)) 
+#' rownames(ns) <- c("#genes", "#cells")
+#' ns
+#' 
 #' library(SingleCellExperiment)
-#' 
-#' ref <- prepSim(sce)
-#' 
-#' # nb. of genes/cells before vs. after
-#' ns <- cbind(before = dim(sce), after = dim(ref)) 
-#' rownames(ns) <- c("#genes", "#cells"); ns
-#' 
 #' head(rowData(ref)) # gene parameters
 #' head(colData(ref)) # cell parameters
 #' 
@@ -109,10 +112,12 @@ prepSim <- function(x,
     if (is.null(group_keep)) {
         if ("group_id" %in% colnames(colData(x))) {
             group_keep <- levels(x$group_id)[1]
-            if (verbose) message(sprintf(paste(
-                "Argument `group_keep` unspecified;",
-                "defaulting to retaining %s-group samples."),
-                dQuote(group_keep)))
+            if (verbose) {
+                fmt <- paste(
+                    "Argument `group_keep` unspecified;",
+                    "defaulting to retaining %s-group samples.")
+                message(sprintf(fmt, dQuote(group_keep)))
+            }
             cells_keep <- x$group_id == group_keep
         } else {
             cells_keep <- seq_len(ncol(x))
@@ -148,6 +153,9 @@ prepSim <- function(x,
             ncol(n_cells), nlevels(x$sample_id)))
         x <- .filter_sce(x, rownames(n_cells), colnames(n_cells))
     }
+    
+    if (is.null(rownames(x))) rownames(x) <- paste0("gene", seq(nrow(x)))
+    if (is.null(colnames(x))) colnames(x) <- paste0("cell", seq(ncol(x)))
     
     # construct model formula
     f <- "~ 1"

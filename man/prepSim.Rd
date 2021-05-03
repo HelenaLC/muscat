@@ -64,15 +64,18 @@ For each gene \eqn{g}, \code{prepSim} fits a model to estimate
   (total number of counts), and \eqn{\phi_g} is the dispersion.
 }
 \examples{
-data(sce)
+# estimate simulation parameters
+data(example_sce)
+ref <- prepSim(example_sce)
+
+# tabulate number of genes/cells before vs. after
+ns <- cbind(
+  before = dim(example_sce), 
+  after = dim(ref)) 
+rownames(ns) <- c("#genes", "#cells")
+ns
+
 library(SingleCellExperiment)
-
-ref <- prepSim(sce)
-
-# nb. of genes/cells before vs. after
-ns <- cbind(before = dim(sce), after = dim(ref)) 
-rownames(ns) <- c("#genes", "#cells"); ns
-
 head(rowData(ref)) # gene parameters
 head(colData(ref)) # cell parameters
 

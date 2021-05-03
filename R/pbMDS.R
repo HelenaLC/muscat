@@ -13,8 +13,8 @@
 #' @return a \code{ggplot} object.
 #' 
 #' @examples 
-#' data(sce)
-#' pb <- aggregateData(sce)
+#' data(example_sce)
+#' pb <- aggregateData(example_sce)
 #' pbMDS(pb)
 #' 
 #' @author Helena L Crowell & Mark D Robinson

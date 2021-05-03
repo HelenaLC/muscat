@@ -12,9 +12,9 @@
 #' @return a \code{\link[SingleCellExperiment]{SingleCellExperiment}}.
 #' 
 #' @examples 
-#' data(sce)
+#' data(example_sce)
 #' library(SingleCellExperiment)
-#' pb_stack <- aggregateData(sce)
+#' pb_stack <- aggregateData(example_sce)
 #' (pb_flat <- pbFlatten(pb_stack))
 #' ncol(pb_flat) == ncol(pb_stack)*length(assays(pb_stack))
 #' 

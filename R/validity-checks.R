@@ -92,25 +92,10 @@
 }
 
 .check_args_simData <- function(u) {
-    stopifnot(is.logical(u$dd), length(u$dd) == 1)
-    if (!is.null(u$ns)) {
+    if (!is.null(u$ns))
         stopifnot(
-            is.numeric(u$ns), length(u$ns) %in% c(1, 2), 
+            is.numeric(u$ns), length(u$ns) == 1, 
             u$ns > 0, as.integer(u$ns) == u$ns)
-        if (!u$force && 2*sum(u$dd)*u$ns > nlevels(u$x$sample_id))
-            stop("Simulating more samples than will lead to",
-                " duplicates and can reduce within-group variability;",
-                " please specify 'force = TRUE' to force simulation.")
-        
-    } else {
-        ns <- nlevels(u$x$sample_id)
-        u$ns <- if (u$dd) floor(ns/2) else ns
-        if (u$ns == 0) 
-            if (!u$paired) {
-                stop("Cannot simulate 2 groups from one reference sample;",
-                    " please set 'paired = TRUE' or 'dd = FALSE'.")
-            } else u$ns <- 1
-    }
     if (!is.null(u$nk)) {
         stopifnot(
             is.numeric(u$nk), length(u$nk) == 1, 
@@ -137,6 +122,7 @@
         if (nk_phylo != u$nk) u$nk <- nk_phylo
     }
     stopifnot(
+        is.numeric(u$ng), length(u$ng) == 1, u$ng > 0, as.integer(u$ng) == u$ng,
         is.numeric(u$nc), length(u$nc) == 1, u$nc > 0, as.integer(u$nc) == u$nc,
         is.numeric(u$p_dd), length(u$p_dd) == 6, sum(u$p_dd) == 1, u$p_dd >= 0, u$p_dd <= 1,
         is.logical(u$paired), length(u$paired) == 1,
@@ -145,7 +131,6 @@
         is.numeric(u$p_dm), length(u$p_dm) == 1, u$p_dm > 0, u$p_dm < 1,
         is.numeric(u$p_type), length(u$p_type) == 1, u$p_type >= 0, u$p_type <= 1,
         is.numeric(u$lfc), is.numeric(u$lfc), length(u$lfc) == 1, u$lfc >= 1,
-        is.numeric(u$ng), length(u$ng) == 1, u$ng > 0, as.integer(u$ng) == u$ng,
         is.logical(u$force), length(u$force) == 1,
         is.numeric(u$phylo_pars), length(u$phylo_pars) == 2, u$phylo_pars >= 0)
     if (!is.null(u$rel_lfc))

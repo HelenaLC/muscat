@@ -2,7 +2,7 @@
 % Please edit documentation in R/data.R
 \name{data}
 \alias{data}
-\alias{sce}
+\alias{example_sce}
 \title{Example datasets}
 \value{
 a \code{\link[SingleCellExperiment]{SingleCellExperiment}}.
@@ -74,9 +74,9 @@ sce <- logNormCounts(sce)
 
 # re-format for 'muscat'
 sce <- prepSCE(sce, 
-    cluster_id = "cell", 
-    sample_id = "id", 
-    group_id = "stim", 
+    kid = "cell", 
+    sid = "id", 
+    gid = "stim", 
     drop = TRUE)
 } 
 

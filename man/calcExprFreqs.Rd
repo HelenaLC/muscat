@@ -31,10 +31,10 @@ to be expressed when the specified measurement value (\code{assay})
 lies above the specified threshold value (\code{th}).
 }
 \examples{
-data(sce)
+data(example_sce)
 library(SingleCellExperiment)
 
-frq <- calcExprFreqs(sce)
+frq <- calcExprFreqs(example_sce)
 
 # one assay per cluster
 assayNames(frq)  

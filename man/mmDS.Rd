@@ -176,16 +176,18 @@ Meant to be called by \code{mmDS} with \code{method = c("dream", "vst")} and
 }}
 
 \examples{
-data(sce)
 # subset "B cells" cluster
-sce <- sce[, sce$cluster_id == "B cells"]
-sce$cluster_id <- droplevels(sce$cluster_id)
+data(example_sce)
+b_cells <- example_sce$cluster_id == "B cells"
+sub <- example_sce[, b_cells]
+sub$cluster_id <- droplevels(sub$cluster_id)
 
 # downsample to 100 genes
-gs <- sample(nrow(sce), 100)
-sce <- sce[gs, ]
+gs <- sample(nrow(sub), 100)
+sub <- sub[gs, ]
 
-res <- mmDS(sce, method = "dream", verbose = FALSE)
+# run DS analysis using cell-level mixed-model
+res <- mmDS(sub, method = "dream", verbose = FALSE)
 head(res$`B cells`)
 
 }

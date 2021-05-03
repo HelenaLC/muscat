@@ -31,22 +31,22 @@
 #'   are accessible in \code{int_colData()$n_cells}.
 #' 
 #' @examples 
-#' data(sce)
-#' library(SingleCellExperiment)
-#' 
 #' # pseudobulk counts by cluster-sample
-#' pb <- aggregateData(sce)
+#' data(example_sce)
+#' pb <- aggregateData(example_sce)
 #' 
-#' assayNames(sce)  # one sheet per cluster
-#' head(assay(sce)) # n_genes x n_samples
+#' library(SingleCellExperiment)
+#' assayNames(example_sce)  # one sheet per cluster
+#' head(assay(example_sce)) # n_genes x n_samples
 #' 
 #' # scaled CPM
-#' assays(sce)$cpm <- edgeR::cpm(assay(sce))
-#' pb <- aggregateData(sce, assay = "cpm", scale = TRUE)
+#' cpm <- edgeR::cpm(assay(example_sce))
+#' assays(example_sce)$cpm <- cpm
+#' pb <- aggregateData(example_sce, assay = "cpm", scale = TRUE)
 #' head(assay(pb)) 
 #' 
 #' # aggregate by cluster only
-#' pb <- aggregateData(sce, by = "cluster_id")
+#' pb <- aggregateData(example_sce, by = "cluster_id")
 #' length(assays(pb)) # single assay
 #' head(assay(pb))    # n_genes x n_clusters
 #' 

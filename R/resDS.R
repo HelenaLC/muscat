@@ -37,24 +37,24 @@
 #' @return returns a `data.frame`.
 #' 
 #' @examples
-#' data(sce)
-#' 
 #' # compute pseudobulks (sum of counts)
-#' pb <- aggregateData(sce, assay = "counts", fun = "sum")
+#' data(example_sce)
+#' pb <- aggregateData(example_sce, 
+#'   assay = "counts", fun = "sum")
 #' 
 #' # run DS analysis (edgeR on pseudobulks)
 #' res <- pbDS(pb, method = "edgeR")
 #' 
-#' head(resDS(sce, res, bind = "row")) # tidy format
-#' head(resDS(sce, res, bind = "col", digits = Inf))
+#' head(resDS(example_sce, res, bind = "row")) # tidy format
+#' head(resDS(example_sce, res, bind = "col", digits = Inf))
 #' 
 #' # append CPMs & expression frequencies
-#' head(resDS(sce, res, cpm = TRUE))
-#' head(resDS(sce, res, frq = TRUE))
+#' head(resDS(example_sce, res, cpm = TRUE))
+#' head(resDS(example_sce, res, frq = TRUE))
 #' 
 #' # pre-computed expression frequencies & append
-#' frq <- calcExprFreqs(sce, assay = "counts", th = 0)
-#' head(resDS(sce, res, frq = frq))
+#' frq <- calcExprFreqs(example_sce, assay = "counts", th = 0)
+#' head(resDS(example_sce, res, frq = frq))
 #' 
 #' @author Helena L Crowell & Mark D Robinson
 #' 

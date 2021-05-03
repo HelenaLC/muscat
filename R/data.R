@@ -1,6 +1,6 @@
 #' @rdname data
 #' @name data
-#' @aliases data sce
+#' @aliases data example_sce
 #' 
 #' @title Example datasets
 #' 
@@ -73,9 +73,9 @@
 #' 
 #' # re-format for 'muscat'
 #' sce <- prepSCE(sce, 
-#'     cluster_id = "cell", 
-#'     sample_id = "id", 
-#'     group_id = "stim", 
+#'     kid = "cell", 
+#'     sid = "id", 
+#'     gid = "stim", 
 #'     drop = TRUE)
 #' } 
 #' 

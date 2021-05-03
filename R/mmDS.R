@@ -32,16 +32,18 @@
 #' @return a data.frame
 #'
 #' @examples
-#' data(sce)
 #' # subset "B cells" cluster
-#' sce <- sce[, sce$cluster_id == "B cells"]
-#' sce$cluster_id <- droplevels(sce$cluster_id)
+#' data(example_sce)
+#' b_cells <- example_sce$cluster_id == "B cells"
+#' sub <- example_sce[, b_cells]
+#' sub$cluster_id <- droplevels(sub$cluster_id)
 #'
 #' # downsample to 100 genes
-#' gs <- sample(nrow(sce), 100)
-#' sce <- sce[gs, ]
+#' gs <- sample(nrow(sub), 100)
+#' sub <- sub[gs, ]
 #'
-#' res <- mmDS(sce, method = "dream", verbose = FALSE)
+#' # run DS analysis using cell-level mixed-model
+#' res <- mmDS(sub, method = "dream", verbose = FALSE)
 #' head(res$`B cells`)
 #'
 #' @author Pierre-Luc Germain & Helena L Crowell
@@ -100,8 +102,8 @@ mmDS <- function(x, coef = NULL, covs = NULL,
     ks_keep <- apply(n_cells_by_ks > n_cells, 1,
         function(u) all(tabulate(gids[u]) >= n_samples))
     if (sum(ks_keep) == 0)
-        stop(paste("No cluster has at least", n_samples,
-            "samples with at least", n_cells, "cells."))
+        stop("No cluster has at least ", n_samples,
+            " samples with at least ", n_cells, " cells.")
     
     kids <- levels(x$cluster_id)
     if (verbose && sum(ks_keep) < length(kids))
@@ -162,7 +164,7 @@ mmDS <- function(x, coef = NULL, covs = NULL,
     # assemble results from all cluster
     res <- bind_rows(res)
     # global p-value adjustment
-    p_adj.glb <- p.adjust(res$p_val)
+    p_adj.glb <- p.adjust(res$p_val, method = "BH")
     i <- which(colnames(res) == "p_adj.loc")
     res[["p_adj.glb"]] <- p_adj.glb
     res <- res[, c(seq_len(i), ncol(res), seq_len(ncol(res)-1)[-seq_len(i)])]

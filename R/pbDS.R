@@ -38,10 +38,10 @@
 #'
 #' @examples
 #' # simulate 5 clusters, 20% of DE genes
-#' data(sce)
+#' data(example_sce)
 #'     
 #' # compute pseudobulk sum-counts & run DS analysis
-#' pb <- aggregateData(sce)
+#' pb <- aggregateData(example_sce)
 #' res <- pbDS(pb, method = "limma-trend")
 #'
 #' names(res)

@@ -11,6 +11,7 @@ simData(
   ns = NULL,
   nk = NULL,
   probs = NULL,
+  dd = TRUE,
   p_dd = diag(6)[1, ],
   paired = FALSE,
   p_ep = 0.5,
@@ -27,19 +28,32 @@ simData(
 \arguments{
 \item{x}{a \code{\link[SingleCellExperiment]{SingleCellExperiment}}.}
 
-\item{ng}{# of genes to simulate. Importantly, for the library sizes 
+\item{ng}{number of genes to simulate. Importantly, for the library sizes 
 computed by \code{\link{prepSim}} (= \code{exp(x$offset)}) to make sense, 
 the number of simulated genes should match with the number of genes 
 in the reference. To simulate a reduced number of genes, e.g. for 
 testing and development purposes, please set \code{force = TRUE}.}
 
-\item{nc, ns, nk}{# of cells, samples and clusters to simulate. 
-By default, \code{ns = NULL} will simulated as many samples as 
-available in the reference to avoid duplicated reference samples.}
+\item{nc}{number of cells to simulate.}
+
+\item{ns}{number of samples to simulate; defaults to as many as
+available in the reference to avoid duplicated reference samples. 
+Specifically, the number of samples will be set to 
+\code{n = nlevels(x$sample_id)} when \code{dd = FALSE}, 
+\code{n} per group  when \code{dd, paired = TRUE}, and 
+\code{floor(n/2)} per group when \code{dd = TRUE, paired = FALSE}.
+When a larger number samples should be simulated, set \code{force = TRUE}.}
+
+\item{nk}{number of clusters to simulate; defaults to the number
+of available reference clusters (\code{nlevels(x$cluster_id)}).}
 
 \item{probs}{a list of length 3 containing probabilities of a cell belonging
 to each cluster, sample, and group, respectively. List elements must be 
 NULL (equal probabilities) or numeric values in [0, 1] that sum to 1.}
+
+\item{dd}{whether or not to simulate differential distributions; if TRUE, 
+two groups are simulated and \code{ns} corresponds to the number of 
+samples per group, else one group with \code{ns} samples is simulated.}
 
 \item{p_dd}{numeric vector of length 6.
 Specifies the probability of a gene being
@@ -76,8 +90,9 @@ of the branches lengths separating them.}
 \item{phylo_pars}{vector of length 2 providing the parameters that control 
 the number of type genes. Passed to an exponential PDF (see details).}
 
-\item{force}{logical specifying whether to force 
-simulation despite \code{ng != nrow(x)}.}
+\item{force}{logical specifying whether to force simulation 
+when \code{ng} and/or \code{ns} don't match the number of 
+available reference genes and samples, respectively.}
 }
 \value{
 a \code{\link[SingleCellExperiment]{SingleCellExperiment}}
@@ -110,7 +125,7 @@ Simulation of complex scRNA-seq data
 across 2 experimental conditions from a real scRNA-seq data set.
 
 The simulation of type genes can be performed in 2 ways; 
-  (1) via \code{p_type} to simulate independant clusters, OR 
+  (1) via \code{p_type} to simulate independent clusters, OR 
   (2) via \code{phylo_tree} to simulate a hierarchical cluster structure.
   
   For (1), a subset of \code{p_type} \% of genes are selected per cluster
@@ -128,11 +143,11 @@ The simulation of type genes can be performed in 2 ways;
   (defined through \code{phylo_tree}).}}
 }
 \examples{
-data(sce)
+data(example_sce)
 library(SingleCellExperiment)
 
 # prep. SCE for simulation
-ref <- prepSim(sce)
+ref <- prepSim(example_sce)
 
 # simulate data
 (sim <- simData(ref, nc = 200,
