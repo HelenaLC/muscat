@@ -93,7 +93,7 @@ To prepare a reference `r Biocpkg("SingleCellExperiment")` (SCE) for simulation 
 1. (optionally) filter for subpopulation-sample instances with a threshold number of cells to assure accurate parameter estimation
 1. estimate cell (library sizes) and gene parameters (dispersions and sample-specific means)
 
-Importantly, we want to introduce *known* changes in states across conditions; thus, only replicates from a single condition should go into the simulation. The group to be kept for simulation may be specified via `group_keep`, in which case samples from all other groups (`sce$group_id != group_keep`) will be droped. By default (`group_keep = NULL`), `prepSim` will select the first group available as reference.
+Importantly, we want to introduce *known* changes in states across conditions; thus, only replicates from a single condition should go into the simulation. The group to be kept for simulation may be specified via `group_keep`, in which case samples from all other groups (`sce$group_id != group_keep`) will be dropped. By default (`group_keep = NULL`), `prepSim` will select the first group available as reference.
 
 Arguments `min_count`, `min_cells`, `min_genes` and `min_size` are used to tune the filtering of genes, cells and subpopulation-instances as follows:
 
@@ -102,12 +102,13 @@ Arguments `min_count`, `min_cells`, `min_genes` and `min_size` are used to tune 
 - only subpopulation-sample instances with `>= min_size` cells will be retained; `min_size = NULL` will skip this step
 
 ```{r prepSim}
-data(sce)
-ref <- prepSim(sce, verbose = FALSE)
+# estimate simulation parameters
+data(example_sce)
+ref <- prepSim(example_sce, verbose = FALSE)
 # only samples from `ctrl` group are retained
 table(ref$sample_id)
 # cell parameters: library sizes
-sub <- assay(sce[rownames(ref), colnames(ref)])
+sub <- assay(example_sce[rownames(ref), colnames(ref)])
 all.equal(exp(ref$offset), as.numeric(colSums(sub)))
 # gene parameters: dispersions & sample-specific means
 head(rowData(ref))
@@ -346,10 +347,8 @@ plot(read.dendrogram(text = tree))
 ```{r simData-phylo}
 # simulate 5% of type genes; one group only
 sim <- simData(ref, 
-    phylo_tree = tree,
-    phylo_pars = c(0.1, 1),
-    nc = 800, ng = 1e3, force = TRUE,
-    probs = list(NULL, NULL, c(1, 0)))
+    phylo_tree = tree, phylo_pars = c(0.1, 1),
+    nc = 800, ng = 1e3, dd = FALSE, force = TRUE)
 # do log-library size normalization
 sim <- logNormCounts(sim)
 ```
@@ -387,7 +386,7 @@ library(DESeq2)
 sim <- simData(ref, 
     ng = nrow(ref), 
     nc = ncol(ref),
-    probs = list(NULL, NULL, c(0, 1)))
+    dd = FALSE)
 # construct 'DESeqDataSet's for both, 
 # simulated and reference dataset
 dds_sim <- DESeqDataSetFromMatrix(
@@ -420,7 +419,7 @@ We firstly define a wrapper that takes as input a `method` passed `pbDS` and ref
 .run_method <- function(m) {
     res <- pbDS(pb, method = m, verbose = FALSE)
     tbl <- resDS(sim, res)
-    right_join(tbl, gi, by = c("gene", "cluster_id"))
+    left_join(gi, tbl, by = c("gene", "cluster_id"))
 }
 ```
 
@@ -441,11 +440,11 @@ Having computed result `data.frame`s for a set of methods, we next define a wrap
 
 Putting it all together, we can finally simulate some data, run a set of DS analysis methods, calculate their performance, and plot a variety of performance metrics depending on the `aspects` calculated by `.calc_perf`:
 
-```{r tprfdr, warning = FALSE, message = FALSE, fig.small = TRUE}
-# simulation including all DD categories
-sim <- simData(ref, nc = 2e3, 
-    p_dd = c(0.3, 0.3, rep(0.1, 4)),
-    ng = 2e3, force = TRUE)
+```{r iCOBRA-comparison, warning = FALSE, message = FALSE, fig.height = 4, fig.width = 9}
+# simulation with all DD types
+sim <- simData(ref, 
+    p_dd = c(rep(0.3, 2), rep(0.1, 4)),
+    ng = 1e3, nc = 2e3, ns = 3, force = TRUE)
 # aggregate to pseudobulks
 pb <- aggregateData(sim)
 # extract gene metadata
@@ -458,15 +457,18 @@ gi$is_de <- as.numeric(gi$is_de)
 # (must set names for methods to show in visualizations!)
 names(mids) <- mids <- c("edgeR", "DESeq2", "limma-trend", "limma-voom")
 res <- lapply(mids, .run_method)
-# calculate performance measures & 
-# prepare data for plotting with 'iCOBRRA'
+
+# calculate performance measures 
+# and prep. for plotting with 'iCOBRRA'
 library(iCOBRA)
-perf <- .calc_perf(res)
+perf <- .calc_perf(res, "cluster_id")
 pd <- prepare_data_for_plot(perf)
-# plot FDR-TPR-curves
+
+# plot FDR-TPR curves by cluster
 plot_fdrtprcurve(pd) +
     theme(aspect.ratio = 1) +
-    scale_x_continuous(trans = "sqrt")
+    scale_x_continuous(trans = "sqrt") +
+    facet_wrap(~ splitval, nrow = 1)
 ```
 
 # Session info {- .smaller}

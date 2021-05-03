@@ -22,9 +22,9 @@ as returned by \code{\link{aggregateData}} such that all cell subpopulations
 are represented as a single assay.
 }
 \examples{
-data(sce)
+data(example_sce)
 library(SingleCellExperiment)
-pb_stack <- aggregateData(sce)
+pb_stack <- aggregateData(example_sce)
 (pb_flat <- pbFlatten(pb_stack))
 ncol(pb_flat) == ncol(pb_stack)*length(assays(pb_stack))
 

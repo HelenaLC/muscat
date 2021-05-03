@@ -74,20 +74,19 @@ a \code{\link{HeatmapList-class}} object.
 ...
 }
 \examples{
-data(sce)
-
 # compute pseudobulks & run DS analysis
-pb <- aggregateData(sce)
+data(example_sce)
+pb <- aggregateData(example_sce)
 res <- pbDS(pb)
 
 # cluster-sample expression means
-pbHeatmap(sce, res)
+pbHeatmap(example_sce, res)
 
 # include only a single cluster
-pbHeatmap(sce, res, k = "B cells")
+pbHeatmap(example_sce, res, k = "B cells")
 
 # plot specific gene across all clusters
-pbHeatmap(sce, res, g = "ISG20")
+pbHeatmap(example_sce, res, g = "ISG20")
 
 }
 \author{

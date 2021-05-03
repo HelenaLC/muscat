@@ -21,8 +21,8 @@ Renders a multidimensional scaling (MDS)
   with points colored by cluster ID and shaped by group ID.
 }
 \examples{
-data(sce)
-pb <- aggregateData(sce)
+data(example_sce)
+pb <- aggregateData(example_sce)
 pbMDS(pb)
 
 }
