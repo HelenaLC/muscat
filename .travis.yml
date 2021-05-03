@@ -1,4 +1,0 @@
-language: r
-r: bioc-devel
-sudo: false
-cache: packages
