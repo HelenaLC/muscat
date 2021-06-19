@@ -24,3 +24,12 @@ test_that("non-factor ID columns work", {
         y[[i]] <- as.character(y[[i]])
     expect_silent(prepSim(y, 0, 0, 0, 0, verbose = FALSE))
 })
+
+test_that("single cluster", {
+    g <- sample(levels(x$group_id), 1)
+    k <- sample(levels(x$cluster_id), 1)
+    y <- x[, i <- x$cluster_id == k & x$group_id == g]
+    z <- prepSim(y, min_size = 0, min_genes = 0, verbose = FALSE)
+    expect_true(ncol(z) == sum(i))
+    expect_true(!"cluster_id" %in% names(colData(z)))
+})
