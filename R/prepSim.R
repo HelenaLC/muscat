@@ -94,13 +94,11 @@ prepSim <- function(x,
     
     # assure these are factors
     for (v in vars) {
-        # drop singular variables
+        # drop singular variables from model
         n <- length(unique(x[[v]]))
         if (n == 1) {
-            x[[v]] <- NULL
             rmv <- grep(v, vars)
             vars <- vars[-rmv]
-            next
         }
         if (!is.factor(x[[v]]))
             x[[v]] <- as.factor(x[[v]])
@@ -197,6 +195,12 @@ prepSim <- function(x,
     os <- c(y$offset)
     names(os) <- colnames(x)
     x$offset <- os
+    
+    # drop singular variables from cell metadata
+    for (v in names(colData(x))) {
+        n <- length(unique(x[[v]]))
+        if (n == 1) x[[v]] <- NULL
+    }
     
     # return SCE
     return(x)
