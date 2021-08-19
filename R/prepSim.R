@@ -172,7 +172,9 @@ prepSim <- function(x,
     
     # drop genes for which estimation failed
     cs <- y$coefficients
-    x <- x[!rowAnyNAs(cs), ]
+    i <- !rowAnyNAs(cs)
+    cs <- cs[i, , drop = FALSE]
+    x <- x[i, , drop = FALSE]
     
     # group betas by variable
     bs <- DataFrame(

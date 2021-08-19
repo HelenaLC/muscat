@@ -1,3 +1,8 @@
+                        Changes in version 1.7.2
+
++ bug fix in prepSim(): removal of NA coefficients and 
+  subsetting of the input SCE was previously out of synch
+  
                         Changes in version 1.5.2
 
 + added edgeR::calcNormFactors() step in prepSim()
