@@ -173,8 +173,10 @@ prepSim <- function(x,
     # drop genes for which estimation failed
     cs <- y$coefficients
     i <- !rowAnyNAs(cs)
-    cs <- cs[i, , drop = FALSE]
     x <- x[i, , drop = FALSE]
+    cs <- cs[i, , drop = FALSE]
+    ds <- y$dispersion[i]
+    names(ds) <- rownames(x)
     
     # group betas by variable
     bs <- DataFrame(
@@ -188,12 +190,11 @@ prepSim <- function(x,
         names(df) <- gsub(pat, "", nms)
         bs[[v]] <- df
     }
+    # store betas & dispersions in rowData
     rowData(x)$beta <- bs
-    
-    # store dispersions in row- & offsets in colData
-    ds <- y$dispersion
-    names(ds) <- rownames(x)
     rowData(x)$disp <- ds
+    
+    # store offsets in colData
     os <- c(y$offset)
     names(os) <- colnames(x)
     x$offset <- os
