@@ -22,7 +22,10 @@ assay(x[de_gs, g23]) <- assay(x[de_gs, g23]) * 10
 # aggregate & run pseudobulk DS analysis
 nc <- length(cs <- list(2, 3))
 pbs <- aggregateData(x, assay = "counts", fun = "sum")
-y <- pbDS(pbs, coef = cs, filter = "none", verbose = FALSE)
+y <- pbDS(pbs, 
+    coef = cs, verbose = FALSE,
+    # assure everything is being tested
+    min_cells = 0, filter = "none")
     
 test_that("resDS()", {
     v <- list(col = list(nr = nrow(x)*nk, ng = nrow(x), nk = nk))
