@@ -1,3 +1,15 @@
+                        Changes in version 1.8.1
+
++ bug fix in prepSim(): removal of genes with NA coefficients
+  was previously not propagated to the dispersion estimates 
+
++ bug fix in test-resDR.R: set 'min_cells = 0' to assure that
+  everything is being tested, otherwise unit tests could fail
+
+                        Changes in version 1.8.0
+
++ Bioconductor 3.14 release
+
                         Changes in version 1.7.2
 
 + bug fix in prepSim(): removal of NA coefficients and 
@@ -6,10 +18,13 @@
                         Changes in version 1.5.2
 
 + added edgeR::calcNormFactors() step in prepSim()
+
 + added argument 'dd' to simData() specifying  
   whether or not to simulate 2 groups
+
 + prepSim() and simData() now support simulation of "singular" design  
   (no samples, no clusters), as well as only samples/clusters
+  
 + simData() defaults to simulating as many samples as available  
   in order to avoid re-use (duplication) of reference samples
 
