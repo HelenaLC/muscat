@@ -31,7 +31,11 @@ contrast <- limma::makeContrasts("g2-g1", "g3-g1", levels = design)
 # default method settings ------------------------------------------------------
 for (method in eval(as.list(args(pbDS))$method)) {
     test_that(paste("defaults - pbDS", method, sep = "."), {
-        res <- pbDS(pb, method = method, filter = "none", verbose = FALSE)
+        res <- pbDS(pb, 
+            method = method, 
+            min_cells = 0, 
+            filter = "none", 
+            verbose = FALSE)
         tbl <- res$table[[1]]
         expect_identical(names(tbl), kids)
         top <- map(tbl, function(u)

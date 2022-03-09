@@ -73,6 +73,7 @@
 #' @importFrom edgeR filterByExpr
 #' @importFrom dplyr last rename
 #' @importFrom limma makeContrasts
+#' @importFrom matrixStats colAnys
 #' @importFrom Matrix qr rowSums
 #' @importFrom methods is
 #' @importFrom scater isOutlier
@@ -151,9 +152,13 @@ pbDS <- function(pb,
             || qr(d)$rank == nrow(d) 
             || qr(d)$rank < ncol(d)) 
             return(NULL)
-        y <- y[rowSums(assay(y, k)) != 0, ]
+        y <- y[rowSums(assay(y, k)) != 0, , drop = FALSE]
         if (filter %in% c("genes", "both") & max(assay(y, k)) > 100) 
-            y <- y[filterByExpr(assay(y, k), d), ]
+            y <- y[filterByExpr(assay(y, k), d), , drop = FALSE]
+        # drop samples without any detected features
+        keep <- colAnys(assay(y, k) > 0)
+        y <- y[, keep, drop = FALSE]
+        d <- d[keep, , drop = FALSE]
         args <- list(x = y, k = k, design = d, coef = coef, 
             contrast = contrast, ct = ct, cs = cs, treat = treat)
         args <- args[intersect(names(args), fun_args)]
