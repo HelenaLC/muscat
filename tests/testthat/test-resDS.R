@@ -63,7 +63,7 @@ test_that("resDS() - 'cpm = TRUE'", {
     z <- resDS(x, y, cpm = TRUE)
     u <- z[, grep("cpm", colnames(z))]
     expect_true(ncol(u) == ns)
-    expect_true(all(u %% 2 == 0 | is.na(u)))
+    expect_true(all(u %% 1 == 0 | is.na(u)))
 })
 
 test_that("missing cluster is handled", {
