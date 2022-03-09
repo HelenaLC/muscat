@@ -1,3 +1,8 @@
+                        Changes in version 1.9.3
+
++ bug fix in pbDS(): drop samples w/o any detected features,
+  otherwise edgeR::calcNormFactors() fails when lib.size 0
+  
                         Changes in version 1.8.1
 
 + bug fix in prepSim(): removal of genes with NA coefficients
