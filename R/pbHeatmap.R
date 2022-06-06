@@ -71,22 +71,18 @@ pbHeatmap <- function(x, y,
     .check_sce(x, req_group = TRUE)
     .check_arg_assay(x, assay)
     .check_args_pbHeatmap(as.list(environment()))
-    #.check_res(x, y)
-    
-    # defaults for NULL arguments
-    if (is.null(k)) k <- levels(x$cluster_id)
-    if (is.null(c)) c <- names(y$table)[1]
     
     # subset specified contrast/coef & cluster(s)
-    y <- y$table[[c]][k]
+    if (is.null(k)) k <- levels(x$cluster_id)
+    if (names(y)[1] == "table") {
+      if (is.null(c)) c <- names(y$table)[1]
+      y <- y$table[[c]][k]
+    } else y <- y[k]
     y <- y[!vapply(y, is.null, logical(1))]
     
     # filter results
     if (!is.null(g)) y <- lapply(y, filter_, ~gene %in% g)
     y <- lapply(y, filter_, ~p_adj.loc < fdr, ~abs(logFC) > lfc)
-    
-    # get cluster IDs & nb. of clusters
-    nk <- length(names(kids) <- kids <- names(y))
     
     # subset 'top_n' results
     if (is.null(top_n)) {
@@ -94,6 +90,10 @@ pbHeatmap <- function(x, y,
     } else {
         ns <- vapply(y, function(u) min(nrow(u), top_n), numeric(1))
     }
+    
+    # get cluster IDs & nb. of clusters
+    ex <- ns == 0; ns <- ns[!ex]; y <- y[!ex]
+    nk <- length(names(kids) <- kids <- names(y))
     
     # re-order results
     if (sort_by == "none") {

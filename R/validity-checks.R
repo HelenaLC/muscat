@@ -194,6 +194,9 @@
         is.numeric(u$lfc), length(u$lfc) == 1,
         is.character(u$sort_by), length(u$sort_by) == 1,
         u$sort_by == "none" | 
+            !is.null(dim(u$y[[1]])) &
+            u$sort_by %in% names(u$y[[1]]) &
+            is.numeric(u$y[[1]][[u$sort_by]]) |
             u$sort_by %in% names(u$y$table[[1]][[1]]) &
             is.numeric(u$y$table[[1]][[1]][[u$sort_by]]),
         is.function(u$fun),
