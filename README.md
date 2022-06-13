@@ -3,13 +3,12 @@
 `muscat` (**Mu**lti-sample **mu**lti-group **sc**RNA-seq **a**nalysis **t**ools )  
 provides various methods for *Differential State* (DS) analyses in  
 multi-sample, multi-group, multi-(cell-)subpopulation scRNA-seq data,  
-as elaborated in our preprint:
+as elaborated in our paper:
 
-> Crowell HL, Soneson C\*, Germain P-L\*,  
-Calini D, Collin L, Raposo C, Malhotra D & Robinson MD:  
-On the discovery of population-specific state transitions from  
-multi-sample multi-condition single-cell RNA sequencing data.  
-*bioRxiv* **713412** (July, 2019). doi: [10.1101/713412](https://doi.org/10.1101/713412)
+> Crowell HL, Soneson C\*, Germain P-L\*,
+Calini D, Collin L, Raposo C, Malhotra D, Robinson MD:
+muscat detects subpopulation-specific state transitions from multi-sample multi-condition single-cell transcriptomics data. Nat Commun 11, 6077 (2020). https://doi.org/10.1038/s41467-020-19894-4
+
 
 *These authors contributed equally.
 
