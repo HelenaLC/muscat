@@ -47,13 +47,14 @@ library(cowplot)
 
 *** 
 
-For details on the concept and technicalities of DS analysis, and the methods presented here, consider having a look at our preprint:
+For details on the concept and technicalities of DS analysis, and the methods presented here, consider having a look at our publication:
 
-> Crowell HL, Soneson C\*, Germain P-L\*,  
-Calini D, Collin L, Raposo C, Malhotra D & Robinson MD:  
-On the discovery of population-specific state transitions from  
-multi-sample multi-condition single-cell RNA sequencing data.  
-*bioRxiv* **713412** (July, 2019). doi: [10.1101/713412](https://doi.org/10.1101/713412)
+> Crowell HL, Soneson C\*, Germain P-L\*, Calini D,  
+Collin L, Raposo C, Malhotra D, and Robinson MD:  
+*muscat* detects subpopulation-specific state transitions from   
+multi-sample multi-condition single-cell transcriptomics data.  
+Nature Communications **11**, 6077 (2020).  
+[DOI: 10.1038/s41467-020-19894-4](https://doi.org/10.1038/s41467-020-19894-4)
 
 # Load packages {-}
 
