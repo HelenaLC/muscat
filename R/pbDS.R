@@ -20,6 +20,9 @@
 #'   Can be a list for multiple, independent comparisons.
 #' @param min_cells a numeric. Specifies the minimum number of cells in a given 
 #'   cluster-sample required to consider the sample for differential testing.
+#' @param nmads a numeric. Specifies the number median absolute deviations
+#' of summed counts below the median required to consider the sample for
+#' differential testing
 #' @param filter characterstring specifying whether
 #'   to filter on genes, samples, both or neither.
 #' @param treat logical specifying whether empirical Bayes moderated-t 
@@ -30,6 +33,8 @@
 #' @param BPPARAM a \code{\link[BiocParallel]{BiocParallelParam}}
 #'   object specifying how differential testing should be parallelized.
 #' @param verbose logical. Should information on progress be reported?
+#' 
+#' @inheritDotParams edgeR::filterByExpr
 #'
 #' @return a list containing \itemize{
 #' \item a data.frame with differential testing results,
@@ -83,9 +88,9 @@
 
 pbDS <- function(pb, 
     method = c("edgeR", "DESeq2", "limma-trend", "limma-voom"),
-    design = NULL, coef  = NULL, contrast = NULL, min_cells = 10, 
+    design = NULL, coef  = NULL, contrast = NULL, min_cells = 10, nmads=3,
     filter = c("both", "genes", "samples", "none"), treat = FALSE, 
-    verbose = TRUE, BPPARAM = SerialParam(progressbar = verbose)) {
+    verbose = TRUE, BPPARAM = SerialParam(progressbar = verbose), ...) {
     
     # check validity of input arguments
     args <- as.list(environment())
@@ -145,7 +150,7 @@ pbDS <- function(pb,
         d <- design[colnames(y <- pb[ , !rmv]), , drop = FALSE]
         if (filter %in% c("samples", "both")) {
             ls <- colSums(assay(y, k))
-            ol <- isOutlier(ls, log = TRUE, type = "lower", nmads = 3)
+            ol <- isOutlier(ls, log = TRUE, type = "lower", nmads = nmads)
             d <- d[colnames(y <- y[, !ol]), , drop = FALSE]
         }
         if (any(tabulate(y$group_id) < 2) 
@@ -154,7 +159,7 @@ pbDS <- function(pb,
             return(NULL)
         y <- y[rowSums(assay(y, k)) != 0, , drop = FALSE]
         if (filter %in% c("genes", "both") & max(assay(y, k)) > 100) 
-            y <- y[filterByExpr(assay(y, k), d), , drop = FALSE]
+            y <- y[filterByExpr(assay(y, k), design=d, ...), , drop = FALSE]
         # drop samples without any detected features
         keep <- colAnys(assay(y, k) > 0)
         y <- y[, keep, drop = FALSE]

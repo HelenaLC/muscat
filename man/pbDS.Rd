@@ -11,10 +11,12 @@ pbDS(
   coef = NULL,
   contrast = NULL,
   min_cells = 10,
+  nmads = 3,
   filter = c("both", "genes", "samples", "none"),
   treat = FALSE,
   verbose = TRUE,
-  BPPARAM = SerialParam(progressbar = verbose)
+  BPPARAM = SerialParam(progressbar = verbose),
+  ...
 )
 }
 \arguments{
@@ -39,6 +41,10 @@ created with \code{\link[limma]{makeContrasts}}.}
 \item{min_cells}{a numeric. Specifies the minimum number of cells in a given 
 cluster-sample required to consider the sample for differential testing.}
 
+\item{nmads}{a numeric. Specifies the number median absolute deviations
+of summed counts below the median required to consider the sample for
+differential testing}
+
 \item{filter}{characterstring specifying whether
 to filter on genes, samples, both or neither.}
 
@@ -52,6 +58,12 @@ Only applicable for methods \code{"limma-x"}
 
 \item{BPPARAM}{a \code{\link[BiocParallel]{BiocParallelParam}}
 object specifying how differential testing should be parallelized.}
+
+\item{...}{
+  Arguments passed on to \code{\link[edgeR:filterByExpr]{edgeR::filterByExpr}}
+  \describe{
+    \item{\code{y}}{matrix of counts, or a \code{DGEList} object, or a \code{SummarizedExperiment} object.}
+  }}
 }
 \value{
 a list containing \itemize{
