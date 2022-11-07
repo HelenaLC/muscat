@@ -99,7 +99,13 @@
         y <- suppressMessages(DGEList(y, remove.zeros = TRUE))
         y <- calcNormFactors(y)
         y <- voom(y, design)
+    } else if (method == "trend") { # looks the muscat version does not normalize the data
+      dge <- suppressMessages(DGEList(y, remove.zeros = TRUE))
+      dge <- calcNormFactors(dge)
+      y <- new("EList")
+      y$E <- edgeR::cpm(dge, log = TRUE, prior.count = 3)
     } 
+    
     w <- .n_cells(x)[k, colnames(x)]   
     fit <- lmFit(y, design, weights = w)
     # treat: eBayes moderated-t p-val relative to min logFC threshold
