@@ -165,7 +165,7 @@ all(ref_sids[, 1] == ref_sids[, 2])
 Argument `p_dd` specifies the fraction of cells to simulate for each DD category. Its values should thus lie in $[0,1]$ and sum to 1. Expression densities for an exemplary set of genes simulated from the code below is shown in Fig. \@ref(fig:densities).
 
 ```{r p_dd}
-# simulare genes from all DD categories
+# simulate genes from all DD categories
 sim <- simData(ref, p_dd = c(0.5, rep(0.1, 5)),
     nc = 2e3, ng = 1e3, force = TRUE)
 ```
@@ -178,7 +178,7 @@ table(gi$category)
 ```
 
 ```{r densities, echo = FALSE, fig.wide = TRUE, fig.width = 8, fig.height = 3, fig.cap = "Expression densities for an exemplary set of 3 genes per *differential distribution* category. Each density corresponds to one sample, lines are colored by group ID, and panels are split by gene and subpopulation."}
-# simulare genes from all DD categories
+# simulate genes from all DD categories
 sim <- simData(ref, 
     nc = 2e3, nk = 1, ns = 4,
     p_dd = c(0.5, rep(0.1, 5)),
@@ -291,11 +291,9 @@ plot_grid(nrow = 1, rel_widths = c(5, 1),
 
 ## Simulation a hierarchical cluster structure
 
-> under development.
-
 `simData` contains three parameters that control how subpopulations relate to and differ from one another: 
 
-i. `p_type` determines the percentage of type genes exclusice to each cluster
+i. `p_type` determines the percentage of type genes exclusive to each cluster
 i. `phylo_tree` represents a phylogenetic tree specifying of clusters relate to one another
 i. `phylo_pars` controls how branch distances are to be interpreted 
 
@@ -332,7 +330,7 @@ plotHeatmap(sim[, unlist(cs)], features = gs, center = TRUE,
 
 ### `phylo_tree`: Introducing a cluster phylogeny
 
-The scenario illustrated above is arguably not very realistic. Instead, in a biology setting, subpopulations don't differ from one another by a specific subset of genes, but may share some of the genes decisive for their biologigcal role. I.e., the set *type* features is not exclusive for every given subpopulation, and some subpopulations are more similar to one another than others. 
+The scenario illustrated above is arguably not very realistic. Instead, in a biology setting, subpopulations don't differ from one another by a specific subset of genes, but may share some of the genes decisive for their biological role. I.e., the set *type* features is not exclusive for every given subpopulation, and some subpopulations are more similar to one another than others. 
 
 To introduce a more realistic subpopulation structure, `simData` can be supplied with a phylogenetic tree, `phylo_tree`, that specifies the relationship and distances between clusters. The tree should be written in Newick format as in the following example:
 
@@ -460,7 +458,7 @@ names(mids) <- mids <- c("edgeR", "DESeq2", "limma-trend", "limma-voom")
 res <- lapply(mids, .run_method)
 
 # calculate performance measures 
-# and prep. for plotting with 'iCOBRRA'
+# and prep. for plotting with 'iCOBRA'
 library(iCOBRA)
 perf <- .calc_perf(res, "cluster_id")
 pd <- prepare_data_for_plot(perf)
