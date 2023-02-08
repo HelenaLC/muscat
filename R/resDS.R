@@ -58,7 +58,7 @@
 #' 
 #' @author Helena L Crowell & Mark D Robinson
 #' 
-#' @importFrom dplyr %>% bind_rows inner_join full_join mutate mutate_if select
+#' @importFrom dplyr %>% bind_rows inner_join full_join mutate mutate_if select all_of
 #' @importFrom edgeR cpm
 #' @importFrom methods is
 #' @importFrom purrr reduce
@@ -90,7 +90,7 @@ resDS <- function(x, y, bind = c("row", "col"),
             cs <- names(y$table)
             res <- lapply(cs, function(c) {
                 df <- bind_rows(y$table[[c]])
-                df <- select(df, -ct)
+                df <- select(df, !all_of(ct))
                 i <- !colnames(df) %in% c("gene", "cluster_id")
                 colnames(df)[i] <- paste(colnames(df)[i], c, sep = sep)
                 return(df)
@@ -118,7 +118,9 @@ resDS <- function(x, y, bind = c("row", "col"),
             do.call("rbind", as.list(assays(frq))),
             row.names = NULL, check.names = FALSE, stringsAsFactors = FALSE)
         frq <- .tidy(frq, ei, append = ".frq")
-        res <- inner_join(frq, res, by = c("gene", "cluster_id"))
+        res <- inner_join(frq, res, 
+            multiple = "all",
+            by = c("gene", "cluster_id"))
     }
 
     # append CPMs
@@ -136,7 +138,9 @@ resDS <- function(x, y, bind = c("row", "col"),
         })
         cpm <- bind_rows(cpm)
         cpm <- .tidy(cpm, ei, append = ".cpm")
-        res <- inner_join(cpm, res, by = c("gene", "cluster_id"))
+        res <- inner_join(cpm, res,
+            multiple = "all",
+            by = c("gene", "cluster_id"))
     }
     mutate_if(res, is.numeric, signif, digits)
 }
