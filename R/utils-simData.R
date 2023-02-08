@@ -371,6 +371,9 @@ cats <- factor(cats, levels = cats)
     cs <- map(re, "counts")
     cs <- do.call("cbind", cs)
     ms <- map(re, "means")
+    foo <- replicate(length(d), 0, simplify = FALSE)
+    if (length(ms[[1]]) == 0) ms[[1]] <- foo
+    if (length(ms[[2]]) == 0) ms[[2]] <- foo
     rmv <- vapply(ms, is.null, logical(1))
     ms <- ms[!rmv] %>% 
         map_depth(2, mean) %>% 
