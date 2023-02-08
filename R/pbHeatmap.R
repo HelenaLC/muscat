@@ -53,7 +53,7 @@
 #' @author Helena L Crowell
 #' 
 #' @importFrom ComplexHeatmap Heatmap columnAnnotation rowAnnotation
-#' @importFrom dplyr bind_rows filter_
+#' @importFrom dplyr bind_rows filter
 #' @importFrom grid gpar
 #' @importFrom purrr map
 #' @importFrom scales hue_pal
@@ -81,8 +81,8 @@ pbHeatmap <- function(x, y,
     y <- y[!vapply(y, is.null, logical(1))]
     
     # filter results
-    if (!is.null(g)) y <- lapply(y, filter_, ~gene %in% g)
-    y <- lapply(y, filter_, ~p_adj.loc < fdr, ~abs(logFC) > lfc)
+    if (!is.null(g)) y <- lapply(y, filter, gene %in% g)
+    y <- lapply(y, filter, p_adj.loc < fdr, abs(logFC) > lfc)
     
     # subset 'top_n' results
     if (is.null(top_n)) {
