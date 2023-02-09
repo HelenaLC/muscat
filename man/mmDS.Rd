@@ -166,15 +166,15 @@ Meant to be called by \code{mmDS} with \code{method = c("dream", "vst")} and
 }
 \section{Functions}{
 \itemize{
-\item \code{.mm_dream}: see details.
+\item \code{.mm_dream()}: see details.
 
-\item \code{.mm_dream2}: see details.
+\item \code{.mm_dream2()}: see details.
 
-\item \code{.mm_vst}: see details.
+\item \code{.mm_vst()}: see details.
 
-\item \code{.mm_glmm}: see details.
+\item \code{.mm_glmm()}: see details.
+
 }}
-
 \examples{
 # subset "B cells" cluster
 data(example_sce)

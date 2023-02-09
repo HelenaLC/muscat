@@ -57,7 +57,7 @@ test_that("resDS() - 'frq = TRUE'", {
     u <- z[, grep("frq", colnames(z))]
     expect_true(ncol(u) == ns + ng)
     expect_true(all(u <= 1 & u >= 0 | is.na(u)))
-    expect_true(all(z[z$cluster_id == k, paste0(s, ".frq")] == 0))
+    expect_true(all(is.na(z[z$cluster_id == k, paste0(s, ".frq")])))
 })
 test_that("resDS() - 'cpm = TRUE'", {
     z <- resDS(x, y, cpm = TRUE)

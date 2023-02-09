@@ -1,3 +1,10 @@
+                        Changes in version 1.12.1
+
++ fixed various typos in both vignettes
++ internal fixes to keep up with 'ggplot2' & 'dplyr' updates
++ bug fix in 'simDS' computing means when one group is missing
++ bug fix in 'resDS' until testing when 'cpm/frq = TRUE'
+
                         Changes in version 1.11.1
 
 + bug fix in pbHeatmap(): previously failed for results from 'mmDS()'

@@ -67,5 +67,5 @@ pbMDS <- function(x) {
         theme_bw() + theme(aspect.ratio = 1,
             axis.text = element_text(color = "black"),
             panel.grid.minor = element_blank(),
-            panel.grid.major = element_line(size = 0.2, color = "lightgrey"))
+            panel.grid.major = element_line(linewidth = 0.2, color = "lightgrey"))
 }

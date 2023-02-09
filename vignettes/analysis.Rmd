@@ -86,11 +86,11 @@ The approach presented here is modular and thus subpopulation labels could origi
 
 ## Data description
 
-For this vignette, we will use a `r Biocpkg("SingleCellExperiment")` (SCE) containing 10x droplet-based scRNA-seq PBCM data from 8 Lupus patients obtained befor and after 6h-treatment with IFN-$\beta$ [@Kang2018-demuxlet]. The complete raw data, as well as gene and cell metadata is available through the NCBI GEO, accession number [GSE96583](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE96583). 
+For this vignette, we will use a `r Biocpkg("SingleCellExperiment")` (SCE) containing 10x droplet-based scRNA-seq PBCM data from 8 Lupus patients obtained before and after 6h-treatment with IFN-$\beta$ [@Kang2018-demuxlet]. The complete raw data, as well as gene and cell metadata is available through the NCBI GEO, accession number [GSE96583](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE96583). 
 
 ## Loading the data
 
-The @Kang2018-demuxlet dataset has been made available through Biocondcutor's `ExperimentHub` and can be loaded into R as follows: We first initialize a Hub instance to search for and load available data with the `ExperimentHub` function, and store the complete list of records in the variable `eh`. Using `query`, we then retrieve any records that match our keyword(s) of interest, as well as their corresponding accession ID (EH1234).
+The @Kang2018-demuxlet dataset has been made available through Bioconductor's `ExperimentHub` and can be loaded into R as follows: We first initialize a Hub instance to search for and load available data with the `ExperimentHub` function, and store the complete list of records in the variable `eh`. Using `query`, we then retrieve any records that match our keyword(s) of interest, as well as their corresponding accession ID (EH1234).
 
 ```{r eh, message = FALSE}
 library(ExperimentHub)
@@ -155,7 +155,7 @@ library(sctransform)
 assays(sce)$vstresiduals <- vst(counts(sce), verbosity = FALSE)$y
 ```
 
-By default, `r BiocStyle::Biocpkg("scater")`'s functions will try to access the assay data specified via argument `exprs_values` (default `logcounts`) for e.g. visualization and dimension reduction. When an alternative assay such as the `vstresiduals` above should be used, it is thus necessary to explicitly specify this, for example, via `runUMAP(sce, exprs_values = "vstresiduals")` to compute UMAP cell embedings on the assay data compute above.
+By default, `r BiocStyle::Biocpkg("scater")`'s functions will try to access the assay data specified via argument `exprs_values` (default `logcounts`) for e.g. visualization and dimension reduction. When an alternative assay such as the `vstresiduals` above should be used, it is thus necessary to explicitly specify this, for example, via `runUMAP(sce, exprs_values = "vstresiduals")` to compute UMAP cell embeddings on the assay data compute above.
 
 ## Data preparation
 
@@ -214,7 +214,7 @@ Using `r Biocpkg("scater")`'s `plotReducedDim` function, we can plot t-SNE and U
     theme_minimal() + theme(aspect.ratio = 1)
 ```
 
-For our dataset, the t-SNE and UMAP colored by `cluster_id`s show that cell-populations are well-separated from one another. IFN-$\beta$ stimulation manifests as a severe shift in the low-dimensional projection of cells when coloring by `group_id`s, indicating widespread, genome-scale transcriptiontal changes.
+For our dataset, the t-SNE and UMAP colored by `cluster_id`s show that cell-populations are well-separated from one another. IFN-$\beta$ stimulation manifests as a severe shift in the low-dimensional projection of cells when coloring by `group_id`s, indicating widespread, genome-scale transcriptional changes.
 
 ```{r eval = FALSE}
 # downsample to max. 100 cells per cluster
