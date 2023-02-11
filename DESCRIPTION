@@ -9,8 +9,10 @@ Type: Package
 Version: 1.13.1
 Depends: R (>= 4.2)
 Authors@R: c(
-	person("Helena L.", "Crowell", role=c("aut", "cre"), 
-	    email="helena@crowell.eu"),
+	person("Helena L.", "Crowell", 
+	    role=c("aut", "cre"),
+	    email="helena@crowell.eu", 
+	    comment=c(ORCID="0000-0002-4801-1767")), 
 	person("Pierre-Luc", "Germain", role="aut"),
 	person("Charlotte", "Soneson", role="aut"),
 	person("Anthony", "Sonrel", role="aut"),
