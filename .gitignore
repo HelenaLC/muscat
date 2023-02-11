@@ -1,5 +1,7 @@
-.DS_Store
+.RData
 .Rhistory
-**/*.html
-**/*/.DS_Store
+.DS_Store
+.Ruserdata
+.Rproj.user
 vignettes/*/
+vignettes/*.html
