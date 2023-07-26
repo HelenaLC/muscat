@@ -1,3 +1,19 @@
+                        Changes in version 1.15.1
+                        
++ bug fix in 'pbDS': too stringent filtering causing no genes in any clusters
+  to be tested previously resulted in a 'subscript out of bounds' error;
+  execution is stopped and an informative error thrown instead.
+  
++ bug fix in 'mmDS': 'dream' (new version?) wouldn't recognize
+  model variables provided as data; fixed via adding 'as.formula()'.
+  
++ "analysis" vignette: replaced suspended 'dplyr' function
+  'top_n' with 'slice_min' when filtering for top DS hits
+
+                        Changes in version 1.15.0
+                        
++ Bioconductor release v3.17
+
                         Changes in version 1.12.1
 
 + fixed various typos in both vignettes
