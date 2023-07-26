@@ -51,7 +51,8 @@ test_that(".scale()", {
         x[i, j] <- NA; z <- .scale(x)
         expect_true(sum(is.na(z)) == 1)
         os <- lapply(list(y, z), function(u) {
-            rngs <- colRanges(u[-i, -j], na.rm = TRUE)
+            rngs <- colRanges(u[-i, -j], 
+              na.rm = TRUE, useNames = FALSE)
             apply(rngs, 2, order)
         })
         expect_identical(os[[1]], os[[2]])
