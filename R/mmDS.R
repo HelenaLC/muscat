@@ -137,8 +137,8 @@ mmDS <- function(x, coef = NULL, covs = NULL,
     }
     
     # get method function & construct correct call
-    fun <- ifelse(is.function(args$method),
-        args$method, get(paste0(".mm_", args$method)))
+    if (!is.function(fun <- args$method))
+        fun <- get(paste0(".mm_", fun))
     args_use <- names(formals(fun))
     args <- args[names(args) %in% args_use]
     

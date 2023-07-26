@@ -12,7 +12,7 @@ ns <- length(sids <- levels(sce$sample_id))
 ng <- length(gids <- levels(sce$group_id))
 
 test_that("aggregation across 2 factors", {
-    for (fun in c("sum", "mean", "median")) {
+    for (fun in c("sum", "mean", "median")) { 
         pb <- aggregateData(sce, by = c("cluster_id", "sample_id"), fun = fun)
         expect_error(aggregateData(sce, assay = "x"))
         expect_error(aggregateData(sce, fun = "x"))

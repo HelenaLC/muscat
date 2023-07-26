@@ -80,7 +80,7 @@
     }
 
     contrast <- getContrast(v, as.formula(formula), cd, coef)
-    .dream <- expression(dream(v, formula, cd, contrast, ddf, 
+    .dream <- expression(dream(v, as.formula(formula), cd, contrast, ddf, 
         BPPARAM = BPPARAM, suppressWarnings = !verbose, quiet  = !verbose))
     if (verbose) fit <- eval(.dream) else suppressWarnings(fit <- eval(.dream))
     #fit <- eBayes(fit, trend = trended, robust = TRUE)

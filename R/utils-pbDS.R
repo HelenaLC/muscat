@@ -4,11 +4,14 @@
 #' @importFrom SummarizedExperiment assay colData
 .pb <- function(x, by, assay, fun, BPPARAM = SerialParam()) {
   # compute pseudobulks
+  suppressWarnings( 
+    # temporarily suppressing warnings b/c 'median' 
+    # warns about unspecified 'useNames' argument
   y <- summarizeAssayByGroup(x,
-    assay.type = assay, 
-    ids = (ids <- colData(x)[by]),
-    statistics = fun,
-    BPPARAM = BPPARAM)
+        assay.type = assay, 
+        ids = (ids <- colData(x)[by]),
+        statistics = fun,
+        BPPARAM = BPPARAM))
   colnames(y) <- y[[by[length(by)]]]
   
   if (length(by) == 1) 
@@ -18,7 +21,7 @@
   if (is.factor(ids <- y[[by[1]]]))
       ids <- droplevels(ids)
   is <- split(seq_len(ncol(y)), ids)
-  ys <- map(is, ~assay(y)[, .])
+  ys <- map(is, ~assay(y)[, ., drop=FALSE])
   
   # fill in missing combinations
   for (i in seq_along(ys)) {
