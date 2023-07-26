@@ -31,7 +31,7 @@ bibliography: "`r file.path(system.file('extdata', package = 'muscat'), 'refs.bi
 abstract: > 
   <p> Single-cell RNA sequencing (scRNA-seq) has quickly become an empowering technology to profile the transcriptomes of individual cells on a large scale. Many early analyses of differential expression have aimed at identifying differences between subpopulations, and thus are focused on finding subpopulation markers either in a single sample or across multiple samples. More generally, such methods can compare expression levels in multiple sets of cells, thus leading to cross-condition analyses.
   <p> However, given the emergence of replicated multi-condition scRNA-seq  datasets,  an  area  of  increasing  focus  is making  sample-level inferences, termed here as *differential state* (DS) analysis. For example, one could investigate the condition-specific responses of cell subpopulations measured from patients in each condition.
-  <p> `muscat`: **mu**lti-sample **mu**lti-group **sc**RNA-seq **a**nalysis **t**ools [@Crowell2019-muscat] provides various methods and visualization tools for DS analysis in multi-sample, multi-group, multi-(cell-)subpopulation scRNA-seq data, including cell-level mixed models and methods based on aggregated “pseudobulk” data, as well as a flexible simulation platform that mimics both single and multi-sample scRNA-seq data.
+  <p> `muscat`: **mu**lti-sample **mu**lti-group **sc**RNA-seq **a**nalysis **t**ools [@Crowell2020-muscat] provides various methods and visualization tools for DS analysis in multi-sample, multi-group, multi-(cell-)subpopulation scRNA-seq data, including cell-level mixed models and methods based on aggregated “pseudobulk” data, as well as a flexible simulation platform that mimics both single and multi-sample scRNA-seq data.
 ---
 
 <style type="text/css">
@@ -188,7 +188,7 @@ names(kids) <- kids; names(sids) <- sids
 
 As we will be aggregating measurements at the cluster-sample level, it is of particular importance to check the number of cells captured for each such instance. While `aggregateData` (see Section \@ref(sec-agg)) allows excluding cluster-sample combinations with less than a threshold number of cells, clusters or samples with overall very low cell-counts may be excluded from further analysis at this point already.
 
-For the @Kang2018-demuxlet dataset, for example, one might consider removing the *Dendritic cells* and *Megakaryocytes* clusters, as these containg less than 50 cells across all samples.
+For the @Kang2018-demuxlet dataset, for example, one might consider removing the *Dendritic cells* and *Megakaryocytes* clusters, as these contain less than 50 cells across all samples.
 
 ```{r ncells, size = "small"}
 # nb. of cells per cluster-sample
@@ -204,7 +204,7 @@ The dimension reductions (DR) available within the SCE can be accessed via `redu
 sce <- runUMAP(sce, pca = 20)
 ```
 
-Using `r Biocpkg("scater")`'s `plotReducedDim` function, we can plot t-SNE and UMAP representations colored by cluster and group IDs, respectively. We additionaly create a small wrapper function, `.plot_dr()`, to improve the readability of color legends and simplify the plotting theme:
+Using `r Biocpkg("scater")`'s `plotReducedDim` function, we can plot t-SNE and UMAP representations colored by cluster and group IDs, respectively. We additionally create a small wrapper function, `.plot_dr()`, to improve the readability of color legends and simplify the plotting theme:
 
 ```{r}
 # wrapper to prettify reduced dimension plots
@@ -454,7 +454,8 @@ The code chunk generates a set of t-SNEs colored by gene expression for the top-
 ```{r fig.width = 14, fig.height = 8, fig.cap = "t-SNE colored by gene expression. Show are t-SNE projections with cells colored by the expression of the top-8 DS genes. For each cluster, at most 100 cells were sampled for plotting."}
 # pull top-8 DS genes across all clusters
 top8 <- bind_rows(tbl_fil) %>% 
-  top_n(8, dplyr::desc(p_adj.loc)) %>% 
+  slice_min(p_adj.loc, n = 8, 
+    with_ties = FALSE) %>% 
   pull("gene")
 
 # for ea. gene in 'top8', plot t-SNE colored by its expression 
@@ -482,7 +483,7 @@ plotExpression(sce[, sce$cluster_id == "B cells"],
 
 ## Sample-level viz.: Pseudobulk heatmaps
 
-Especially when wanting to gain an overview of numerous DE testing results for many clusters, both dimension reduction and cell-level visualisations require a lot of space can become cumbersome to interpret. In this setting, it is thus recommended to visualise aggregated measures, e.g., mean expressions by cluster sample.
+Especially when wanting to gain an overview of numerous DE testing results for many clusters, both dimension reduction and cell-level visualizations require a lot of space can become cumbersome to interpret. In this setting, it is thus recommended to visualize aggregated measures, e.g., mean expressions by cluster sample.
 
 ```{r pb-hm-1}
 # top-5 DS genes per cluster
