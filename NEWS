@@ -8,7 +8,8 @@
   model variables provided as data; fixed via adding 'as.formula()'.
   
 + "analysis" vignette: replaced suspended 'dplyr' function
-  'top_n' with 'slice_min' when filtering for top DS hits
+  'top_n' with 'slice_min' when filtering for top DS hits;
+  fixed some types; updated preprint to journal reference.
 
                         Changes in version 1.15.0
                         
