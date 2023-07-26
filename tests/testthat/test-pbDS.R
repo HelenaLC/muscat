@@ -90,3 +90,12 @@ test_that(".p_adj_global", {
             p.adjust(bind_rows(df[[c]])$p_val, method = "BH"),
             bind_rows(df[[c]])$p_adj.glb)
 })
+
+# filtering --------------------------------------------------------------------
+test_that("pbDS() filtering", {
+  sub <- sce[, sample(ncol(sce), 100)]
+  pbs <- aggregateData(sub, assay = "counts", fun = "sum")
+  expect_error(pbDS(pbs, verbose = FALSE))
+  expect_silent(pbDS(pbs, verbose = FALSE, 
+    min_cells = 0, filter = "none"))
+})

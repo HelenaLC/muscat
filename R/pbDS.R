@@ -168,7 +168,11 @@ pbDS <- function(pb,
     # remove empty clusters
     rmv <- vapply(res, is.null, logical(1))
     res <- res[!rmv]
-    kids <- kids[names(res)]
+    
+    if (length(res) == 0) stop(
+      "Specified filtering options result in no genes in any clusters ",
+      "being tested. To force testing, consider modifying arguments ",
+      "'min_cells' and/or 'filter'. See '?pbDS' for details.")
     
     # reorganize & do global p-value adjustment
     names(i) <- i <- c("table", "data", "fit")
