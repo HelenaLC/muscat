@@ -6,7 +6,7 @@ Description: `muscat` provides various methods and visualization tools
     aggregated “pseudobulk” data, as well as a flexible simulation platform 
     that mimics both single and multi-sample scRNA-seq data.
 Type: Package
-Version: 1.16.0
+Version: 1.17.0
 Depends: R (>= 4.3)
 Authors@R: c(
 	person("Helena L.", "Crowell", 
