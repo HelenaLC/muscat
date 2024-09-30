@@ -16,6 +16,9 @@ Authors@R: c(
 	person("Pierre-Luc", "Germain", role="aut"),
 	person("Charlotte", "Soneson", role="aut"),
 	person("Anthony", "Sonrel", role="aut"),
+	person("Jeroen", "Gilis", role="aut"),
+	person("Davide", "Risso", role="aut"),
+	person("Lieven", "Clement", role="aut"),
 	person("Mark D.", "Robinson", role=c("aut", "fnd"), 
 	    email="mark.robinson@imls.uzh.ch"))
 Imports: 
@@ -33,22 +36,23 @@ Imports:
 Suggests: 
 	BiocStyle,
 	countsimQC,
-	cowplot, 
 	ExperimentHub, 
 	iCOBRA,
 	knitr, 
+	patchwork,
 	phylogram,
 	RColorBrewer,
 	reshape2, 
 	rmarkdown,
 	statmod,
+	stageR,
 	testthat, 
 	UpSetR
 biocViews: ImmunoOncology, DifferentialExpression, Sequencing, 
     SingleCell, Software, StatisticalMethod, Visualization
 License: GPL-3
 VignetteBuilder: knitr
-RoxygenNote: 7.2.3
+RoxygenNote: 7.3.2
 Encoding: UTF-8
 URL: https://github.com/HelenaLC/muscat
 BugReports: https://github.com/HelenaLC/muscat/issues

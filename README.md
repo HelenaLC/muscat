@@ -1,41 +1,31 @@
 <img src="inst/extdata/muscat.png" width="200" align="right"/> 
 
 `muscat` (**Mu**lti-sample **mu**lti-group **sc**RNA-seq **a**nalysis **t**ools )  
-provides various methods for *Differential State* (DS) analyses in  
-multi-sample, multi-group, multi-(cell-)subpopulation scRNA-seq data,  
-as elaborated in our preprint:
+
+...provides methods for *Differential State* (DS) analyses in scRNA-seq data  
+with multiple samples, groups, and (cell)-subpopulations, as elaborated in:
 
 > Crowell HL, Soneson C\*, Germain P-L\*,  
 Calini D, Collin L, Raposo C, Malhotra D & Robinson MD:  
-On the discovery of population-specific state transitions from  
-multi-sample multi-condition single-cell RNA sequencing data.  
-*bioRxiv* **713412** (July, 2019). doi: [10.1101/713412](https://doi.org/10.1101/713412)
+"*muscat* detects subpopulation-specific state transitions from  
+multi-sample multi-condition single-cell transcriptomics data"  
+*Nature Communications* **11**, 6077 (2020)  
+[DOI: 10.1038/s41467-020-19894-4](https://doi.org/10.1038/s41467-020-19894-4)
 
 *These authors contributed equally.
 
-***
+### installation
 
-**`muscat` is still work in progress. Any constructive feedback (feature requests, comments on documentation, issues or bug reports) is appreciated; therefor, please file a issue on GitHub rather then emailing, so that others may benifit from answers and discussions!**
+`muscat` is available through Bioconductor, and
+can be installed using the following commands:
 
-***
-
-### Installation
-
-`muscat` can be installed from GitHub using the following commands:
-
-```{r}
-if (!requireNamespace("devtools", quietly = TRUE))
-    install.packages("devtools")
-    
-# for the stable release branch:
-devtools::install_github("HelenaLC/muscat", ref = "master")
-
-
-# for the current development version:
-devtools::install_github("HelenaLC/muscat", ref = "devel")
+```r
+if (!requireNamespace("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+BiocManager::install("muscat")
 ```
 
-### Quick guide
+### quick guide
 
 Let `sce` be a [`SingleCellExperiment`](https://www.bioconductor.org/packages/SingleCellExperiment.html) object with cell metadata (`colData`) columns
 
@@ -45,7 +35,7 @@ Let `sce` be a [`SingleCellExperiment`](https://www.bioconductor.org/packages/Si
 
 Aggregation-based methods come down to the following simple commands: 
 
-```{r}
+```r
 # compute pseudobulks (sum of counts)
 pb <- aggregateData(sce, 
     assay = "counts", fun = "sum",
@@ -57,8 +47,8 @@ ds_pb <- pbDS(pb, method = "edgeR")
 
 Mixed models can be run directly on cell-level measurements, e.g.:
 
-```{r}
+```r
 ds_mm <- mmDS(sce, method = "dream")
 ```
 
-For details, please see the package vignette.
+For details, please see the package vignettes.
