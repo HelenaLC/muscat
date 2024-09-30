@@ -20,7 +20,7 @@
 #'   Can be a list for multiple, independent comparisons.
 #' @param min_cells a numeric. Specifies the minimum number of cells in a given 
 #'   cluster-sample required to consider the sample for differential testing.
-#' @param filter characterstring specifying whether
+#' @param filter character string specifying whether
 #'   to filter on genes, samples, both or neither.
 #' @param treat logical specifying whether empirical Bayes moderated-t 
 #'   p-values should be computed relative to a minimum fold-change threshold. 
@@ -82,16 +82,16 @@
 #' @export
 
 pbDS <- function(pb, 
-    method = c("edgeR", "DESeq2", "limma-trend", "limma-voom"),
-    design = NULL, coef  = NULL, contrast = NULL, min_cells = 10, 
-    filter = c("both", "genes", "samples", "none"), treat = FALSE, 
-    verbose = TRUE, BPPARAM = SerialParam(progressbar = verbose)) {
+    method=c("edgeR", "DESeq2", "limma-trend", "limma-voom", "DD"),
+    design=NULL, coef=NULL, contrast=NULL, min_cells=10, 
+    filter=c("both", "genes", "samples", "none"), treat=FALSE, 
+    verbose=TRUE, BPPARAM=SerialParam(progressbar=verbose)) {
     
     # check validity of input arguments
     args <- as.list(environment())
     method <- match.arg(method)
     filter <- match.arg(filter)
-    .check_pbs(pb, check_by = TRUE)
+    .check_pbs(pb, check_by=TRUE)
     .check_args_pbDS(args)
     stopifnot(is(BPPARAM, "BiocParallelParam"))
     
@@ -104,7 +104,7 @@ pbDS <- function(pb,
     }
     if (is.null(coef) & is.null(contrast)) {
         c <- colnames(design)[ncol(design)]
-        contrast <- makeContrasts(contrasts = c, levels = design)
+        contrast <- makeContrasts(contrasts=c, levels=design)
         args$contrast <- contrast
     }
 
@@ -117,7 +117,7 @@ pbDS <- function(pb,
         if (!is.list(coef)) 
             coef <- list(coef)
         cs <- vapply(coef, function(i)
-            paste(colnames(design)[i], collapse = "-"),
+            paste(colnames(design)[i], collapse="-"),
             character(1))
         names(cs) <- names(coef) <- cs
     }
@@ -125,10 +125,11 @@ pbDS <- function(pb,
     
     if (!is.function(method)) {
         fun <- switch(method,
-            "DESeq2" = .DESeq2,
-            "edgeR" = .edgeR, 
-            "limma-trend" = .limma_trend, 
-            "limma-voom" = .limma_voom)
+            "DD"=.edgeR_NB,
+            "edgeR"=.edgeR, 
+            "DESeq2"=.DESeq2,
+            "limma-voom"=.limma_voom,
+            "limma-trend"=.limma_trend)
     } else {
         fun_call <- 1
     }
@@ -139,28 +140,30 @@ pbDS <- function(pb,
     n_cells <- .n_cells(pb)
     names(kids) <- kids <- assayNames(pb)
     res <- bplapply(
-        BPPARAM = BPPARAM, 
+        BPPARAM=BPPARAM, 
         kids, function (k) {
         rmv <- n_cells[k, ] < min_cells
-        d <- design[colnames(y <- pb[ , !rmv]), , drop = FALSE]
+        d <- design[colnames(y <- pb[ , !rmv]), , drop=FALSE]
         if (filter %in% c("samples", "both")) {
             ls <- colSums(assay(y, k))
-            ol <- isOutlier(ls, log = TRUE, type = "lower", nmads = 3)
-            d <- d[colnames(y <- y[, !ol]), , drop = FALSE]
+            ol <- isOutlier(ls, log=TRUE, type="lower", nmads=3)
+            d <- d[colnames(y <- y[, !ol]), , drop=FALSE]
         }
         if (any(tabulate(y$group_id) < 2) 
-            || qr(d)$rank == nrow(d) 
+            || qr(d)$rank== nrow(d) 
             || qr(d)$rank < ncol(d)) 
             return(NULL)
-        y <- y[rowSums(assay(y, k)) != 0, , drop = FALSE]
+        y <- y[rowSums(assay(y, k)) != 0, , drop=FALSE]
         if (filter %in% c("genes", "both") & max(assay(y, k)) > 100) 
-            y <- y[filterByExpr(assay(y, k), d), , drop = FALSE]
+            y <- y[filterByExpr(assay(y, k), d), , drop=FALSE]
         # drop samples without any detected features
         keep <- colAnys(assay(y, k) > 0)
-        y <- y[, keep, drop = FALSE]
-        d <- d[keep, , drop = FALSE]
-        args <- list(x = y, k = k, design = d, coef = coef, 
-            contrast = contrast, ct = ct, cs = cs, treat = treat)
+        y <- y[, keep, drop=FALSE]
+        d <- d[keep, , drop=FALSE]
+        args <- list(
+            x=y, k=k, design=d, coef=coef, 
+            contrast=contrast, ct=ct, cs=cs,
+            treat=treat, nc=n_cells[k, !rmv])
         args <- args[intersect(names(args), fun_args)]
         suppressWarnings(do.call(fun, args))
     })
@@ -169,14 +172,24 @@ pbDS <- function(pb,
     rmv <- vapply(res, is.null, logical(1))
     res <- res[!rmv]
     
-    if (length(res) == 0) stop(
+    if (length(res)== 0) stop(
       "Specified filtering options result in no genes in any clusters ",
       "being tested. To force testing, consider modifying arguments ",
       "'min_cells' and/or 'filter'. See '?pbDS' for details.")
     
     # reorganize & do global p-value adjustment
     names(i) <- i <- c("table", "data", "fit")
-    res <- lapply(i, map, .x = res)
+    res <- lapply(i, map, .x=res)
     res$table <- .p_adj_global(res$table)
-    return(c(res, list(args = args)))
+    return(c(res, list(args=args)))
+}
+
+#' @rdname pbDS
+#' @export
+pbDD <- function(pb, design=NULL, coef=NULL, contrast=NULL, 
+    min_cells=10, filter=c("both", "genes", "samples", "none"), 
+    verbose=TRUE, BPPARAM=SerialParam(progressbar=verbose)) 
+{
+    args <- as.list(environment())
+    do.call(pbDS, c(args, list(method="DD")))
 }

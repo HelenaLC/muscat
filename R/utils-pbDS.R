@@ -89,6 +89,40 @@
     list(table = tbl, data = y, fit = fit)
 }
 
+#' @importFrom matrixStats rowMedians
+.edgeR_NB <- \(x, k, design, coef, contrast, ct, cs, nc) {
+    y <- assay(x, k)
+    # Gene_level filtering to remove genes detected in
+    # almost all cells of almost all pseudobulk samples
+    med_detection <- rowMedians(sweep(y, 2, nc, "/"))
+    gene_filter <- med_detection < 0.9
+    # Normalization offset to remove systematic differences between pseudobulk 
+    # samples that are due to technical or nuisance biological variability. 
+    # Idea obtained from cellular detection rate (CDR) normalization from MAST. 
+    # Note that this normalization is used instead of 'edgeR::calcNormFactors()'.
+    of <- colMeans(sweep(y[gene_filter, ], 2, nc, "/"))
+    # construct 'DGEList'
+    y <- suppressMessages(DGEList(
+        counts = y[gene_filter, ],
+        group = x$group_id[colnames(y)],
+        remove.zeros = TRUE))
+    # add offsets to 'DGEList'
+    y$offset <- log(nc * of) 
+    # run an 'edgeR' analysis
+    y <- estimateDisp(y, design)
+    fit <- glmQLFit(y, design, robust = TRUE)
+    tbl <- lapply(cs, function(c) {
+        fit <- glmQLFTest(fit,
+            coef[[c]],
+            contrast[, c],
+            poisson.bound = FALSE) 
+        tbl <- topTags(fit, n = Inf, sort.by = "none")
+        tbl <- rename(tbl$table, p_val = "PValue", p_adj.loc = "FDR") 
+        tbl <- .res_df(tbl, k, ct, c)
+    })
+    list(table = tbl, data = y, fit = fit)
+}
+
 #' @importFrom dplyr rename
 #' @importFrom edgeR calcNormFactors DGEList
 #' @importFrom limma contrasts.fit eBayes lmFit topTable topTreat voom treat

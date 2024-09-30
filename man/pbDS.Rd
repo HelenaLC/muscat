@@ -2,17 +2,29 @@
 % Please edit documentation in R/pbDS.R
 \name{pbDS}
 \alias{pbDS}
+\alias{pbDD}
 \title{pseudobulk DS analysis}
 \usage{
 pbDS(
   pb,
-  method = c("edgeR", "DESeq2", "limma-trend", "limma-voom"),
+  method = c("edgeR", "DESeq2", "limma-trend", "limma-voom", "DD"),
   design = NULL,
   coef = NULL,
   contrast = NULL,
   min_cells = 10,
   filter = c("both", "genes", "samples", "none"),
   treat = FALSE,
+  verbose = TRUE,
+  BPPARAM = SerialParam(progressbar = verbose)
+)
+
+pbDD(
+  pb,
+  design = NULL,
+  coef = NULL,
+  contrast = NULL,
+  min_cells = 10,
+  filter = c("both", "genes", "samples", "none"),
   verbose = TRUE,
   BPPARAM = SerialParam(progressbar = verbose)
 )
@@ -39,7 +51,7 @@ created with \code{\link[limma]{makeContrasts}}.}
 \item{min_cells}{a numeric. Specifies the minimum number of cells in a given 
 cluster-sample required to consider the sample for differential testing.}
 
-\item{filter}{characterstring specifying whether
+\item{filter}{character string specifying whether
 to filter on genes, samples, both or neither.}
 
 \item{treat}{logical specifying whether empirical Bayes moderated-t 

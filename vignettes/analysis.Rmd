@@ -238,7 +238,7 @@ for (dr in c("TSNE", "UMAP")) {
   ps <- lapply(c("cluster_id", "group_id"), 
     function(col) .plot_dr(sce[, cs100], dr, col = col))
   assign(paste0("ps_", tolower(dr)), ps)
-  print(plot_grid(plotlist = ps, align = "vh", labels = c("A", "B")))
+  print(wrap_plots(ps, align = "vh", labels = c("A", "B")))
   cat("\n\n")
 }
 ```

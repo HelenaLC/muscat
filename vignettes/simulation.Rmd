@@ -53,12 +53,12 @@ Nature Communications **11**, 6077 (2020).
 # Load packages {-}
 
 ```{r load-libs, message = FALSE,  warning = FALSE}
-library(cowplot)
 library(dplyr)
-library(reshape2)
 library(muscat)
 library(purrr)
 library(scater)
+library(reshape2)
+library(patchwork)
 library(SingleCellExperiment)
 ```
 

@@ -29,7 +29,9 @@ dimnames(design) <- list(ei$sample_id, levels(ei$group_id))
 contrast <- limma::makeContrasts("g2-g1", "g3-g1", levels = design)
 
 # default method settings ------------------------------------------------------
-for (method in eval(as.list(args(pbDS))$method)) {
+ms <- eval(as.list(args(pbDS))$method)
+ms <- setdiff(ms, "DD")
+for (method in ms) {
     test_that(paste("defaults - pbDS", method, sep = "."), {
         res <- pbDS(pb, 
             method = method, 
@@ -47,7 +49,7 @@ for (method in eval(as.list(args(pbDS))$method)) {
 }
 
 # multiple contrast w/ & w/o 'treat' -------------------------------------------
-for (method in eval(as.list(args(pbDS))$method)) {
+for (method in ms) {
     if (grepl("edgeR|limma", method)) {
         treat <- c(FALSE, TRUE)
     } else treat <- FALSE
