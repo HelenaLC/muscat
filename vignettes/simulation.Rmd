@@ -59,6 +59,7 @@ library(purrr)
 library(scater)
 library(reshape2)
 library(patchwork)
+library(cowplot)
 library(SingleCellExperiment)
 ```
 

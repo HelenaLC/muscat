@@ -42,6 +42,7 @@ abstract: >
 
 ```{r echo = FALSE, message = FALSE, warning = FALSE}
 library(BiocStyle)
+library(patchwork)
 library(cowplot)
 ```
 

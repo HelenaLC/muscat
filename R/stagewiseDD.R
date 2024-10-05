@@ -20,7 +20,7 @@
 }
 
 #' @rdname stagewise_DS_DD
-#' @title Perform two-stage testing on DS and DD
+#' @title Perform two-stage testing on DS and DD analysis results
 #'
 #' @param res_DS a list of DS testing results as returned 
 #'   by \code{\link{pbDS}} or \code{\link{mmDS}}.
