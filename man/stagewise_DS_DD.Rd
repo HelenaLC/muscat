@@ -2,7 +2,7 @@
 % Please edit documentation in R/stagewiseDD.R
 \name{stagewise_DS_DD}
 \alias{stagewise_DS_DD}
-\title{Perform two-stage testing on DS and DD}
+\title{Perform two-stage testing on DS and DD analysis results}
 \usage{
 stagewise_DS_DD(res_DS, res_DD, sce = NULL, verbose = FALSE)
 }
@@ -28,7 +28,7 @@ as well as results from stagewise testing analysis, namely:
 \item{\code{p_val.DS/D}: confirmation stage p-values for DS/D}}
 }
 \description{
-Perform two-stage testing on DS and DD
+Perform two-stage testing on DS and DD analysis results
 }
 \examples{
 data(example_sce)

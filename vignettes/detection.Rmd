@@ -28,7 +28,7 @@ vignette: >
   %\VignetteEncoding{UTF-8}
 bibliography: "`r file.path(system.file('extdata', package='muscat'), 'refs.bib')`"
 abstract: > 
-  <p> he found himself transformed in his bed into a gigantic insect...
+  <p> In this vignette, we display how `muscat` can be used to perform differrential detection (DD) analyses in multi-sample, multi-group, multi-(cell-)subpopulation scRNA-seq data. Furthermore, we show how DD and differential state (DS) analysis results on the same data can be effectively combined. This vignette thus introduces a workflow that allows users to jointly assess two biological hypotheses that often contain orthogonal information, which thus can be expected to improve their understanding of complex biological phenomena, at no extra cost.
 ---
 
 <style type="text/css">
@@ -69,9 +69,15 @@ library(patchwork)
 
 # Introduction
 
+Single-cell RNA-sequencing (scRNA-seq) has improved our understanding of complex biological processes by elucidating cell-level heterogeneity in gene expression. One of the key tasks in the downstream analysis of scRNA-seq data is studying differential gene expression (DE). Most DE analysis methods aim to identify genes for which the *average* expression differs between biological groups of interest, e.g., between cell types or between diseased and healthy cells. As such, most methods allow for assessing only one aspect of the gene expression distribution: the mean. However, in scRNA-seq data, differences in other characteristics between count distributions can commonly be observed.
+
+One such characteristic is gene detection, i.e., the number of cells in which a gene is (detectably) expressed. Analogous to a DE analysis, a differential detection (DD) analysis aims to identify genes for which the *average fraction of cells in which the gene is detected* changes between groups. In @Gilis2023, we show how DD analysis contain information that is biologically relevant, and that is largely orthogonal to the information obtained from DE analysis on the same data.
+
+In this vignette, we display how `muscat` can be used to perform DD analyses in multi-sample, multi-group, multi-(cell-)subpopulation scRNA-seq data. Furthermore, we show how DD and DS analysis results on the same data can be effectively combined using a two-stage testing approach. This workflow thus allows users to jointly assess two biological hypotheses containing orthogonal information, which thus can be expected to improve their understanding of complex biological phenomena, at no extra cost.
+
 # Setup
 
-We will use the same data as in the differential state (DS) analyses described in an independent vignette, namely, scRNA-seq data acquired on PBMCs from 8 patients before and after IFN-$\beta$ treatment.
+We will use the same data as in the differential state (DS) analyses described in `r Biocpkg("muscat", vignette = "analysis.html")`, namely, scRNA-seq data acquired on PBMCs from 8 patients before and after IFN-$\beta$ treatment. For a more detailed description of these data and subsequent preprocessing, we refer to `r Biocpkg("muscat", vignette = "analysis.html")`.
 
 ```{r load-data, message=FALSE}
 library(ExperimentHub)
@@ -94,6 +100,14 @@ table(sce$sample_id)
 ```
 
 ## Aggregation 
+
+In general, `aggregateData()` will aggregate the data by the `colData` variables specified with argument `by`, and return a `SingleCellExperiment` containing pseudobulk data.
+
+To perform a pseudobulk-level analysis, measurements must be aggregated at the cluster-sample level (default `by = c("cluster_id", "sample_id"`). In this case, the returned `SingleCellExperiment` will contain one assay per cluster, where rows = genes and columns = samples. Arguments `assay` and `fun` specify the input data and summary statistic, respectively, to use for aggregation.
+
+In a differential detection (DD) analysis, the default choice of the summary statistic used for aggregation is `fun = "num.detected"`. This strategy can be thought of as first binarizing the gene expression values (1: expressed, 0: not expressed), and subsequently performing a simple summation of the binarized gene expression counts for cells belonging to the same cluster-sample level. Hence, the resulting pseudobulk-level expression count reflects the total number of cells in a particular cluster-sample level with a non-zero gene expression value.
+
+In a differential state (DS) analysis, the default choice for aggregation is `fun = "sum"`, which amounts to the simple summation of the raw gene expression counts of cells belonging to the same cluster-sample level.
 
 ```{r pbs-det}
 pb_sum <- aggregateData(sce,
@@ -124,7 +138,48 @@ Once we have assembled the pseudobulk data, we can test for DD using `pbDD()`. B
 res_DD <- pbDD(pb_det, min_cells=0, filter="none", verbose=FALSE)
 ```
 
+## Handling and visualizing results
+
+Inspection, manipulation, and visualization of DD analysis results follows the same principles as for a DS analysis. For a detailed description, we refer to the DS analysis vignette`r Biocpkg("muscat", vignette = "analysis.html")`. Below, some basic functionalities are being displayed.
+
+```{r}
+tbl <- res_DD$table[[1]]
+# one data.frame per cluster
+names(tbl)
+```
+
+```{r}
+# view results for 1st cluster
+k1 <- tbl[[1]]
+head(format(k1[, -ncol(k1)], digits = 2))
+```
+
+```{r}
+# filter FDR < 5%, abs(logFC) > 1 & sort by adj. p-value
+tbl_fil <- lapply(tbl, function(u) {
+  u <- dplyr::filter(u, p_adj.loc < 0.05, abs(logFC) > 1)
+  dplyr::arrange(u, p_adj.loc)
+})
+
+# nb. of DS genes & % of total by cluster
+n_de <- vapply(tbl_fil, nrow, numeric(1))
+p_de <- format(n_de / nrow(sce) * 100, digits = 3)
+data.frame("#DD" = n_de, "%DD" = p_de, check.names = FALSE)
+```
+
+```{r}
+library(UpSetR)
+de_gs_by_k <- map(tbl_fil, "gene")
+upset(fromList(de_gs_by_k))
+```
+
 # Stagewise anaysis
+
+While DD analysis results may contain biologically relevant information in their own right, we show in @Gilis2023 that combing DD and DS analysis results on the same data can further improve our understanding of complex biological phenomena. In the remainder of this vignette, we show how DD and DS analysis results on the same data can be effectively combined.
+
+For this, we build on the two-stage testing paradigm proposed by @Vandenberge2017. In the first stage of this testing procedure, we identify differential genes by using an omnibus test for differential detection and differential expression (DE). The null hypothesis for this test is that the gene is neither differentially detected, nor differentially expressed.
+
+In the second stage, we perform post-hoc tests on the differential genes from stage one to unravel whether they are DD, DE or both. Compared to the individual DD and DS analysis results, the two-stage approach increases statistical power and provides better type 1 error control.
 
 ```{r pbDS}
 res_DS <- pbDS(pb_sum, min_cells=0, filter="none", verbose=FALSE)
