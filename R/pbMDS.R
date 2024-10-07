@@ -19,12 +19,13 @@
 #' 
 #' @author Helena L Crowell & Mark D Robinson
 #' 
-#' @import ggplot2
 #' @importFrom edgeR calcNormFactors cpm DGEList plotMDS.DGEList
-#' @importFrom grDevices colorRampPalette
-#' @importFrom Matrix rowSums
 #' @importFrom SummarizedExperiment assays
+#' @importFrom grDevices colorRampPalette
 #' @importFrom S4Vectors metadata
+#' @importFrom Matrix rowSums
+#' @importFrom rlang .data
+#' @import ggplot2
 #' @export
 
 pbMDS <- function(x) {
@@ -59,8 +60,8 @@ pbMDS <- function(x) {
     if (nk > length(cols)) 
         cols <- colorRampPalette(cols)(nk)
     
-    ggplot(df, aes_string(x = "MDS1", y = "MDS2", 
-        col = "cluster_id", shape = "group_id")) +
+    ggplot(df, aes(.data$MDS1, .data$MDS2, 
+        col=.data$cluster_id, shape=.data$group_id)) +
         scale_color_manual(values = cols) +
         geom_point(size = 3, alpha = 0.8) + 
         guides(color = guide_legend(override.aes = list(alpha = 1))) +

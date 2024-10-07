@@ -75,8 +75,8 @@ pbHeatmap <- function(x, y,
     # subset specified contrast/coef & cluster(s)
     if (is.null(k)) k <- levels(x$cluster_id)
     if (names(y)[1] == "table") {
-      if (is.null(c)) c <- names(y$table)[1]
-      y <- y$table[[c]][k]
+        if (is.null(c)) c <- names(y$table)[1]
+        y <- y$table[[c]][k]
     } else y <- y[k]
     y <- y[!vapply(y, is.null, logical(1))]
     
