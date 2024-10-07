@@ -1,3 +1,10 @@
+                        Changes in version 1.19.1
+                        
++ added J Gilis, D Risso, L Clement as authors
++ differential detection with 'pbDS(..., method="DD")' or 'pbDD()'
+  & stagewise testing [Gilis et al.], plus corresponding vignette
++ replace 'aes_string()' in 'ggplot()' by '.data$.' from 'rlang'
+  
                         Changes in version 1.15.1
                         
 + bug fix in 'pbDS': too stringent filtering causing no genes in any clusters
