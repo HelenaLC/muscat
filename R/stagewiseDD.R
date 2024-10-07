@@ -29,6 +29,7 @@
 #' @param sce (optional) \code{SingleCellExperiment} object containing the data 
 #'   that underlies testing, prior to summarization with \code{\link{aggregateData}}. 
 #'   Used for validation of inputs in order to prevent unexpected failure/results.
+#' @param verbose logical. Should information on progress be reported?
 #'
 #' @return 
 #' A list of \code{DFrame}s containing results for each contrast and cluster.

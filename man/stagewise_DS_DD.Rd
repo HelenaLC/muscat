@@ -16,6 +16,8 @@ by \code{\link{pbDD}} (or \code{\link{pbDS}} with \code{method="DD"}).}
 \item{sce}{(optional) \code{SingleCellExperiment} object containing the data 
 that underlies testing, prior to summarization with \code{\link{aggregateData}}. 
 Used for validation of inputs in order to prevent unexpected failure/results.}
+
+\item{verbose}{logical. Should information on progress be reported?}
 }
 \value{
 A list of \code{DFrame}s containing results for each contrast and cluster.
