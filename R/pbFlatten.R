@@ -52,16 +52,17 @@ pbFlatten <- function(pb, normalize = TRUE){
         n_cells <- tryCatch(mapply(
             function(k, s) n_cells[k, s],
             k = as.character(kids), s = as.character(sids)),
-            error = function(e) {warning(e); NULL})
+            error = function(e) { warning(e); NULL })
         if (!is.null(n_cells)) 
             sce$n_cells <- as.numeric(n_cells)
     }
-    # (optionally) do logCPM normalization
-    if (normalize){
-	# remove empty columns (samples that lack a cluster)
-	sce <- sce[,colSums(a!=0)>0]
-        assay(sce, "logcpm") <-
-          log1p(cpm(calcNormFactors(DGEList(assay(sce)))))
+    # (optionally) do log-CPM normalization
+    if (normalize) {
+        # remove empty columns (samples that lack a cluster)
+        sce <- sce[, colSums(a != 0) > 0]
+        dgl <- DGEList(assay(sce))
+        dgl <- calcNormFactors(dgl)
+        assay(sce, "logcpm") <- log1p(cpm(dgl))
     }
     return(sce)
 }

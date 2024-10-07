@@ -173,9 +173,9 @@ pbDS <- function(pb,
     res <- res[!rmv]
     
     if (length(res)== 0) stop(
-      "Specified filtering options result in no genes in any clusters ",
-      "being tested. To force testing, consider modifying arguments ",
-      "'min_cells' and/or 'filter'. See '?pbDS' for details.")
+        "Specified filtering options result in no genes in any clusters ",
+        "being tested. To force testing, consider modifying arguments ",
+        "'min_cells' and/or 'filter'. See '?pbDS' for details.")
     
     # reorganize & do global p-value adjustment
     names(i) <- i <- c("table", "data", "fit")
