@@ -155,11 +155,12 @@ head(format(k1[, -ncol(k1)], digits = 2))
 ```
 
 ```{r}
-# filter FDR < 5%, abs(logFC) > 1 & sort by adj. p-value
-tbl_fil <- lapply(tbl, function(u) {
-  u <- dplyr::filter(u, p_adj.loc < 0.05, abs(logFC) > 1)
-  dplyr::arrange(u, p_adj.loc)
-})
+# filter FDR < 5%, |logFC| > 1 & sort by adj. p-value
+tbl_fil <- lapply(tbl, \(u)
+    filter(u, 
+        p_adj.loc < 0.05, 
+        abs(logFC) > 1) |>
+        arrange(p_adj.loc))
 
 # nb. of DS genes & % of total by cluster
 n_de <- vapply(tbl_fil, nrow, numeric(1))
