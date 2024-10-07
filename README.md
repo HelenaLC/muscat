@@ -1,6 +1,6 @@
 <img src="inst/extdata/muscat.png" width="200" align="right"/> 
 
-`muscat` (**Mu**lti-sample **mu**lti-group **sc**RNA-seq **a**nalysis **t**ools )  
+**`muscat` (**Mu**lti-sample **mu**lti-group **sc**RNA-seq **a**nalysis **t**ools )**
 
 ...provides methods for *Differential State* (DS) analyses in scRNA-seq data  
 with multiple samples, groups, and (cell)-subpopulations, as elaborated in:
@@ -52,3 +52,28 @@ ds_mm <- mmDS(sce, method = "dream")
 ```
 
 For details, please see the package vignettes.
+
+### differential detection
+
+`muscat` also supports testing for differential detection as proposed in 
+
+> Gilis J, Perin L, Malfait M, Van den Berge K,  
+Assefa AT, Verbist B, Risso D, and Clement L:  
+Differential detection workflows for  
+multi-sample single-cell RNA-seq data.  
+*bioRxiv* (2023). [DOI: 10.1101/2023.12.17.572043](https://doi.org/10.1101/2023.12.17.572043)
+
+Key alterations to the commands above are highlighted below (!!!), 
+however, we recommend users consult the corresponding publication 
+and package vignette for more details.
+
+```r
+# sum binarized counts
+pb <- aggregateData(sce, 
+    assay = "counts", 
+    fun = "num.detected", # !!!
+    by = c("cluster_id", "sample_id"))
+# test for differential detection
+dd <- pbDD(pb) # or..
+dd <- pbDS(pb, method = "DD")
+```
