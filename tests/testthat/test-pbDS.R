@@ -101,3 +101,23 @@ test_that("pbDS() filtering", {
   expect_silent(pbDS(pbs, verbose = FALSE, 
     min_cells = 0, filter = "none"))
 })
+
+# pbDD -------------------------------------------------------------------------
+
+set.seed(1968)
+sce <- .toySCE(c(100, 2e3))
+cs <- which(
+    sce$group_id == (g <- "g3") & 
+    sce$cluster_id == (k <- "k1"))
+cs <- sample(cs, length(cs))
+gs <- sample(rownames(sce), 5)
+assay(sce)[gs, cs] <- 0
+
+test_that("differential testing", {
+    pbs <- aggregateData(sce, fun="num.detected")
+    expect_identical(
+        tbl <- pbDD(pbs, verbose=FALSE)$table[[g]][[k]], 
+        pbDS(pbs, method="DD", verbose=FALSE)$table[[g]][[k]])
+    top <- tbl$gene[order(tbl$p_adj.loc)]
+    expect_setequal(top[seq_along(gs)], gs)
+})
