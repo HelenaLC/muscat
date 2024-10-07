@@ -124,8 +124,8 @@
     stopifnot(
         is.numeric(u$ng), length(u$ng) == 1, u$ng > 0, as.integer(u$ng) == u$ng,
         is.numeric(u$nc), length(u$nc) == 1, u$nc > 0, as.integer(u$nc) == u$nc,
-        is.numeric(u$p_dd), length(u$p_dd) == 6, sum(u$p_dd) == 1, u$p_dd >= 0, u$p_dd <= 1,
-        is.logical(u$paired), length(u$paired) == 1,
+        is.numeric(u$p_dd), length(u$p_dd) == 6, u$p_dd >= 0, u$p_dd <= 1,
+        abs(1-sum(u$p_dd)) < 1e-12, is.logical(u$paired), length(u$paired) == 1,
         is.numeric(u$p_ep), length(u$p_ep) == 1, u$p_ep > 0, u$p_ep < 1,
         is.numeric(u$p_dp), length(u$p_dp) == 1, u$p_dp > 0, u$p_dp < 1,
         is.numeric(u$p_dm), length(u$p_dm) == 1, u$p_dm > 0, u$p_dm < 1,
