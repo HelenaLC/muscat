@@ -70,7 +70,7 @@
     }
 
     formula <- paste0(formula, "+(1|sample_id)")
-    if (verbose) print(formula)
+    if (verbose) message(formula)
 
     if (is.null(coef)) {
         coef <- last(colnames(mm))
@@ -83,7 +83,6 @@
     .dream <- expression(dream(v, as.formula(formula), cd, contrast, ddf, 
         BPPARAM = BPPARAM, suppressWarnings = !verbose, quiet  = !verbose))
     if (verbose) fit <- eval(.dream) else suppressWarnings(fit <- eval(.dream))
-    #fit <- eBayes(fit, trend = trended, robust = TRUE)
 
     topTable(fit, coef, number = Inf, sort.by = "none") %>%
         rename(p_val = "P.Value", p_adj.loc = "adj.P.Val")
@@ -125,7 +124,7 @@
                     "testing for ", dQuote(coef), ".")
     }
 
-    if (verbose) print(formula)
+    if (verbose) message(formula)
     formula <- as.formula(formula)
     
     .dream <- expression(voomWithDreamWeights(y, 
@@ -166,7 +165,7 @@
 
     # get formula
     formula <- paste(c("~(1|sample_id)", covs, "group_id"), collapse = "+")
-    if (verbose) print(formula)
+    if (verbose) message(formula)
     formula <- as.formula(paste("u", formula))
 
     # get coefficient to test
@@ -267,7 +266,7 @@
     # get formula
     str <- c("~(1|sample_id)+offset(ls)", covs, "group_id")
     formula <- paste(str, collapse = "+")
-    if (verbose) print(formula)
+    if (verbose) message(formula)
     formula <- as.formula(paste("u", formula))
 
     # get coefficient to test
@@ -361,7 +360,7 @@
     # get cell-level formula
     str <- c("~(1|sample_id)+offset(ls)", covs, "group_id")
     formula <- paste(str, collapse = "+")
-    if (verbose) print(formula)
+    if (verbose) message(formula)
     formula <- as.formula(paste("u", formula))
 
     # get coefficient to test
@@ -424,7 +423,7 @@
 .fit_nbinom <- function(df, formula, coef){
     mod <- tryCatch(
         glmmTMB(formula, family = nbinom1, data = df, REML = FALSE),
-        error = function(e) { print(e); NULL })
+        error = function(e) { message(e); NULL })
     if (is.null(mod)) return(mod)
     tryCatch({
         coefs <- colnames(coef(mod)[[1]][[1]])
@@ -448,7 +447,7 @@
 .fit_bglmer <- function(df, formula, coef){
     mod <- tryCatch(
         bglmer(formula, family="poisson", data=df),
-        error = function(e) { print(e); NULL })
+        error = function(e) { message(e); NULL })
     if (is.null(mod)) return(mod)
     tryCatch({
         coefs <- colnames(coef(mod)[[1]])
