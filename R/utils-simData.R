@@ -74,7 +74,7 @@ cats <- factor(cats, levels = cats)
 }
 
 # ------------------------------------------------------------------------------
-# get gene indeces for by gene category & cluster
+# get gene indices for by gene category & cluster
 #   gs = character vector of gene names
 #   ns = nb. of genes in ea. category
 #   > array of dim. #(categories) x #(clusters);
@@ -307,11 +307,11 @@ cats <- factor(cats, levels = cats)
     cat = c("ee", "ep", "de", "dp", "dm", "db"),
     cs_g1, cs_g2, m_g1, m_g2, d, lfc, ep, dp, dm) {
     
-    cat <- match.arg(cat)
+    dx <- match.arg(cat)
     ng1 <- length(cs_g1)
     ng2 <- length(cs_g2)
     
-    re <- switch(cat,
+    re <- switch(dx,
         "ee" = {
             list(
                 .nb(cs_g1, d, m_g1),
@@ -380,7 +380,7 @@ cats <- factor(cats, levels = cats)
         map_depth(1, unlist) %>% 
         data.frame %>% 
         as.matrix
-    ms <- switch(cat, 
+    ms <- switch(dx, 
         ee = ms,
         de = ms,
         db = if (ng2 == 0) {
