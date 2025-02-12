@@ -35,6 +35,7 @@ library(BiocStyle)
 # Load packages {-}
 
 ```{r load-libs, message = FALSE,  warning = FALSE}
+library(SingleCellExperiment)
 library(muscat)
 ```
 
@@ -89,6 +90,7 @@ data("example_sce")
 # since the dataset is a bit too small for the procedure, we'll double it:
 sce <- rbind(example_sce, example_sce)
 row.names(sce) <- make.unique(row.names(sce))
+# pseudo-bulk aggregation
 pb <- aggregateData(sce)
 res <- pbDS(pb, verbose = FALSE)
 # we assemble the cell types in a single table for the comparison of interest:
