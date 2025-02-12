@@ -1,4 +1,7 @@
                         Changes in version 1.19.1
++ added bulk-based hypothesis weighing
+
+                        Changes in version 1.19.1
                         
 + added J Gilis, D Risso, L Clement as authors
 + differential detection with 'pbDS(..., method="DD")' or 'pbDD()'

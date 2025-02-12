@@ -8,12 +8,13 @@ bbhw(
   pbDEA,
   bulkDEA,
   pb = NULL,
-  method = c("PAShw", "PAShw.local", "combIHW", "ihw.local", "ihw.global"),
+  method = c("PASW.local", "PASW.global"),
   nbins = NULL,
   alpha = 0.1,
+  nfolds = NULL,
   ...,
-  verbose = TRUE,
-  BPPARAM = SerialParam(progress = verbose)
+  BPPARAM = SerialParam(progress = verbose),
+  verbose = TRUE
 )
 }
 \arguments{
@@ -30,11 +31,16 @@ these samples should be independent form the single-cell samples on which
 `pbDEA` is based.}
 
 \item{pb}{A pseudo-bulk SummarizedExperiment object as produced by 
-\code{\link{aggregateData}}.}
+\code{\link{aggregateData}}. Alternatively, a matrix with cell types as 
+columns and gene as rows, giving the read counts or proportion of 
+contribution for each gene. If neither is given, the only available methods
+are "ihw.local" and "ihw.global".}
 
-\item{method}{The method(s) for which to compiled the adjusted p-values.
-By default all methods are computed, but the recommended method is "PAShw"
-or, if `pb` is unavailable, `ihw.global`.}
+\item{method}{The method(s) for which to compiled the adjusted p-values (see
+details below for options). By default the local and global versions of the
+ top methods are computed. If `pb` is unavailable, `ihw.global` is the 
+ recommended method. Use `method="all"` to compute adjusted p-values using
+ all methods.}
 
 \item{nbins}{The number of significance bins to use for the covariate (i.e. 
 prior). For `combIHW`, the effective number of bins will be doubled. We 
@@ -42,11 +48,15 @@ recommend leaving this to the default values (which varies across methods).}
 
 \item{alpha}{The nominal level for FDR control for \code{\link[IHW]{ihw}}.}
 
+\item{nfolds}{The number of cross-validation folds, passed to 
+\code{\link[IHW]{ihw}}. If null, will use appropriate defaults for 
+different methods based on the number of hypotheses.}
+
 \item{...}{Passed to \code{\link[IHW]{ihw}}.}
 
-\item{verbose}{Logical; whether to print helpful information.}
-
 \item{BPPARAM}{An optional BiocParallel BPPARAM object for multithreading.}
+
+\item{verbose}{Logical; whether to print helpful information.}
 }
 \value{
 The `pbDEA` object including extra columns.
@@ -58,18 +68,45 @@ state analysis, using a larger dataset of bulk RNAseq.
 }
 \details{
 This function contains the following methods:
-* ihw.local and ihw.global simply bin the genes by their significance on the
-   bulk RNA-seq, and perform standard independent hypothesis weighing (
-   \code{\link[IHW]{ihw}} ) either locally (i.e. for each cell type 
-   separately) or globally.
-* Proportion-adjusted significance hypothesis weighting (PAShw and 
-  PAShw.local) also rely on ihw, but first adjust the covariate according to
-  whether the direction of the difference matches (assuming a logFC is 
-  available), and then according to how much the cell type contributes to the
-  bulk for each specific gene.
-* combIHW is the standard global IHW, but the significance bins are further 
-  split into low- and high- contributions of the celltype to the bulk, and 
-  the bins are treated as nominal.
+\itemize{
+\item{**ihw** : the IHW procedure is applied with default settings, 
+ using the bulk p-value as covariate.}
+\item{**combIHW** : first, whenever the direction of the change is 
+ different between bulk and pseudobulk datasets for a gene in a given cell 
+ type, we set the bulk p-value to 0.7 for that cell type. Then, we divide the 
+ bulk p-values into five quantile bins. We further divide each bin into two 
+ depending on the proportion of the bulk reads for that gene that is 
+ contributed by the given cell type. Then we apply IHW (globally) on this 
+ covariate, using the bins as nominal. Note that this method is slightly 
+ inferior to PASW and PABW, which are instead recommended.}
+\item{**PASW** (Proportion-Adjusted Significance Weighing): first, whenever 
+ the direction of the change is different between bulk and pseudobulk 
+ datasets for a gene in a given cell type, we increase the bulk p-value to 
+ 0.7 for that cell type (if it was below). Then, we adjust the covariate 
+ (i.e. bulk p-value) based on the proportion of the bulk reads for that gene 
+ that is contributed by the given cell type, using 
+ `inv.logit( logit(p) * sqrt(c) )` where `p` and `c` are respectively 
+ the bulk p-value and the proportion of bulk reads contributed by the cell 
+ type). We then split this covariate into quantile bins and apply IHW.
+ If unspecified (recommended), the number of bins will be determined 
+ (somewhere between 6 and 10) based on the number of hypotheses.}
+\item{**PABW** (Proportion-Adjusted Bin-Wise correction): the covariate bins
+ are prepared in the same fashion as for PASW. However, instead of using IHW,
+ we simply compute FDR separately for each bin.}
+}
+
+If you have information about the contribution of each cell type to each 
+bulk gene (i.e. the `pb` argument), the recommended methods are PASW and 
+PABW, which give similar results (PABW is much faster and deterministic). If
+you do not have such information, use the IHW method.
+
+Each method exists in two flavors: a local one, which is applied for each 
+cell type separately, and a global one, which is applied once across all cell
+types. Unfortunately, which of the two is preferable seems to depends on the
+context.
+
+The `method` argument should indicate both the method and whether it should 
+be applied locally or globally, e.g. `method="PABW.global"`.
 }
 \references{
 Ignatiadis, N., Klaus, B., Zaugg, J. et al. Data-driven hypothesis weighting 
