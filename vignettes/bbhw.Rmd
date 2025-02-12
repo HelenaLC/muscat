@@ -1,0 +1,136 @@
+---
+title: "Increasing power with bulk-based hypothesis weighing (bbhw)"
+author:
+- name: Pierre-Luc Germain
+  affiliation:
+  - &IMLS Department of Molecular Life Sciences, University of Zurich, Zurich, Switzerland
+  - &ETH D-HEST Institute for Neuroscience, ETH Zurich, Switzerland
+  - &SIB Swiss Institute of Bioinformatics (SIB), Zurich, Switzerland
+package: "`r BiocStyle::pkg_ver('muscat')`"
+date: "`r format(Sys.Date(), '%B %d, %Y')`"
+output: 
+  BiocStyle::html_document
+vignette: >
+  %\VignetteIndexEntry{"4. Increasing power with bulk-based hypothesis weighing"}
+  %\VignettePackage{muscat}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+bibliography: "`r file.path(system.file('extdata', package = 'muscat'), 'refs.bib')`"
+abstract: > 
+Due to the costs of single-cell sequencing, sample sizes are often relatively limited, sometimes leading to poorly reproducible results. In many contexts, however, larger bulk RNAseq data is available for the same conditions or experimental paradigm, which can be used as additional evidence of a generalization differential expression pattern. Here, we show how such data can be used, via bulk-based hypothesis weighing (bbhw), to increase the power and robustness of single-cell differential state analysis.
+---
+
+<style type="text/css">
+.smaller {
+  font-size: 10px
+}
+</style>
+
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+library(BiocStyle)
+```
+
+*** 
+
+# Load packages {-}
+
+```{r load-libs, message = FALSE,  warning = FALSE}
+library(muscat)
+```
+
+# Methods
+
+The function `bbhw` (bulk-based hypothesis weighing) implements various approaches that are mostly based on the method of Independent Hypothesis Weighing (IHW) developed by [Ignatiadis et al. (2016)](https://doi.org/10.1038/nmeth.3885). IHW splits hypotheses (in our case, whether a specific gene is differentially expressed across conditions in a specific cell type) in bins based on a covariate (in our case, the significance of the same gene in an independent bulk dataset). It then optimizes hypotheses weights to lead to the highest rejections of the null hypothesis in a cross-validation setting.
+
+The same bulk p-value will necessarily be more informative in a cell type that is abundant, or for a gene that is more specific to that cell type, since in both cases the cell type will contribute more to the bulk expression of the gene. We therefore include such information (if available) in the covariate for some methods.
+
+This is done at the level of multiple-testing correction, and can therefore be executed on top of any per-celltype differential state analysis as produced by `pbDS` or `mmDS` (see example below), assuming that the bulk data is from the same (or a similar) contrast, and that its samples are independent from the single-cell samples.
+
+Specifically, the methods implemented are listed below. Each of them can be applied either _locally_ (applied for each cell type separately, denoted \*_loc) or _globally_ (applied once across all cell, denoted \*_glb). 
+
+\itemize{
+\item{**ihw** : the IHW procedure is applied with default settings, 
+using the bulk p-value as covariate.}
+\item{**combIHW** : first, whenever the direction of the change is 
+different between bulk and pseudobulk datasets for a gene in a given cell 
+type, we set the bulk p-value to 0.7 for that cell type. Then, we divide the 
+bulk p-values into five quantile bins. We further divide each bin into two 
+depending on the proportion of the bulk reads for that gene that is 
+contributed by the given cell type. Then we apply IHW (globally) on this 
+covariate, using the bins as nominal. Note that this method is slightly 
+inferior to PASW and PABW, which are instead recommended.}
+\item{**PASW** (Proportion-Adjusted Significance Weighing): first, whenever 
+the direction of the change is different between bulk and pseudobulk 
+datasets for a gene in a given cell type, we increase the bulk p-value to 
+0.7 for that cell type (if it was below). Then, we adjust the covariate 
+(i.e. bulk p-value) based on the proportion of the bulk reads for that gene 
+that is contributed by the given cell type, using 
+$cov =  inv.logit( logit(p) * \sqrt c )$ where `p` and `c` are respectively 
+the bulk p-value and the proportion of bulk reads contributed by the cell 
+type). We then split this covariate into quantile bins and apply IHW.
+If unspecified (recommended), the number of bins will be determined 
+(somewhere between 6 and 10) based on the number of hypotheses.}
+\item{**PABW** (Proportion-Adjusted Bin-Wise correction): the covariate bins
+are prepared in the same fashion as for PASW. However, instead of using IHW,
+we simply compute FDR separately for each bin. This has the advantage of being
+deterministic and much faster, and typically gives results that are roughly 
+equivalent to the IHW-based methods.}
+}
+
+# Example usage
+
+## Differential State (DS) analysis
+
+We first load an example dataset and perform a pseudo-bulk differential state 
+analysis (for more information on this, see the [vignette](analysis.html)).
+
+```{r}
+data("example_sce")
+# since the dataset is a bit too small for the procedure, we'll double it:
+sce <- rbind(example_sce, example_sce)
+row.names(sce) <- make.unique(row.names(sce))
+pb <- aggregateData(sce)
+res <- pbDS(pb, verbose = FALSE)
+# we assemble the cell types in a single table for the comparison of interest:
+res2 <- dplyr::bind_rows(res$table$stim, .id="cluster_id")
+head(res2 <- res2[order(res2$p_adj.loc),])
+```
+
+## bbhw
+
+We next prepare the bulk differential expression table. Since we don't actually 
+have bulk data for this example dataset, we'll just make it up (don't do this!):
+
+```{r}
+bulkDEA <- data.frame(row.names=row.names(pb), logFC=rnorm(nrow(pb)),
+                      PValue=runif(nrow(pb)))
+# we'll spike some signal in:
+sel <- unique(unlist(lapply(split(res2$gene, res2$cluster_id), head, n=200)))
+bulkDEA[sel,"PValue"] <- runif(length(sel), max=0.15)
+head(bulkDEA)
+```
+
+We then can apply `bbhw` (here using the fast method) :
+
+```{r}
+res2 <- bbhw(pbDEA=res2, bulkDEA=bulkDEA, pb=pb, verbose=FALSE,
+             method=c("PABW.local","PABW.global"))
+padj_scores <- c("p_adj.loc","padj.PABW_glb","padj.PABW_loc")
+head(res2[,c("gene","cluster_id",padj_scores)])
+```
+
+We can see that the adjustment methods do not rank the genes in the same fashion, and result in a different number of genes with padj<0.05:
+
+```{r}
+sapply(padj_scores, \(x){
+  sapply(split(res2[[x]], res2$cluster_id), \(y) sum(y<0.05, na.rm=TRUE))
+})
+```
+
+In this case the effect is very modest, chiefly because this is a small subset of data (hence few hypotheses) and the signal for this subset is already highly significant to begin with. However, this can often results in substantial improvements in both precision and recall.
+
+# Session info {- .smaller}
+
+```{r session-info}
+sessionInfo()
+```
