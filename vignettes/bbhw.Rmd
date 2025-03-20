@@ -78,6 +78,8 @@ deterministic and much faster, and typically gives results that are roughly
 equivalent to the IHW-based methods.}
 }
 
+Local (i.e. per-celltype) adjustment is generally better than global, because the excess of small p-values in affected cell types gets diluted in by the unaffected cell types. Conversely the probability that small p-values from unaffected cell types (which are the result of noise) gets underestimated due to the excess of small p-values coming from affected cell types.
+
 # Example usage
 
 ## Differential State (DS) analysis
@@ -129,7 +131,18 @@ sapply(padj_scores, \(x){
 })
 ```
 
-In this case the effect is very modest, chiefly because this is a small subset of data (hence few hypotheses) and the signal for this subset is already highly significant to begin with. However, this can often results in substantial improvements in both precision and recall.
+In this case the effect is very modest, chiefly because this is a small subset of data (hence few hypotheses) and the signal for this subset is already highly significant to begin with. However, this can often results in substantial improvements in both precision and recall (see below).
+
+# Performance of the methods
+
+The following illustrates the performance of the different methods in two use cases:
+
+```{r echo = FALSE, fig.cap = "Benchmark of the different methods. For each metric, the different columns indicates cell types with a sufficient true differential expression to be assessed, across a simulated dataset as well as a subsampled real dataset (where the entire, large dataset is used as ground truth). The precision, recall and F1 score reported are at a nominal FDR threshold of 0.1."}
+knitr::include_graphics(system.file('extdata', 'bbhwBenchmark.png', package = 'muscat'))
+```
+
+All methods using bulk information show an improvement in precision and recall, with PABW and PASW showing the best results, especially with the local variants.
+
 
 # Session info {- .smaller}
 
