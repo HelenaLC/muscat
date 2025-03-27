@@ -41,48 +41,115 @@ library(muscat)
 
 # Methods
 
-The function `bbhw` (bulk-based hypothesis weighing) implements various approaches that are mostly based on the method of Independent Hypothesis Weighing (IHW) developed by [Ignatiadis et al. (2016)](https://doi.org/10.1038/nmeth.3885). IHW splits hypotheses (in our case, whether a specific gene is differentially expressed across conditions in a specific cell type) in bins based on a covariate (in our case, the significance of the same gene in an independent bulk dataset). It then optimizes hypotheses weights to lead to the highest rejections of the null hypothesis in a cross-validation setting.
+The function `bbhw` (bulk-based hypothesis weighing) implements various 
+approaches leveraging independent bulk RNAseq data to increase the power of 
+cell-type level differential expression (state) analysis (i.e. across 
+conditions). The general strategy is to group the hypotheses^[
+A hypothesis, here, is understood as the differential expression (or lack 
+thereof) of one gene in one cell type.] into different bins based on the bulk 
+dataset, and then employ some False Discovery Rate (FDR) methods that can make 
+use of this grouping. FDR methods rely on an excess of small p-values (compared 
+to a uniform distribution) to control the rate of false discoveries, and the 
+rationale for covariate-based methods is that power can be gained by 
+concentrating this excess within certain bins. This is illustrated in the 
+following figure: 
 
-The same bulk p-value will necessarily be more informative in a cell type that is abundant, or for a gene that is more specific to that cell type, since in both cases the cell type will contribute more to the bulk expression of the gene. We therefore include such information (if available) in the covariate for some methods.
+```{r echo = FALSE, fig.cap = "Bulk-based weighing of single-cell hypotheses. A-C: Example p-values of differential expression upon stress, from both a single-cell dataset with modest sample size (A and C) and a much larger bulk dataset (B) (data from Waag et al., biorxiv 2025). C: Splitting the single-cell p-values by significance of the respective gene in the bulk data leads to higher local excess of p-values. D: Example precision-recall curves in a different dataset with ground truth (based on downsampled data) using standard (local) FDR and the default bbhw method (see our paper for more detail)."}
+knitr::include_graphics(system.file('extdata', 'bbhw.png', package = 'muscat'))
+```
 
-This is done at the level of multiple-testing correction, and can therefore be executed on top of any per-celltype differential state analysis as produced by `pbDS` or `mmDS` (see example below), assuming that the bulk data is from the same (or a similar) contrast, and that its samples are independent from the single-cell samples.
+On its own, the single-cell data shows a modest enrichment in small p-values 
+(panel A). However, splitting genes into bins based on their p-value in the bulk
+dataset (B) leads to much stronger local (i.e. within bin) excess of small 
+p-values (C). Exploiting this, the `bbhw` method can yield showing substantial 
+increased in power, as illustrated in a different dataset with ground truth (D).
 
-Specifically, the methods implemented are listed below. Each of them can be applied either _locally_ (applied for each cell type separately, denoted \*_loc) or _globally_ (applied once across all cell, denoted \*_glb). 
+As this is done at the level of multiple-testing correction, `bbhw` can be 
+executed on top of any per-celltype differential state analysis as produced by 
+`pbDS` or `mmDS` (see example below), assuming that the bulk data is from the 
+same (or a similar) contrast, and that its samples are independent from the 
+single-cell samples.
 
-\itemize{
-\item{**ihw** : the IHW procedure is applied with default settings, 
-using the bulk p-value as covariate.}
-\item{**combIHW** : first, whenever the direction of the change is 
-different between bulk and pseudobulk datasets for a gene in a given cell 
-type, we set the bulk p-value to 0.7 for that cell type. Then, we divide the 
-bulk p-values into five quantile bins. We further divide each bin into two 
-depending on the proportion of the bulk reads for that gene that is 
-contributed by the given cell type. Then we apply IHW (globally) on this 
-covariate, using the bins as nominal. Note that this method is slightly 
-inferior to PASW and PABW, which are instead recommended.}
-\item{**PASW** (Proportion-Adjusted Significance Weighing): first, whenever 
-the direction of the change is different between bulk and pseudobulk 
-datasets for a gene in a given cell type, we increase the bulk p-value to 
-0.7 for that cell type (if it was below). Then, we adjust the covariate 
-(i.e. bulk p-value) based on the proportion of the bulk reads for that gene 
-that is contributed by the given cell type, using 
-$cov =  inv.logit( logit(p) * \sqrt c )$ where `p` and `c` are respectively 
-the bulk p-value and the proportion of bulk reads contributed by the cell 
-type). We then split this covariate into quantile bins and apply IHW.
-If unspecified (recommended), the number of bins will be determined 
-(somewhere between 6 and 10) based on the number of hypotheses.}
-\item{**PABW** (Proportion-Adjusted Bin-Wise correction): the covariate bins
-are prepared in the same fashion as for PASW. However, instead of using IHW,
-we simply compute FDR separately for each bin. This has the advantage of being
-deterministic and much faster, and typically gives results that are roughly 
-equivalent to the IHW-based methods.}
-}
+For each of steps (bin creation and usage in FDR), different methods 
+can be applied, which are described below.
 
-Local (i.e. per-celltype) adjustment is generally better than global, because the excess of small p-values in affected cell types gets diluted in by the unaffected cell types. Conversely the probability that small p-values from unaffected cell types (which are the result of noise) gets underestimated due to the excess of small p-values coming from affected cell types.
+## Creation of the evidence bins
+
+The same bulk p-value will necessarily be more informative in a cell type that 
+is abundant, or for a gene that is more specific to that cell type, since in 
+both cases the cell type will contribute more to the bulk expression of the 
+gene^[
+We define the 'contribution' of the cell type to the bulk expression of the gene
+as the proportion of the total pseudobulk reads for that gene that is 
+contributed by the cell type (across all samples).
+]. We therefore include such information (if available) in the 
+binning of the hypotheses.
+
+Specifically, the following options are available:
+
+* **sig** : the bulk significance values are used as is, eventually 
+  taking the direction of the logFC into account if provided in `bulkDEA`.
+   `nbins` are created using quantiles.
+* **combined** : first, significance-based bins are created in the same
+   fashion as in `bin.method="sig"`. Each significance bin is then further 
+   split into genes for which the cell type contributes much to the bulk, and
+   genes for which the cell type contributes little.
+* **PAS** (Proportion-Adjusted Significance): for each hypothesis, the 
+  bulk significance is adjusted based on the cell type contribution to the 
+  bulk of that gene using `inv.logit( logit(p) * sqrt(c) )` where `p` and `c` 
+  are respectively the bulk p-value and the proportion of bulk reads 
+  contributed by the cell type). We then split this covariate into quantile 
+  bins as is done for the "sig" method. *This is the recommended method.*
+* **asNA** : for hypotheses for which the cell type contributes little 
+  to the bulk profile, the covariate (i.e. bulk p-value) is set to NA, 
+  resulting it in making up its own bin.
+
+In all cases, if `useSign=TRUE` (default) and `bulkDEA` contains logFC 
+information, the concordance of the direction of change between bulk and 
+single-cell data will also be used to adjust the covariate.
+
+## P-value adjustment
+
+Once the bins are created, the following `correction.method` options are 
+available:
+
+* **binwise** : the Benjamini-Hochberg (BH) procedure is applied 
+ separately for each bin. Doing this can lead to an increase in false 
+  positives if the number of bins is large, and to correct for this the 
+  resulting adjusted p-values are multiplied by `pmin(1,nbins/rank(p))`. This
+  results is proper FDR control even across a large number of bins, but the
+  method is more conservative than others.
+* **IHW** : The Independent Hypothesis Weighing (IHW) method 
+  [@Ignatiadis2016] is applied. IHW uses cross-validation to optimizes 
+  hypotheses weights that lead to the highest rejections of the null hypothesis.
+  See the `r BiocStyle::Rpackage("IHW")` package for more detail.
+* **gBH.LSL** and **gBH.TST**: the Grouped BH method [@Hu2010] is applied.
+  The method has two options to compute the groups' rate of true null 
+  hypotheses, LSL and TST, which make the corresponding 
+  `correction.method` options.
+
+To enable the Grouped Benjamini-Hochberg (gBH) methods, we implemented the 
+procedure from Hu, Zhao and Zhou [@Hu2010] in the `gBH` function, which can be 
+used outside of the present context. The method has two variants which differ 
+in the way the rate of true null hypotheses in each group/bin is estimated (see 
+`?gBH` for more detail). **We recommend using** `correction.method="gBH.LSL"`, 
+which in our benchmark provided the best power while appropriately controlling 
+error.
+
+Each method exists in two flavors: a local one, which is applied for each 
+cell type separately, and a global one, which is applied once across all cell
+types (see the `local` argument). We recommend using the local one, for the same
+reasons discussed above: the excess of small p-values in affected cell types 
+gets diluted when polled with the unaffected cell types, and conversely 
+conversely the FDR is underestimated for small p-values from unaffected cell 
+types (which are the result of noise) due to the excess of small p-values coming
+from affected cell types.
 
 # Example usage
 
-## Differential State (DS) analysis
+## Generating input data
+
+### Differential State (DS) analysis
 
 We first load an example dataset and perform a pseudo-bulk differential state 
 analysis (for more information on this, see the [vignette](analysis.html)).
@@ -95,53 +162,57 @@ row.names(sce) <- make.unique(row.names(sce))
 # pseudo-bulk aggregation
 pb <- aggregateData(sce)
 res <- pbDS(pb, verbose = FALSE)
+# the signal is too strong in this data, so we'll reduce it
+# (don't do this with real data!):
+res$table$stim <- lapply(res$table$stim, \(x){
+  x$p_val <- sqrt(x$p_val)
+  x$p_adj.loc <- p.adjust(x$p_val, method="fdr")
+  x
+})
 # we assemble the cell types in a single table for the comparison of interest:
 res2 <- dplyr::bind_rows(res$table$stim, .id="cluster_id")
 head(res2 <- res2[order(res2$p_adj.loc),])
 ```
 
-## bbhw
+### Generating fake bulk data
 
 We next prepare the bulk differential expression table. Since we don't actually 
 have bulk data for this example dataset, we'll just make it up (don't do this!):
 
 ```{r}
+set.seed(123)
 bulkDEA <- data.frame(row.names=row.names(pb), logFC=rnorm(nrow(pb)),
                       PValue=runif(nrow(pb)))
 # we'll spike some signal in:
-sel <- unique(unlist(lapply(split(res2$gene, res2$cluster_id), head, n=200)))
-bulkDEA[sel,"PValue"] <- runif(length(sel), max=0.15)
+sel <- unique(unlist(lapply(split(res2$gene, res2$cluster_id), \(x) x[3:150])))
+bulkDEA[sel,"PValue"] <- abs(rnorm(length(sel), sd=0.01))
 head(bulkDEA)
 ```
 
-We then can apply `bbhw` (here using the fast method) :
+## bbhw
+
+We then can apply `bbhw` :
 
 ```{r}
-res2 <- bbhw(pbDEA=res2, bulkDEA=bulkDEA, pb=pb, verbose=FALSE,
-             method=c("PABW.local","PABW.global"))
-padj_scores <- c("p_adj.loc","padj.PABW_glb","padj.PABW_loc")
-head(res2[,c("gene","cluster_id",padj_scores)])
+# here we manually set the nbins because the dataset is too small,
+# you shouldn't normally need to do this:
+res2 <- bbhw(pbDEA=res2, bulkDEA=bulkDEA, pb=pb, nbins=4, verbose=FALSE)
 ```
 
-We can see that the adjustment methods do not rank the genes in the same fashion, and result in a different number of genes with padj<0.05:
+We can see that the adjustment methods do not rank the genes in the same fashion:
 
 ```{r}
-sapply(padj_scores, \(x){
-  sapply(split(res2[[x]], res2$cluster_id), \(y) sum(y<0.05, na.rm=TRUE))
-})
+head(res2[order(res2$padj),c("gene","cluster_id","p_adj.loc","padj")])
+table(standard=res2$p_adj.loc<0.05, bbhw=res2$padj<0.05)
 ```
 
-In this case the effect is very modest, chiefly because this is a small subset of data (hence few hypotheses) and the signal for this subset is already highly significant to begin with. However, this can often results in substantial improvements in both precision and recall (see below).
+This results in a different number of genes with padj<0.05:
 
-# Performance of the methods
-
-The following illustrates the performance of the different methods in two use cases:
-
-```{r echo = FALSE, fig.cap = "Benchmark of the different methods. For each metric, the different columns indicates cell types with a sufficient true differential expression to be assessed, across a simulated dataset as well as a subsampled real dataset (where the entire, large dataset is used as ground truth). The precision, recall and F1 score reported are at a nominal FDR threshold of 0.1."}
-knitr::include_graphics(system.file('extdata', 'bbhwBenchmark.png', package = 'muscat'))
+```{r}
+c(standard=sum(res2$p_adj.loc<0.05), bbhw=sum(res2$padj<0.05))
 ```
 
-All methods using bulk information show an improvement in precision and recall, with PABW and PASW showing the best results, especially with the local variants.
+In this case the effect is very modest, chiefly because this is a small subset of data (hence few hypotheses) and the signal for this subset is already highly significant to begin with. However, this can often results in substantial improvements in both precision and recall (see Figure 1D above).
 
 
 # Session info {- .smaller}
@@ -149,3 +220,5 @@ All methods using bulk information show an improvement in precision and recall, 
 ```{r session-info}
 sessionInfo()
 ```
+
+# References

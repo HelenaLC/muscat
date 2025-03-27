@@ -8,13 +8,17 @@ bbhw(
   pbDEA,
   bulkDEA,
   pb = NULL,
-  method = c("PASW.local", "PASW.global"),
+  local = TRUE,
+  useSign = TRUE,
   nbins = NULL,
+  bin.method = c("PAS", "combined", "asNA", "sig"),
+  NAsep = TRUE,
+  correction.method = c("gBH.LSL", "IHW", "binwise", "gBH.TST"),
   alpha = 0.1,
   nfolds = NULL,
-  ...,
   BPPARAM = SerialParam(progress = verbose),
-  verbose = TRUE
+  verbose = TRUE,
+  ...
 )
 }
 \arguments{
@@ -25,10 +29,9 @@ the output). This should contain the columns "gene", "cluster_id", "p_val"
 and, optionally "logFC".}
 
 \item{bulkDEA}{A data.frame of bulk DEA results, with gene names as row.names
-and including the columns "p_val", "gene", "cluster_id" and, ideally,
-"logFC". Alternatively, a named vector of significance values. Not that 
-these samples should be independent form the single-cell samples on which
-`pbDEA` is based.}
+and including the column "p_val" and, ideally, "logFC". Alternatively, a 
+named vector of significance values. Not that these samples should be 
+independent form the single-cell samples on which `pbDEA` is based.}
 
 \item{pb}{A pseudo-bulk SummarizedExperiment object as produced by 
 \code{\link{aggregateData}}. Alternatively, a matrix with cell types as 
@@ -36,82 +39,119 @@ columns and gene as rows, giving the read counts or proportion of
 contribution for each gene. If neither is given, the only available methods
 are "ihw.local" and "ihw.global".}
 
-\item{method}{The method(s) for which to compiled the adjusted p-values (see
-details below for options). By default the local and global versions of the
- top methods are computed. If `pb` is unavailable, `ihw.global` is the 
- recommended method. Use `method="all"` to compute adjusted p-values using
- all methods.}
+\item{local}{Logical; whether to apply the adjustment locally, i.e. 
+separately for each cell type (default TRUE).}
+
+\item{useSign}{Logical; whether to discount bulk p-values for which the 
+change is in the opposite direction as in the given celltype.}
 
 \item{nbins}{The number of significance bins to use for the covariate (i.e. 
-prior). For `combIHW`, the effective number of bins will be doubled. We 
-recommend leaving this to the default values (which varies across methods).}
+prior). For `combIHW`, the effective number of bins will be doubled (to 
+accommodate proportion-based bins). If omitted, a decent number of bins 
+will be set based on the method and number of hypotheses.}
+
+\item{bin.method}{The method for creating the bulk-based bins. Either "PAS" 
+(recommended and default), "combined", or "sig". Note that only 
+method="sig" is available if `pb` is not provided.}
+
+\item{NAsep}{Logical; whether to put NA bulk p-values into their own bin 
+(assuming there is a sufficient number of them). Otherwise, NA values will 
+be set to 0.5. In practice there is often an enrichment for small p-values
+in genes that are undetectable at the bulk level, so we recommend setting 
+this to TRUE (default).}
+
+\item{correction.method}{Determines with which method the bins are used. 
+See details for the different options. We recommend "gBH.LSL".}
 
 \item{alpha}{The nominal level for FDR control for \code{\link[IHW]{ihw}}.}
 
 \item{nfolds}{The number of cross-validation folds, passed to 
-\code{\link[IHW]{ihw}}. If null, will use appropriate defaults for 
-different methods based on the number of hypotheses.}
-
-\item{...}{Passed to \code{\link[IHW]{ihw}}.}
+\code{\link[IHW]{ihw}}. If null, will use appropriate defaults based on 
+the number of hypotheses per bin.}
 
 \item{BPPARAM}{An optional BiocParallel BPPARAM object for multithreading.}
 
 \item{verbose}{Logical; whether to print helpful information.}
+
+\item{...}{Passed to \code{\link[IHW]{ihw}}.}
 }
 \value{
-The `pbDEA` object including extra columns.
+The `pbDEA` object including extra columns, in particular the `padj`
+  column.
 }
 \description{
-This is a method based on Independent Hypothesis Weighing (Ignatiadis et al.,
-2016) to increase the power of low-sample-size, per-celltype differential 
-state analysis, using a larger dataset of bulk RNAseq.
+This is a method to increase the power of low-sample-size, per-celltype 
+differential state analysis by using a larger dataset of bulk RNAseq. In at 
+nutshell, it uses bulk data to create a covariate according to which the 
+hypotheses are grouped, and then uses this grouping either either on via 
+independent hypothesis weighing or grouped Benjamini-Hochberg correction to
+increase power.
 }
 \details{
-This function contains the following methods:
+This function contains different methods to create the bulk-based evidence 
+bins (defined by the `bin.method` argument), as well as different methods to 
+use this grouping for multiple testing correction `correction.method`.
+
+Here we call a 'hypothesis' a differential expression test on one gene in one
+cell type. We define the 'contribution' of the cell type to the bulk 
+expression of the gene as the proportion of the total pseudobulk reads for 
+that gene that is contributed by the cell type (across all samples).
+
+The following `bin.method` options are available (if `pb` is missing, only 
+`sig` is available):
 \itemize{
-\item{**ihw** : the IHW procedure is applied with default settings, 
- using the bulk p-value as covariate.}
-\item{**combIHW** : first, whenever the direction of the change is 
- different between bulk and pseudobulk datasets for a gene in a given cell 
- type, we set the bulk p-value to 0.7 for that cell type. Then, we divide the 
- bulk p-values into five quantile bins. We further divide each bin into two 
- depending on the proportion of the bulk reads for that gene that is 
- contributed by the given cell type. Then we apply IHW (globally) on this 
- covariate, using the bins as nominal. Note that this method is slightly 
- inferior to PASW and PABW, which are instead recommended.}
-\item{**PASW** (Proportion-Adjusted Significance Weighing): first, whenever 
- the direction of the change is different between bulk and pseudobulk 
- datasets for a gene in a given cell type, we increase the bulk p-value to 
- 0.7 for that cell type (if it was below). Then, we adjust the covariate 
- (i.e. bulk p-value) based on the proportion of the bulk reads for that gene 
- that is contributed by the given cell type, using 
- `inv.logit( logit(p) * sqrt(c) )` where `p` and `c` are respectively 
- the bulk p-value and the proportion of bulk reads contributed by the cell 
- type). We then split this covariate into quantile bins and apply IHW.
- If unspecified (recommended), the number of bins will be determined 
- (somewhere between 6 and 10) based on the number of hypotheses.}
-\item{**PABW** (Proportion-Adjusted Bin-Wise correction): the covariate bins
- are prepared in the same fashion as for PASW. However, instead of using IHW,
- we simply compute FDR separately for each bin.}
+\item{**sig** : the bulk significance values are used as is, eventually 
+  taking the direction of the logFC into account if provided in `bulkDEA`.
+  `nbins` are created using quantiles.}
+\item{**combined** : first, significance-based bins are created in the same
+  fashion as in `bin.method="sig"`. Each significance bin is then further 
+  split into genes for which the cell type contributes much to the bulk, and
+  genes for which the cell type contributes little.}
+\item{**PAS** (Proportion-Adjusted Significance): for each hypothesis, the 
+ bulk significance is adjusted based on the cell type contribution to the 
+ bulk of that gene using `inv.logit( logit(p) * sqrt(c) )` where `p` and `c` 
+ are respectively the bulk p-value and the proportion of bulk reads 
+ contributed by the cell type). We then split this covariate into quantile 
+ bins as is done for the "sig" method. *This is the recommended method.*}
+\item{**asNA** : for hypotheses for which the cell type contributes little 
+ to the bulk profile, the covariate (i.e. bulk p-value) is set to NA, 
+ resulting it in making up its own bin.}
 }
 
-If you have information about the contribution of each cell type to each 
-bulk gene (i.e. the `pb` argument), the recommended methods are PASW and 
-PABW, which give similar results (PABW is much faster and deterministic). If
-you do not have such information, use the IHW method.
+In all cases, if `useSign=TRUE` (default) and `bulkDEA` contains logFC 
+information, then whenever the direction of the change is different between 
+bulk and pseudobulk datasets for a gene in a given cell type, we increase the
+bulk p-value to 0.7 (if it was below) for that cell type.
+
+Once the bins are created, the following `correction.method` options are 
+available:
+
+\itemize{
+\item{**binwise** : the Benjamini-Hochberg (BH) procedure is applied 
+ separately for each bin. Doing this can lead to an increase in false 
+ positives if the number of bins is large, and to correct for this the 
+ resulting adjusted p-values are multiplied by `pmin(1,nbins/rank(p)`. This
+ results is proper FDR control even across a large number of bins, but the
+ method is more conservative than others.}
+\item{**IHW** : The Independent Hypothesis Weighing (IHW) method of 
+ Ignatiadis et al. (2016) is applied. See \code{\link[IHW]{ihw}}.}
+\item{**gBH.LSL** and **gBH.TST**: the Grouped BH method of Hu, Zhao and Zhou
+ (2010) is applied. The method has two options to compute the groups' rate 
+ of true null hypotheses, LSL and TST, which make the corresponding 
+ `correction.method` options (see \code{\link{gBH}} for more detail).
+ *We recommend using `gBH.LSL`*.}
+}
 
 Each method exists in two flavors: a local one, which is applied for each 
 cell type separately, and a global one, which is applied once across all cell
-types. Unfortunately, which of the two is preferable seems to depends on the
-context.
-
-The `method` argument should indicate both the method and whether it should 
-be applied locally or globally, e.g. `method="PABW.global"`.
+types (see the `local` argument). We recommend using the local one.
 }
 \references{
-Ignatiadis, N., Klaus, B., Zaugg, J. et al. Data-driven hypothesis weighting 
-increases detection power in genome-scale multiple testing. Nat Methods 13, 
-577–580 (2016). https://doi.org/10.1038/nmeth.3885
+Hu, J. X. and Zhao, H. and Zhou, H. H. (2010). False Discovery Rate 
+  Control With Groups. J Am Stat Assoc, 105(491):1215-1227.
+Ignatiadis, N., Klaus, B., Zaugg, J. et al. (2016) Data-driven hypothesis 
+weighting increases detection power in genome-scale multiple testing. Nat 
+Methods 13, 577–580.
 }
 \author{
 Pierre-Luc Germain
