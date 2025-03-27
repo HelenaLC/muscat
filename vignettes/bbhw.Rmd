@@ -122,7 +122,7 @@ available:
 * **IHW** : The Independent Hypothesis Weighing (IHW) method 
   [@Ignatiadis2016] is applied. IHW uses cross-validation to optimizes 
   hypotheses weights that lead to the highest rejections of the null hypothesis.
-  See the `r BiocStyle::Rpackage("IHW")` package for more detail.
+  See the `r BiocStyle::Biocpkg("IHW")` package for more detail.
 * **gBH.LSL** and **gBH.TST**: the Grouped BH method [@Hu2010] is applied.
   The method has two options to compute the groups' rate of true null 
   hypotheses, LSL and TST, which make the corresponding 
