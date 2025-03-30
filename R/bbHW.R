@@ -247,10 +247,10 @@ bbhw <- function(pbDEA, bulkDEA, pb=NULL, local=TRUE, useSign=TRUE, nbins=NULL,
     w <- which(pbDEA$readProportion < mean(pbDEA$readProportion, na.rm=TRUE))
     b2 <- pbDEA$bulk
     b2[w] <- 2L
-    if(is.null(nbins)) nbins <- max(1, min(15, floor(nrow(pbDEA)/1000))-1L)
+    if(is.null(nbins)) nbins <- max(1, min(30, floor(nrow(pbDEA)/500))-1L)
     pbDEA$hbin <- cut(b2, .getQBreaks(b2, nbins), include.lowest=TRUE)
   }else if(bin.method=="sig"){
-    if(is.null(nbins)) nbins <- max(1, min(12, floor(nrow(pbDEA)/1000))-1L)
+    if(is.null(nbins)) nbins <- max(1, min(30, floor(nrow(pbDEA)/500))-1L)
     breaks <- .getQBreaks(pbDEA$bulk, nbins)
     pbDEA$hbin <- cut(pbDEA$bulk, breaks, include.lowest=TRUE)
   }else{
@@ -337,7 +337,7 @@ bbhw <- function(pbDEA, bulkDEA, pb=NULL, local=TRUE, useSign=TRUE, nbins=NULL,
   pbDEA$combCov[w] <- ifelse(length(w)>50,2,0.5)
   
   if(is.null(nbins))
-    nbins <- max(1, min(12, floor(nrow(pbDEA)/1000))-1L)
+    nbins <- max(1, min(30, floor(nrow(pbDEA)/500))-1L)
     breaks <- c(0,quantile(pbDEA$combCov[pbDEA$combCov<=1],
                          seq_len(nbins)[-ceiling((nbins+1L)/2)]/(nbins+1L),
                          na.rm=TRUE), 1, ifelse(sum(pbDEA$combCov>1)>50,3,1))
@@ -349,7 +349,7 @@ bbhw <- function(pbDEA, bulkDEA, pb=NULL, local=TRUE, useSign=TRUE, nbins=NULL,
 }
 
 .bbhwGetCombinedBins <- function(pbDEA, nbins=NULL){
-  if(is.null(nbins)) nbins <- max(1, min(6, floor(nrow(pbDEA)/2000)))
+  if(is.null(nbins)) nbins <- max(1, min(15, floor(nrow(pbDEA)/1000)))
   hasNAbin <- length(w <- which(pbDEA$bulk>1))>=50
   if(!hasNAbin) pbDEA$bulk[w] <- 0.5
   breaks <- .getQBreaks(pbDEA$bulk, nbins)
