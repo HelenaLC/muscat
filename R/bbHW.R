@@ -212,26 +212,26 @@ bbhw <- function(pbDEA, bulkDEA, pb=NULL, local=TRUE, useSign=TRUE, nbins=NULL,
   pbDEA$tmpROWindex <- seq_len(nrow(pbDEA))
   
   if(local){
-    pbDEA <- dplyr::bind_rows(bplapply(split(pbDEA, pbDEA$cluster_id),
-                                       BPPARAM=BPPARAM, FUN=function(pbDEA){
-      pbDEA <- .bbhwGetBins(pbDEA, bin.method=bin.method, nbins=nbins)
-      .bbhw(pbDEA, correction.method=correction.method, nfolds=nfolds, 
-            alpha=alpha, ...)
-    }))
+    dat <- split(pbDEA, pbDEA$cluster_id)
   }else{
-    pbDEA <- .bbhwGetBins(pbDEA, bin.method=bin.method, nbins=nbins)
-    pbDEA <- .bbhw(pbDEA, correction.method=correction.method, nfolds=nfolds, 
-                   alpha=alpha, ...)
+    dat <- list(all=pbDEA)
   }
+  pbDEA <- dplyr::bind_rows(bplapply(split(pbDEA, pbDEA$cluster_id),
+                                     BPPARAM=BPPARAM, FUN=function(pbDEA){
+    pbDEA <- .bbhwGetBins(pbDEA, bin.method=bin.method, nbins=nbins,
+                          isIHW=correction.method=="IHW")
+    .bbhw(pbDEA, correction.method=correction.method, nfolds=nfolds, 
+          alpha=alpha, ...)
+  }))
   pbDEA <- pbDEA[order(pbDEA$tmpROWindex),]
   pbDEA$tmpROWindex <- NULL
   pbDEA
 }
 
-.bbhwGetBins <- function(pbDEA, bin.method, nbins, binBy=NULL){
+.bbhwGetBins <- function(pbDEA, bin.method, nbins, binBy=NULL, isIHW=FALSE){
   if(!is.null(binBy)){
     pbDEA <- dplyr::bind_rows(lapply(split(pbDEA, binBy), \(x){
-      .bbhwGetBins(x, bin.method=bin.method, nbins=nbins)
+      .bbhwGetBins(x, bin.method=bin.method, nbins=nbins, isIHW=isIHW)
     }))
     pbDEA$hbin <- factor(paste(pbDEA$binBy, pbDEA$hbin))
     return(pbDEA)
@@ -241,17 +241,17 @@ bbhw <- function(pbDEA, bulkDEA, pb=NULL, local=TRUE, useSign=TRUE, nbins=NULL,
   }else{
     pbDEA$bulk[w] <- 0.5
   }
+  if(is.null(nbins))
+    nbins <- max(1, min(30, floor(nrow(pbDEA)/ifelse(isIHW,1000,500))))
   if(bin.method=="combined"){
     pbDEA <- .bbhwGetCombinedBins(pbDEA, nbins)
   }else if(bin.method=="asNA"){
     w <- which(pbDEA$readProportion < mean(pbDEA$readProportion, na.rm=TRUE))
     b2 <- pbDEA$bulk
     b2[w] <- 2L
-    if(is.null(nbins)) nbins <- max(1, min(30, floor(nrow(pbDEA)/500))-1L)
-    pbDEA$hbin <- cut(b2, .getQBreaks(b2, nbins), include.lowest=TRUE)
+    pbDEA$hbin <- cut(b2, .getQBreaks(b2, nbins-1L), include.lowest=TRUE)
   }else if(bin.method=="sig"){
-    if(is.null(nbins)) nbins <- max(1, min(30, floor(nrow(pbDEA)/500))-1L)
-    breaks <- .getQBreaks(pbDEA$bulk, nbins)
+    breaks <- .getQBreaks(pbDEA$bulk, nbins-1L)
     pbDEA$hbin <- cut(pbDEA$bulk, breaks, include.lowest=TRUE)
   }else{
     pbDEA <- .getAdjustedBins(pbDEA, nbins)
@@ -348,8 +348,7 @@ bbhw <- function(pbDEA, bulkDEA, pb=NULL, local=TRUE, useSign=TRUE, nbins=NULL,
   pbDEA
 }
 
-.bbhwGetCombinedBins <- function(pbDEA, nbins=NULL){
-  if(is.null(nbins)) nbins <- max(1, min(15, floor(nrow(pbDEA)/1000)))
+.bbhwGetCombinedBins <- function(pbDEA, nbins){
   hasNAbin <- length(w <- which(pbDEA$bulk>1))>=50
   if(!hasNAbin) pbDEA$bulk[w] <- 0.5
   breaks <- .getQBreaks(pbDEA$bulk, nbins)
