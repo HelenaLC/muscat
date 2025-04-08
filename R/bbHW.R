@@ -148,11 +148,13 @@ bbhw <- function(pbDEA, bulkDEA, pb=NULL, local=TRUE, useSign=TRUE, nbins=NULL,
   stopifnot(is.data.frame(pbDEA))
   pbDEA <- .homogenizeDEA4bbhw(pbDEA)
   stopifnot(all(c("p_val","gene","cluster_id") %in% colnames(pbDEA)))
-  bulkDEA <- .bbhwParseBulk(bulkDEA, bin.method, useSign)
-  if(bin.method=="PALFC"){
-    bin.method <- "PAS"
-    useSign <- TRUE
+  if(!("logFC" %in% colnames(pbDEA))){
+    if(verbose) message("No logFC information in `pbDEA`, direction of change",
+                        " will not be taken into account.")
+    useSign <- FALSE
   }
+  bulkDEA <- .bbhwParseBulk(bulkDEA, bin.method, useSign)
+  if(bin.method=="PALFC") bin.method <- "PAS"
   
   ig <- intersect(as.character(unique(pbDEA$gene)), names(bulkDEA))
   if(length(ig) < 2000) stop("Too few genes in common for the procedure.")
@@ -231,11 +233,11 @@ bbhw <- function(pbDEA, bulkDEA, pb=NULL, local=TRUE, useSign=TRUE, nbins=NULL,
       stopifnot("logFC" %in% colnames(bulkDEA))
       bulkDEA <- setNames(rank(-abs(bulkDEA$logFC))*sign(bulkDEA$logFC),
                           row.names(bulkDEA))
+      if(!useSign) bulkDEA <- abs(bulkDEA)
       bulkDEA <- bulkDEA/max(abs(bulkDEA))
     }else{
       stopifnot("p_val" %in% colnames(bulkDEA))
-      if(useSign && "logFC" %in% colnames(bulkDEA) && 
-         "logFC" %in% colnames(pbDEA)){
+      if(useSign && "logFC" %in% colnames(bulkDEA)){
         bulkDEA <- setNames(sign(bulkDEA$logFC)*bulkDEA$p_val,
                             row.names(bulkDEA))
       }else{
