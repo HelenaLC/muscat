@@ -84,6 +84,10 @@
 #'  are respectively the bulk p-value and the proportion of bulk reads 
 #'  contributed by the cell type). We then split this covariate into quantile 
 #'  bins as is done for the "sig" method. *This is the recommended method.*}
+#' \item{**PALFC** (Proportion-Adjusted logFC): same as for PAS, except that the
+#'  bulk logFC is used instead of the significance. Note that when using this
+#'  option, it is important to use shrunk logFC estimates, as for instance
+#'  produced by \code{\link[edgeR]{predFC}}.}
 #' \item{**asNA** : for hypotheses for which the cell type contributes little 
 #'  to the bulk profile, the covariate (i.e. bulk p-value) is set to NA, 
 #'  resulting it in making up its own bin.}
@@ -123,10 +127,10 @@
 #' @importFrom stats quantile
 #' @importFrom dplyr bind_rows
 bbhw <- function(pbDEA, bulkDEA, pb=NULL, local=TRUE, useSign=TRUE, nbins=NULL,
-                 bin.method=c("PAS","combined","asNA","sig"), NAsep=TRUE, 
+                 bin.method=c("PAS","combined","asNA","sig", "PALFC"), 
                  correction.method=c("gBH.LSL","IHW","binwise","gBH.TST"),
-                 alpha=0.1, nfolds=NULL, BPPARAM=SerialParam(progress=verbose),
-                 verbose=TRUE, ...){
+                 NAsep=TRUE, alpha=0.1, nfolds=NULL, 
+                 BPPARAM=SerialParam(progress=verbose), verbose=TRUE, ...){
   correction.method <- match.arg(correction.method)
   bin.method <- match.arg(bin.method)
   if(bin.method!="sig"){
@@ -144,18 +148,10 @@ bbhw <- function(pbDEA, bulkDEA, pb=NULL, local=TRUE, useSign=TRUE, nbins=NULL,
   stopifnot(is.data.frame(pbDEA))
   pbDEA <- .homogenizeDEA4bbhw(pbDEA)
   stopifnot(all(c("p_val","gene","cluster_id") %in% colnames(pbDEA)))
-  if(is.data.frame(bulkDEA)){
-    bulkDEA <- .homogenizeDEA4bbhw(bulkDEA)
-    stopifnot("p_val" %in% colnames(bulkDEA))
-    if(useSign && "logFC" %in% colnames(bulkDEA) && 
-       "logFC" %in% colnames(pbDEA)){
-      bulkDEA <- setNames(sign(bulkDEA$logFC)*bulkDEA$p_val,
-                          row.names(bulkDEA))
-    }else{
-      bulkDEA <- setNames(bulkDEA$p_val, row.names(bulkDEA))
-    }
-  }else{
-    stopifnot(is.numeric(bulkDEA) && !is.null(names(bulkDEA)))
+  bulkDEA <- .bbhwParseBulk(bulkDEA, bin.method, useSign)
+  if(bin.method=="PALFC"){
+    bin.method <- "PAS"
+    useSign <- TRUE
   }
   
   ig <- intersect(as.character(unique(pbDEA$gene)), names(bulkDEA))
@@ -226,6 +222,32 @@ bbhw <- function(pbDEA, bulkDEA, pb=NULL, local=TRUE, useSign=TRUE, nbins=NULL,
   pbDEA <- pbDEA[order(pbDEA$tmpROWindex),]
   pbDEA$tmpROWindex <- NULL
   pbDEA
+}
+
+.bbhwParseBulk <- function(bulkDEA, bin.method="PAS", useSign=TRUE){
+  if(is.data.frame(bulkDEA)){
+    bulkDEA <- .homogenizeDEA4bbhw(bulkDEA)
+    if(bin.method=="PALFC"){
+      stopifnot("logFC" %in% colnames(bulkDEA))
+      bulkDEA <- setNames(rank(-abs(bulkDEA$logFC))*sign(bulkDEA$logFC),
+                          row.names(bulkDEA))
+      bulkDEA <- bulkDEA/max(abs(bulkDEA))
+    }else{
+      stopifnot("p_val" %in% colnames(bulkDEA))
+      if(useSign && "logFC" %in% colnames(bulkDEA) && 
+         "logFC" %in% colnames(pbDEA)){
+        bulkDEA <- setNames(sign(bulkDEA$logFC)*bulkDEA$p_val,
+                            row.names(bulkDEA))
+      }else{
+        bulkDEA <- setNames(bulkDEA$p_val, row.names(bulkDEA))
+      }
+    }
+  }else{
+    if(bin.method=="PALFC")
+      stop("PALFC is only possible when `bulkDEA` has a logFC column.")
+    stopifnot(is.numeric(bulkDEA) && !is.null(names(bulkDEA)))
+  }
+  bulkDEA
 }
 
 .bbhwGetBins <- function(pbDEA, bin.method, nbins, binBy=NULL, isIHW=FALSE){

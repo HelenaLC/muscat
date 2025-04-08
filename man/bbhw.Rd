@@ -11,9 +11,9 @@ bbhw(
   local = TRUE,
   useSign = TRUE,
   nbins = NULL,
-  bin.method = c("PAS", "combined", "asNA", "sig"),
-  NAsep = TRUE,
+  bin.method = c("PAS", "combined", "asNA", "sig", "PALFC"),
   correction.method = c("gBH.LSL", "IHW", "binwise", "gBH.TST"),
+  NAsep = TRUE,
   alpha = 0.1,
   nfolds = NULL,
   BPPARAM = SerialParam(progress = verbose),
@@ -54,14 +54,14 @@ will be set based on the method and number of hypotheses.}
 (recommended and default), "combined", or "sig". Note that only 
 method="sig" is available if `pb` is not provided.}
 
+\item{correction.method}{Determines with which method the bins are used. 
+See details for the different options. We recommend "gBH.LSL".}
+
 \item{NAsep}{Logical; whether to put NA bulk p-values into their own bin 
 (assuming there is a sufficient number of them). Otherwise, NA values will 
 be set to 0.5. In practice there is often an enrichment for small p-values
 in genes that are undetectable at the bulk level, so we recommend setting 
 this to TRUE (default).}
-
-\item{correction.method}{Determines with which method the bins are used. 
-See details for the different options. We recommend "gBH.LSL".}
 
 \item{alpha}{The nominal level for FDR control for \code{\link[IHW]{ihw}}.}
 
@@ -113,6 +113,10 @@ The following `bin.method` options are available (if `pb` is missing, only
  are respectively the bulk p-value and the proportion of bulk reads 
  contributed by the cell type). We then split this covariate into quantile 
  bins as is done for the "sig" method. *This is the recommended method.*}
+\item{**PALFC** (Proportion-Adjusted logFC): same as for PAS, except that the
+ bulk logFC is used instead of the significance. Note that when using this
+ option, it is important to use shrunk logFC estimates, as for instance
+ produced by \code{\link[edgeR]{predFC}}.}
 \item{**asNA** : for hypotheses for which the cell type contributes little 
  to the bulk profile, the covariate (i.e. bulk p-value) is set to NA, 
  resulting it in making up its own bin.}

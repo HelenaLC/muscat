@@ -17,7 +17,7 @@ vignette: >
   %\VignetteEncoding{UTF-8}
 bibliography: "`r file.path(system.file('extdata', package = 'muscat'), 'refs.bib')`"
 abstract: > 
-  Due to the costs of single-cell sequencing, sample sizes are often relatively limited, sometimes leading to poorly reproducible results. In many contexts, however, larger bulk RNAseq data is available for the same conditions or experimental paradigm, which can be used as additional evidence of a generalization differential expression pattern. Here, we show how such data can be used, via bulk-based hypothesis weighing (bbhw), to increase the power and robustness of single-cell differential state analysis.
+  Due to the costs of single-cell sequencing, sample sizes are often relatively limited, sometimes leading to poorly reproducible results. In many contexts, however, larger bulk RNAseq data is available for the same conditions or experimental paradigm, which can be used as additional evidence of a generalizable differential expression pattern. Here, we show how such data can be used, via bulk-based hypothesis weighing (bbhw), to increase the power and robustness of single-cell differential state analysis.
 ---
 
 <style type="text/css">
@@ -100,6 +100,10 @@ Specifically, the following options are available:
   are respectively the bulk p-value and the proportion of bulk reads 
   contributed by the cell type). We then split this covariate into quantile 
   bins as is done for the "sig" method. *This is the recommended method.*
+* **PALFC** (Proportion-Adjusted logFC): same as for **PAS**, except that the
+  bulk logFC is used instead of the significance. Note that when using this
+  option, it is important to use shrunk logFC estimates, as for instance
+  produced by `edgeR::predFC`.
 * **asNA** : for hypotheses for which the cell type contributes little 
   to the bulk profile, the covariate (i.e. bulk p-value) is set to NA, 
   resulting it in making up its own bin.
