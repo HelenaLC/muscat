@@ -151,6 +151,9 @@ cell type separately, and a global one, which is applied once across all cell
 types (see the `local` argument). We recommend using the local one.
 }
 \references{
+Germain, P.-L. and Robinson, M.D. (2025 preprint). Bulk-based hypothesis 
+  weighing to increase power in single-cell diﬀerential expression analysis.
+  bioRxiv, doi:10.1101/2025.04.15.648932
 Hu, J. X. and Zhao, H. and Zhou, H. H. (2010). False Discovery Rate 
   Control With Groups. J Am Stat Assoc, 105(491):1215-1227.
 Ignatiadis, N., Klaus, B., Zaugg, J. et al. (2016) Data-driven hypothesis 
