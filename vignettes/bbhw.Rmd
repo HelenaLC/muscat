@@ -35,8 +35,9 @@ library(BiocStyle)
 # Load packages {-}
 
 ```{r load-libs, message = FALSE,  warning = FALSE}
-library(SingleCellExperiment)
+library(dplyr)
 library(muscat)
+library(SingleCellExperiment)
 ```
 
 # Methods
@@ -172,13 +173,13 @@ pb <- aggregateData(sce)
 res <- pbDS(pb, verbose = FALSE)
 # the signal is too strong in this data, so we'll reduce it
 # (don't do this with real data!):
-res$table$stim <- lapply(res$table$stim, \(x){
-  x$p_val <- sqrt(x$p_val)
-  x$p_adj.loc <- p.adjust(x$p_val, method="fdr")
-  x
+res$table$stim <- lapply(res$table$stim, \(x) {
+    x$p_val <- sqrt(x$p_val)
+    x$p_adj.loc <- p.adjust(x$p_val, method="fdr")
+    x
 })
 # we assemble the cell types in a single table for the comparison of interest:
-res2 <- dplyr::bind_rows(res$table$stim, .id="cluster_id")
+res2 <- bind_rows(res$table$stim, .id="cluster_id")
 head(res2 <- res2[order(res2$p_adj.loc),])
 ```
 
@@ -189,10 +190,13 @@ have bulk data for this example dataset, we'll just make it up (don't do this!):
 
 ```{r}
 set.seed(123)
-bulkDEA <- data.frame(row.names=row.names(pb), logFC=rnorm(nrow(pb)),
-                      PValue=runif(nrow(pb)))
+bulkDEA <- data.frame(
+    row.names=row.names(pb), 
+    logFC=rnorm(nrow(pb)),
+    PValue=runif(nrow(pb)))
 # we'll spike some signal in:
-sel <- unique(unlist(lapply(split(res2$gene, res2$cluster_id), \(x) x[3:150])))
+gs_by_k <- split(res2$gene, res2$cluster_id)
+sel <- unique(unlist(lapply(gs_by_k, \(x) x[3:150])))
 bulkDEA[sel,"PValue"] <- abs(rnorm(length(sel), sd=0.01))
 head(bulkDEA)
 ```
@@ -202,7 +206,8 @@ head(bulkDEA)
 We then can apply `bbhw` :
 
 ```{r}
-# here we manually set the nbins because the dataset is too small,
+# here, we manually set 'nbins'
+# because the dataset is too small, 
 # you shouldn't normally need to do this:
 res2 <- bbhw(pbDEA=res2, bulkDEA=bulkDEA, pb=pb, nbins=4, verbose=FALSE)
 ```
@@ -211,17 +216,16 @@ We can see that the adjustment methods do not rank the genes in the same fashion
 
 ```{r}
 head(res2[order(res2$padj),c("gene","cluster_id","p_adj.loc","padj")])
-table(standard=res2$p_adj.loc<0.05, bbhw=res2$padj<0.05)
+table(standard=res2$p_adj.loc < 0.05, bbhw=res2$padj < 0.05)
 ```
 
-This results in a different number of genes with padj<0.05:
+This results in a different number of genes with adjusted p-values < 0.05:
 
 ```{r}
-c(standard=sum(res2$p_adj.loc<0.05), bbhw=sum(res2$padj<0.05))
+c(standard=sum(res2$p_adj.loc < 0.05), bbhw=sum(res2$padj < 0.05))
 ```
 
 In this case the effect is very modest, chiefly because this is a small subset of data (hence few hypotheses) and the signal for this subset is already highly significant to begin with. However, this can often results in substantial improvements in both precision and recall (see Figure 1D above).
-
 
 # Session info {- .smaller}
 
