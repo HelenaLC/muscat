@@ -40,7 +40,7 @@ env:
   has_RUnit: 'false'
   cache-version: 'cache-v1'
   run_docker: 'false'
-  bioc_version: 'bioc-release'
+  bioc_version: 'bioc-devel'
   ## Valid options are:
   ##    "bioc-release"
   ##    "bioc-devel"

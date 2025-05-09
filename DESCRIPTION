@@ -38,6 +38,7 @@ Imports:
 Suggests: 
 	BiocStyle,
 	countsimQC,
+	AnnotationHub, 
 	ExperimentHub, 
 	iCOBRA,
 	knitr, 
