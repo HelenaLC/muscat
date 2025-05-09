@@ -35,45 +35,75 @@ name: R-CMD-check-bioc
 ## "/nocache" in the commit message.
 env:
   has_testthat: 'true'
-  run_covr: 'true'
+  run_covr: 'false'
   run_pkgdown: 'false'
   has_RUnit: 'false'
   cache-version: 'cache-v1'
   run_docker: 'false'
+  bioc_version: 'bioc-devel'
+  ## Valid options are:
+  ##    "bioc-release"
+  ##    "bioc-devel"
+  ##    or a specific number like "3.20"
 
 jobs:
+  bioc-config:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-bioc-matrix.outputs.matrix }}
+    steps:
+      ## Adapted from
+      ## https://runs-on.com/github-actions/the-matrix-strategy/#dynamic-matrix-generation
+      - id: set-bioc-matrix
+        run: |
+         bioc=$(curl -L https://bioconductor.org/config.yaml)
+         if [[ "$bioc_version" == "bioc-release" ]]; then
+           echo "Finding the latest BioC release version and the corresponding R version"
+           biocversion=$(echo "$bioc" | grep "release_version: " | grep -Eo "[0-9]{1}\.[0-9]{2}")
+           rversion=$(echo "$bioc" | grep "r_version_associated_with_release: " | grep -Eo "[0-9]{1}\.[0-9]{1}")
+           biocmajor=$(echo "$biocversion" | cut -c 1-1)
+           biocminor=$(echo "$biocversion" | cut -c 3-4)
+           bioccont=$(echo "bioconductor/bioconductor_docker:RELEASE_${biocmajor}_${biocminor}")
+         elif [[ "$bioc_version" == "bioc-devel" ]]; then
+           echo "Finding the latest BioC devel version and the corresponding R version"
+           biocversion=$(echo "$bioc" | grep "devel_version: " | grep -Eo "[0-9]{1}\.[0-9]{2}")
+           rversion_release=$(echo "$bioc" | grep "r_version_associated_with_release: " | grep -Eo "[0-9]{1}\.[0-9]{1}")
+           rversion_devel=$(echo "$bioc" | grep "r_version_associated_with_devel: " | grep -Eo "[0-9]{1}\.[0-9]{1}")
+           if [[ "$rversion_release" == "$rversion_devel" ]]; then
+             rversion=$(echo "$rversion_devel")
+           else
+             rversion="devel"
+           fi
+           bioccont="bioconductor/bioconductor_docker:devel"
+         else
+           echo "Finding the the R version for bioc version ${bioc_version}"
+           biocversion=$(echo "$bioc_version")
+           rversion=$(echo "$bioc" | sed -En "/r_ver_for_bioc_ver/,/release_dates/p" | grep "$bioc_version\":" | grep -Eo ": \"[0-9]{1}\.[0-9]{1}" | grep -Eo "[0-9]{1}\.[0-9]{1}")
+           biocmajor=$(echo "$biocversion" | cut -c 1-1)
+           biocminor=$(echo "$biocversion" | cut -c 3-4)
+           bioccont=$(echo "bioconductor/bioconductor_docker:RELEASE_${biocmajor}_${biocminor}")
+         fi
+         echo "Found these settings:"
+         echo "Bioconductor version: $biocversion, R version: $rversion, Bioconductor docker name: $bioccont"
+         echo "matrix={ \"config\": [{\"os\" : \"ubuntu-latest\", \"r\" : \"${rversion}\", \"bioc\" : \"${biocversion}\", \"cont\" : \"${bioccont}\"} , {\"os\" : \"macOS-latest\", \"r\" : \"${rversion}\", \"bioc\" : \"${biocversion}\"} , {\"os\" : \"windows-latest\", \"r\" : \"${rversion}\", \"bioc\" : \"${biocversion}\" }] }" >> "$GITHUB_OUTPUT"
+         ## If an OS is failing and you don't want to test it, manually remove it from the 'matrix' JSON entries above
+
   build-check:
+    needs: bioc-config
+    strategy:
+      fail-fast: false
+      matrix: ${{fromJson(needs.bioc-config.outputs.matrix)}}
     runs-on: ${{ matrix.config.os }}
     name: ${{ matrix.config.os }} (${{ matrix.config.r }})
     container: ${{ matrix.config.cont }}
-    ## Environment variables unique to this job.
-
-    strategy:
-      fail-fast: false
-      matrix:
-        config:
-          - { os: ubuntu-latest, r: 'devel', bioc: '3.21', cont: "bioconductor/bioconductor_docker:devel", rspm: "https://packagemanager.rstudio.com/cran/__linux__/jammy/latest" }
-          - { os: macOS-latest, r: 'devel', bioc: '3.21'}
-          - { os: windows-latest, r: 'devel', bioc: '3.21'}
-          ## Check https://github.com/r-lib/actions/tree/master/examples
-          ## for examples using the http-user-agent
     env:
       R_REMOTES_NO_ERRORS_FROM_WARNINGS: true
-      RSPM: ${{ matrix.config.rspm }}
       NOT_CRAN: true
       TZ: UTC
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
 
     steps:
-
-      ## Set the R library to the directory matching the
-      ## R packages cache step further below when running on Docker (Linux).
-      - name: Set R Library home on Linux
-        if: runner.os == 'Linux'
-        run: |
-          mkdir /__w/_temp/Library
-          echo ".libPaths('/__w/_temp/Library')" > ~/.Rprofile
 
       ## Most of these steps are the same as the ones in
       ## https://github.com/r-lib/actions/blob/master/examples/check-standard.yaml
@@ -94,32 +124,38 @@ jobs:
         if: runner.os != 'Linux'
         uses: r-lib/actions/setup-pandoc@v2
 
-      - name: Query dependencies
+      ## Create the path that will be used for caching packages on Linux
+      - name: Create R_LIBS_USER on Linux
+        if: runner.os == 'Linux'
         run: |
-          install.packages('remotes')
-          saveRDS(remotes::dev_package_deps(dependencies = TRUE), ".github/depends.Rds", version = 2)
-        shell: Rscript {0}
+          R_LIBS_USER=/__w/_temp/Library
+          echo "R_LIBS_USER=$R_LIBS_USER" >> "$GITHUB_ENV"
+          mkdir -p $R_LIBS_USER
 
+      ## Use cached R packages
       - name: Restore R package cache
-        if: "!contains(github.event.head_commit.message, '/nocache') && runner.os != 'Linux'"
-        uses: actions/cache@v3
+        if: "!contains(github.event.head_commit.message, '/nocache')"
+        uses: actions/cache@v4
         with:
           path: ${{ env.R_LIBS_USER }}
-          key: ${{ env.cache-version }}-${{ runner.os }}-biocversion-devel-r-devel-${{ hashFiles('.github/depends.Rds') }}
-          restore-keys: ${{ env.cache-version }}-${{ runner.os }}-biocversion-devel-r-devel-
+          key: ${{ matrix.config.os }}-${{ matrix.config.r }}-${{ matrix.config.bioc }}-${{ inputs.cache-version }}
+          restore-keys: ${{ matrix.config.os }}-${{ matrix.config.r }}-${{ matrix.config.bioc }}--${{ inputs.cache-version }}
 
-      - name: Cache R packages on Linux
-        if: "!contains(github.event.head_commit.message, '/nocache') && runner.os == 'Linux' "
-        uses: actions/cache@v3
-        with:
-          path: /home/runner/work/_temp/Library
-          key: ${{ env.cache-version }}-${{ runner.os }}-biocversion-devel-r-devel-${{ hashFiles('.github/depends.Rds') }}
-          restore-keys: ${{ env.cache-version }}-${{ runner.os }}-biocversion-devel-r-devel-
+      ## remotes is needed for isntalling the Linux system dependencies
+      ## as well as other R packages later on.
+      - name: Install remotes
+        run: |
+          message(paste('****', Sys.time(), 'installing remotes ****'))
+          install.packages('remotes')
+        shell: Rscript {0}
+
+      ## This will work again once https://github.com/r-lib/remotes/commit/0e4e23051041d9f1b15a5ab796defec31af6190d
+      ## makes it to the CRAN version of remotes
 
       # - name: Install Linux system dependencies
       #   if: runner.os == 'Linux'
       #   run: |
-      #     sysreqs=$(Rscript -e 'cat("apt-get update -y && apt-get install -y", paste(gsub("apt-get install -y ", "", remotes::system_requirements("ubuntu", "20.04")), collapse = " "))')
+      #     sysreqs=$(Rscript -e 'cat("apt-get update -y && apt-get install -y", paste(gsub("apt-get install -y ", "", remotes::system_requirements("ubuntu", "24.04")), collapse = " "))')
       #     echo $sysreqs
       #     sudo -s eval "$sysreqs"
 
@@ -202,7 +238,7 @@ jobs:
       - name: Install pkgdown
         if: github.ref == 'refs/heads/devel' && env.run_pkgdown == 'true' && runner.os == 'Linux'
         run: |
-          remotes::install_github("r-lib/pkgdown")
+          remotes::install_cran("pkgdown")
         shell: Rscript {0}
 
       - name: Session info
@@ -285,7 +321,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@master
         with:
-          name: ${{ runner.os }}-biocversion-devel-r-devel-results
+          name: ${{ runner.os }}-${{ matrix.config.r }}-${{ matrix.config.bioc }}-results
           path: check
 
 
