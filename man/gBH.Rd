@@ -7,19 +7,17 @@
 gBH(p, bins, pi0 = c("LSL", "TST"), alpha = 0.05)
 }
 \arguments{
-\item{p}{A vector of p-values}
+\item{p}{A vector of p-values.}
 
-\item{bins}{A factor of same length as `p` indicating to which bin the 
-p-value belongs}
+\item{bins}{A factor of same length as `p`
+indicating to which bin the p-value belongs.}
 
 \item{pi0}{The pi0 estimation method, either LSL (default) or TST.}
 
-\item{alpha}{The desired FDR control (ignored for the LSL method)}
+\item{alpha}{The desired FDR control (ignored for the LSL method).}
 }
 \value{
 A vector of same length as `p` with the adjusted p-values.
-
-A vector of adjusted p-values
 }
 \description{
 This computes adjusted p-values using a user-defined grouping of the 
@@ -52,6 +50,7 @@ table(truth=d$truth, grouped=d$padj_grouped<0.05)
 # compare with the normal BH:
 d$padj_normal <- p.adjust(d$p, method="fdr")
 table(truth=d$truth, normal=d$padj_normal<0.05)
+
 }
 \references{
 Hu, J. X. and Zhao, H. and Zhou, H. H. (2010). False Discovery Rate 
