@@ -26,7 +26,7 @@ Imports:
 	ComplexHeatmap, 
 	data.table, DESeq2, dplyr, 
 	edgeR, 
-	ggplot2, glmmTMB, grDevices, grid, gtools,
+	ggplot2, glmmTMB, grDevices, grid,
 	IHW,
 	limma, lmerTest, lme4, 
 	Matrix, matrixStats, methods, 
@@ -34,9 +34,10 @@ Imports:
 	rlang,
 	S4Vectors, scales, scater, scuttle, sctransform, stats, 
 	SingleCellExperiment, SummarizedExperiment, 
-	variancePartition, viridis
+	variancePartition
 Suggests: 
 	BiocStyle,
+	cowplot,
 	countsimQC,
 	AnnotationHub, 
 	ExperimentHub, 
@@ -50,6 +51,7 @@ Suggests:
 	statmod,
 	stageR,
 	testthat, 
+	tidyr, 
 	UpSetR
 biocViews: ImmunoOncology, DifferentialExpression, Sequencing, 
     SingleCell, Software, StatisticalMethod, Visualization
