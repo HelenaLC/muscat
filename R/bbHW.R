@@ -343,6 +343,7 @@ bbhw <- function(pbDEA, bulkDEA, pb=NULL, local=TRUE, useSign=TRUE, nbins=NULL,
   }
 }
 
+#' @importFrom stats cor
 .checkIhwRes <- function(a, msg=TRUE){
   cc <- suppressWarnings(cor(a@weights))
   cc <- cc[lower.tri(cc)]
@@ -407,15 +408,12 @@ bbhw <- function(pbDEA, bulkDEA, pb=NULL, local=TRUE, useSign=TRUE, nbins=NULL,
 #' This computes adjusted p-values using a user-defined grouping of the 
 #' hypotheses, following the method from Hu, Zhao and Zhou (2010).
 #'
-#' @param p A vector of p-values
-#' @param bins A factor of same length as `p` indicating to which bin the 
-#'  p-value belongs
+#' @param p A vector of p-values.
+#' @param bins A factor of same length as `p`
+#'   indicating to which bin the p-value belongs.
 #' @param pi0 The pi0 estimation method, either LSL (default) or TST.
-#' @param alpha The desired FDR control (ignored for the LSL method)
+#' @param alpha The desired FDR control (ignored for the LSL method).
 #' 
-#' @return A vector of same length as `p` with the adjusted p-values.
-#' 
-#' @author Pierre-Luc Germain
 #' @details
 #' This is partly inspired from code in the c212 package by Raymond Carragher,
 #' which followed the implementation described in Hu, Zhao and Zhou (2010). The 
@@ -429,6 +427,10 @@ bbhw <- function(pbDEA, bulkDEA, pb=NULL, local=TRUE, useSign=TRUE, nbins=NULL,
 #' the Least-Slope estimator proposed by Benjamini and Hochberg (2000). We 
 #' recommend using the LSL method (default), which was more robust in our hands
 #' and has the virtue of not being dependent on an input alpha.
+#' 
+#' @return A vector of same length as `p` with the adjusted p-values.
+#' 
+#' @author Pierre-Luc Germain
 #'
 #' @references 
 #' Hu, J. X. and Zhao, H. and Zhou, H. H. (2010). False Discovery Rate 
@@ -436,10 +438,7 @@ bbhw <- function(pbDEA, bulkDEA, pb=NULL, local=TRUE, useSign=TRUE, nbins=NULL,
 #' Benjamini Y, Hochberg Y. (2000). On the Adaptive Control of the False 
 #'   Discovery Rate in Multiple Testing With Independent Statistics. Journal of 
 #'   Educational and Behavioral Statistics, 25(1):60–83.
-#'
-#' @return A vector of adjusted p-values
-#' @export
-#' @importFrom stats p.adjust
+#' 
 #' @examples
 #' # generate data with fake p-values and bins that are somewhat informative:
 #' d <- data.frame(
@@ -453,6 +452,10 @@ bbhw <- function(pbDEA, bulkDEA, pb=NULL, local=TRUE, useSign=TRUE, nbins=NULL,
 #' # compare with the normal BH:
 #' d$padj_normal <- p.adjust(d$p, method="fdr")
 #' table(truth=d$truth, normal=d$padj_normal<0.05)
+#' 
+#' @importFrom stats p.adjust
+#' @importFrom utils head
+#' @export
 gBH <- function(p, bins, pi0=c("LSL","TST"), alpha=0.05){
   if(is.character(bins)) bins <- as.factor(bins)
   stopifnot(is.factor(bins))
