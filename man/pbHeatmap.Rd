@@ -18,7 +18,7 @@ pbHeatmap(
   assay = "logcounts",
   fun = mean,
   normalize = TRUE,
-  col = viridis(10),
+  col = hcl.colors(10, "viridis"),
   row_anno = TRUE,
   col_anno = TRUE
 )
