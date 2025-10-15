@@ -16,7 +16,7 @@ bbhw(
   NAsep = TRUE,
   alpha = 0.1,
   nfolds = NULL,
-  BPPARAM = SerialParam(progress = verbose),
+  BPPARAM = SerialParam(progressbar = verbose),
   verbose = TRUE,
   ...
 )

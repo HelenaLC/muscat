@@ -133,7 +133,7 @@ bbhw <- function(pbDEA, bulkDEA, pb=NULL, local=TRUE, useSign=TRUE, nbins=NULL,
                  bin.method=c("PAS","combined","asNA","sig", "PALFC"), 
                  correction.method=c("gBH.LSL","IHW","binwise","gBH.TST"),
                  NAsep=TRUE, alpha=0.1, nfolds=NULL, 
-                 BPPARAM=SerialParam(progress=verbose), verbose=TRUE, ...){
+                 BPPARAM=SerialParam(progressbar=verbose), verbose=TRUE, ...){
   correction.method <- match.arg(correction.method)
   bin.method <- match.arg(bin.method)
   if(bin.method!="sig"){
