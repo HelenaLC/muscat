@@ -54,6 +54,7 @@
 #' 
 #' @importFrom ComplexHeatmap Heatmap columnAnnotation rowAnnotation
 #' @importFrom dplyr bind_rows filter
+#' @importFrom grDevices hcl.colors
 #' @importFrom grid gpar
 #' @importFrom purrr map
 #' @importFrom scales hue_pal
