@@ -95,7 +95,9 @@ test_that(".p_adj_global", {
 
 # filtering --------------------------------------------------------------------
 test_that("pbDS() filtering", {
-  sub <- sce[, sample(ncol(sce), 100)]
+  idx <- split(seq(ncol(sce)), sce$sample_id)
+  idx <- lapply(idx, sample, 20)
+  sub <- sce[, unlist(idx)]
   pbs <- aggregateData(sub, assay = "counts", fun = "sum")
   expect_error(pbDS(pbs, verbose = FALSE))
   expect_silent(pbDS(pbs, verbose = FALSE, 
