@@ -1,3 +1,8 @@
+                        Changes in version 1.23.2
+
++ added missing '@importFrom grDevices hcl.colors'
++ fixed 'BiocParallel::SerialParam progressbar' arg
+
                         Changes in version 1.23.1
 
 + added bulk-based hypothesis weighing
