@@ -1,5 +1,6 @@
                         Changes in version 1.23.2
 
++ fixed unit test with edge-case failure
 + added missing '@importFrom grDevices hcl.colors'
 + fixed 'BiocParallel::SerialParam progressbar' arg
 
