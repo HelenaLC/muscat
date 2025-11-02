@@ -1,0 +1,33 @@
+bibentry(bibtype = "article",
+  title   = "muscat detects subpopulation-specific state transitions from
+             multi-sample multi-condition single-cell transcriptomics data",
+  author  = "Crowell, Helena L and Soneson, Charlotte and Germain, Pierre-Luc
+             and Calini, Daniela and Collin, Ludovic and Raposo, Catarina and
+             Malhotra, Dheeraj and Robinson, Mark D",
+  journal = "Nature Communications",
+  volume  =  11,
+  number  =  1,
+  pages   =  6077,
+  year    =  2020,
+  doi = "10.1038/s41467-020-19894-4"
+)
+
+bibentry(bibtype = "article",
+  title    = "Differential detection workflows for multi-sample single-cell
+              {RNA}-seq data",
+  author   = "Gilis, Jeroen and Perin, Laura and Malfait, Milan and Van den
+              Berge, Koen and Takele Assefa, Alemu and Verbist, Bie and Risso,
+              Davide and Clement, Lieven",
+  journal  = "bioRxiv",
+  year     =  2023,
+  doi = "10.1101/2023.12.17.572043"
+)
+
+bibentry(bibtype = "article",
+  title     = "Bulk-based hypothesis weighing to increase power in single-cell
+               differential expression analysis",
+  author    = "Germain, Pierre-Luc and Robinson, Mark D",
+  journal   = "bioRxiv",
+  year      =  2025,
+  doi = "10.1101/2025.04.15.648932"
+)

@@ -54,10 +54,10 @@
 #' 
 #' @importFrom ComplexHeatmap Heatmap columnAnnotation rowAnnotation
 #' @importFrom dplyr bind_rows filter
+#' @importFrom grDevices hcl.colors
 #' @importFrom grid gpar
 #' @importFrom purrr map
 #' @importFrom scales hue_pal
-#' @importFrom viridis viridis
 #' @export
 
 pbHeatmap <- function(x, y, 
@@ -65,7 +65,7 @@ pbHeatmap <- function(x, y,
     top_n = 20, fdr = 0.05, lfc = 1, 
     sort_by = "p_adj.loc", decreasing = FALSE,
     assay = "logcounts", fun = mean, normalize = TRUE,
-    col = viridis(10), row_anno = TRUE, col_anno = TRUE) {
+    col = hcl.colors(10, "viridis"), row_anno = TRUE, col_anno = TRUE) {
     
     # check validity of input arguments
     .check_sce(x, req_group = TRUE)

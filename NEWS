@@ -1,3 +1,17 @@
+                        Changes in version 1.23.2
+
++ fixed unit test with edge-case failure
++ added missing '@importFrom grDevices hcl.colors'
++ fixed 'BiocParallel::SerialParam progressbar' arg
+
+                        Changes in version 1.23.1
+
++ added bulk-based hypothesis weighing
+
+                        Changes in version 1.23.0
+                        
++ Bioconductor 3.21 release
+
                         Changes in version 1.19.1
                         
 + added J Gilis, D Risso, L Clement as authors

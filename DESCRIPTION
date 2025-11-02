@@ -6,8 +6,8 @@ Description: `muscat` provides various methods and visualization tools
     aggregated “pseudobulk” data, as well as a flexible simulation platform 
     that mimics both single and multi-sample scRNA-seq data.
 Type: Package
-Version: 1.22.0
-Depends: R (>= 4.4)
+Version: 1.25.0
+Depends: R (>= 4.5)
 Authors@R: c(
 	person("Helena L.", "Crowell", 
 	    role=c("aut", "cre"),
@@ -26,17 +26,20 @@ Imports:
 	ComplexHeatmap, 
 	data.table, DESeq2, dplyr, 
 	edgeR, 
-	ggplot2, glmmTMB, grDevices, grid, 
+	ggplot2, glmmTMB, grDevices, grid,
+	IHW,
 	limma, lmerTest, lme4, 
 	Matrix, matrixStats, methods, 
 	progress, purrr,  
 	rlang,
 	S4Vectors, scales, scater, scuttle, sctransform, stats, 
 	SingleCellExperiment, SummarizedExperiment, 
-	variancePartition, viridis
+	variancePartition
 Suggests: 
 	BiocStyle,
+	cowplot,
 	countsimQC,
+	AnnotationHub, 
 	ExperimentHub, 
 	iCOBRA,
 	knitr, 
@@ -48,12 +51,13 @@ Suggests:
 	statmod,
 	stageR,
 	testthat, 
+	tidyr, 
 	UpSetR
 biocViews: ImmunoOncology, DifferentialExpression, Sequencing, 
     SingleCell, Software, StatisticalMethod, Visualization
 License: GPL-3
 VignetteBuilder: knitr
-RoxygenNote: 7.3.2
+RoxygenNote: 7.3.3
 Encoding: UTF-8
 URL: https://github.com/HelenaLC/muscat
 BugReports: https://github.com/HelenaLC/muscat/issues
