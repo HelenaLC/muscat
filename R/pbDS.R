@@ -73,7 +73,7 @@
 #' @importFrom edgeR filterByExpr
 #' @importFrom dplyr last rename
 #' @importFrom limma makeContrasts
-#' @importFrom matrixStats colAnys
+#' @importFrom MatrixGenerics colAnys
 #' @importFrom Matrix qr rowSums
 #' @importFrom methods is
 #' @importFrom scater isOutlier
