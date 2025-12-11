@@ -72,7 +72,7 @@ same (or a similar) contrast, and that its samples are independent from the
 single-cell samples.
 
 For more detail about the methods and their performance, see the 
-[paper](https://www.biorxiv.org/content/10.1101/2025.04.15.648932v1). Here, we 
+[paper](https://doi.org/10.24072/pcjournal.663). Here, we 
 concentrate on practical use and only briefly summarize the options.
 
 For each of steps (bin creation and usage in FDR), different methods 

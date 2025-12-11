@@ -24,10 +24,12 @@ bibentry(bibtype = "article",
 )
 
 bibentry(bibtype = "article",
-  title     = "Bulk-based hypothesis weighing to increase power in single-cell
+  title     = "Bulk-based hypothesis weighing increases power in single-cell
                differential expression analysis",
-  author    = "Germain, Pierre-Luc and Robinson, Mark D",
-  journal   = "bioRxiv",
+  author    = "Germain, Pierre-Luc and Wang, Jiayi and Robinson, Mark D",
+  journal   = "Peer Community Journal",
   year      =  2025,
-  doi = "10.1101/2025.04.15.648932"
+  volume    =  5
+  number    =  "e136",
+  doi = "10.24072/pcjournal.663"
 )
