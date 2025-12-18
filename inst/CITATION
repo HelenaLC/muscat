@@ -29,7 +29,7 @@ bibentry(bibtype = "article",
   author    = "Germain, Pierre-Luc and Wang, Jiayi and Robinson, Mark D",
   journal   = "Peer Community Journal",
   year      =  2025,
-  volume    =  5
+  volume    =  5,
   number    =  "e136",
   doi = "10.24072/pcjournal.663"
 )
