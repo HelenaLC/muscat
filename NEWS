@@ -1,3 +1,11 @@
+                        Changes in version 1.25.1
+                        
++ fix #146: support for sparse matrices by 'pbDS'
+                        
+                        Changes in version 1.24.0
+
++ Bioconductor 3.22 release
+
                         Changes in version 1.23.2
 
 + fixed unit test with edge-case failure
