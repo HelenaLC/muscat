@@ -1,6 +1,7 @@
                         Changes in version 1.25.1
                         
 + fix #146: support for sparse matrices by 'pbDS'
++ updated Germain et al. citation for BBHW
                         
                         Changes in version 1.24.0
 
