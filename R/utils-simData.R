@@ -165,6 +165,7 @@ cats <- factor(cats, levels = cats)
 #   phylo_tree  = input cell phylogram (see also '?simData')
 #   phylo_pars  = parameters to define the number of shared genes, 
 #                 based on branch distance (see also '?simData')
+#   positive_type = force type genes to be selected from ref genes that have 
 #   > returns a list of 
 #   1 an updated marker class matrix
 #   2 a vector of genes already used as 'type' 
@@ -172,7 +173,8 @@ cats <- factor(cats, levels = cats)
 #   3 a gene information matrix to be returned as part of the
 #     simulation metadata stored in `metadata(x)$gene_info`
 # ------------------------------------------------------------------------------
-.impute_shared_type_genes <- function(x, gs_by_k, gs_idx, phylo_tree, phylo_pars) {
+.impute_shared_type_genes <- function(x, gs_by_k, gs_idx, phylo_tree, 
+                                      phylo_pars, positive_type) {
     # sample gene-classes for genes of categroy EE & EP
     ex_cats <- c("ee", "ep")
     n_not_de <- sum(vapply(gs_idx[ex_cats, 1], length, numeric(1)))
@@ -189,11 +191,41 @@ cats <- factor(cats, levels = cats)
     used <- res$used
     # sample genes that were defined as type 
     # (same across related clusters)
+    # for (g in used) {
+    #     k <- kids[class_tbl[g, ] == "type"]
+    #     gs <- setdiff(rownames(x), gs_by_k[g, !kids %in% k])
+    #     gs_by_k[g, k] <- sample(gs, 1)
+    # }
+    
+    mean_beta <- apply(rowData(x)[, grep("beta\\.[0-9]*", colnames(rowData(x)))], 
+                       1, mean)
     for (g in used) {
         k <- kids[class_tbl[g, ] == "type"]
-        gs <- setdiff(rownames(x), gs_by_k[g, !kids %in% k])
+        g_beta <- mean_beta[names(mean_beta) %in% gs_by_k[g,]]
+        if (length(positive_type) == 0) {
+          gs_sel <- rownames(x)
+        } else if (positive_type == TRUE) {
+          gs_sel <- rownames(x)[mean_beta > max(g_beta)]
+        } else if (positive_type == FALSE) {
+          gs_sel <- rownames(x)[mean_beta < min(g_beta)]
+        } 
+        if (length(gs_sel) == 0) {
+          disp <- rowData(x)$dispersion
+          g_disp <- unique(rowData(x)[gs_by_k[g,], "dispersion"])
+          if (positive_type == TRUE) {
+            gs_sel <- rownames(x)[g_disp < disp]
+          } else {
+            gs_sel <- rownames(x)[g_disp > disp]
+          }
+          if (length(length(gs_sel)) == 0) {
+            # take the second max/min if a smaller beta can not be found
+            gs_sel <- names(sort(mean_beta, decreasing = positive_type)[2])
+          }
+        }
+        gs <- setdiff(gs_sel, gs_by_k[g, !kids %in% k])
         gs_by_k[g, k] <- sample(gs, 1)
     }
+    
     # split classes by gene
     cs_by_g <- split(class_tbl, row(class_tbl))
     names(cs_by_g) <- rownames(gs_by_k)
@@ -218,13 +250,15 @@ cats <- factor(cats, levels = cats)
 #   gs_by_k = n_genes x n_clusters matrix of 'x' genes to use for sim
 #   gs_idx  = n_category x n_clusters matrix of output gene indices
 #   p_type  = prob. of EE/EP gene being of class "type"
+#   positive_type = force type genes to be selected from ref genes that have 
+#   a higher beta than the genes from other clusters. 
 #   > type-genes may only be of categroy EE & EP type of genes,
 #     and use a cluster-specific mean in the NB count simulation
 # ------------------------------------------------------------------------------
 #' @importFrom data.table data.table
 #' @importFrom dplyr %>%
 #' @importFrom purrr map
-.impute_type_genes <- function(x, gs_by_k, gs_idx, p_type) {
+.impute_type_genes <- function(x, gs_by_k, gs_idx, p_type, positive_type) {
     names(kids) <- kids <- colnames(gs_idx)
     if (length(p_type) == 1) {
         p_type <- rep(p_type, ncol(gs_by_k)) 
@@ -232,22 +266,88 @@ cats <- factor(cats, levels = cats)
     }
     # sample gene-classes for genes of categroy EE & EP
     non_de <- c("ee", "ep")
-    class_tbl <- lapply(kids, function(k) {
-        gs <- unlist(gs_idx[non_de, k])
-        n <- length(gs)
-        data.table(
-            stringsAsFactors = FALSE,
-            gene = gs, cluster_id = k,
-            class = sample(factor(c("state", "type")), n,
-                prob = c(1 - p_type[k], p_type[k]), replace = TRUE))
-    }) %>% map(split, by = "class", flatten = FALSE)
-    # sample cluster-specific genes for ea. cluster & type-gene
-    for (k in kids) {
-        type_gs <- class_tbl[[k]]$type$gene
-        gs_by_k[type_gs, k] <- apply(
-            gs_by_k[type_gs, kids != k, drop = FALSE], 1,
-            function(ex) sample(setdiff(rownames(x), ex), 1))
+    
+    class_tbl <- list()
+    used_gs <- c()
+    for(k in kids){
+      gs <- unlist(gs_idx[non_de, k])
+      gs0 <- gs[gs %in% used_gs]
+      gs <- gs[!gs %in% used_gs]
+      n <- length(gs)
+      # avoid re-sampling of the same genes that would be specific to multiple 
+      # clusters
+      if (k == kids[1]){
+        p_type_k <- p_type[k]
+      } else {
+        p_type_k <- p_type[k]/(1-(length(used_gs)/nrow(x)))
+        if (p_type_k > 1) stop("Not enough genes to simulate. Please reduce p_type.")
+      }
+      class_tbl[[k]] <- data.table(
+        stringsAsFactors = FALSE,
+        gene = gs, cluster_id = k,
+        class = sample(factor(c("state", "type")), n,
+                       prob = c(1 - p_type_k, p_type_k), replace = TRUE))
+      if (k != kids[1]){
+        class_tbl[[k]] <- rbind(class_tbl[[k]], 
+                                data.table(
+                                   stringsAsFactors = FALSE,
+                                   gene = gs0, cluster_id = k,
+                                   class = "state")) 
+        class_tbl[[k]] <- class_tbl[[k]][match(unlist(gs_idx[non_de, k]), 
+                                               class_tbl[[k]]$gene), ]
+      }
+      used_gs <- c(used_gs, class_tbl[[k]]$gene[class_tbl[[k]]$class == "type"])
     }
+    class_tbl <- class_tbl %>% map(split, by = "class", flatten = FALSE)
+    
+    # class_tbl <- lapply(kids, function(k) {
+    #     gs <- unlist(gs_idx[non_de, k])
+    #     n <- length(gs)
+    #     data.table(
+    #         stringsAsFactors = FALSE,
+    #         gene = gs, cluster_id = k,
+    #         class = sample(factor(c("state", "type")), n,
+    #             prob = c(1 - p_type[k], p_type[k]), replace = TRUE))
+    # }) %>% map(split, by = "class", flatten = FALSE)
+    mean_beta <- apply(rowData(x)[, grep("beta\\.[0-9]*", colnames(rowData(x)))], 
+                       1, mean)
+    for (k in kids) {
+      type_gs <- class_tbl[[k]]$type$gene
+      gs_by_k[type_gs, k] <- apply(
+        gs_by_k[type_gs, kids != k, drop = FALSE], 1,
+        function(ex){
+          # only sample from genes that have lower/ greater beta to control
+          # for up/down marker genes
+          if (length(positive_type) == 0) {
+            gs_sel <- rownames(x)
+          } else if (positive_type == TRUE) {
+            gs_sel <- rownames(x)[mean_beta > max(mean_beta[ex])]
+          } else if (positive_type == FALSE) {
+            gs_sel <- rownames(x)[mean_beta < min(mean_beta[ex])]
+          } 
+          if (length(gs_sel) == 0) {
+            disp <- rowData(x)$dispersion
+            g_disp <- unique(rowData(x)[ex, "dispersion"])
+            if (positive_type == TRUE) {
+              gs_sel <- rownames(x)[g_disp < disp]
+            } else {
+              gs_sel <- rownames(x)[g_disp > disp]
+            }
+            if (length(length(gs_sel)) == 0) {
+              # take the second max/min if a smaller beta can not be found
+              gs_sel <- names(sort(mean_beta, decreasing = positive_type)[2])
+            }
+          }
+          sample(setdiff(gs_sel, ex), 1)
+        } )
+    }
+    # # sample cluster-specific genes for ea. cluster & type-gene
+    # for (k in kids) {
+    #     type_gs <- class_tbl[[k]]$type$gene
+    #     gs_by_k[type_gs, k] <- apply(
+    #         gs_by_k[type_gs, kids != k, drop = FALSE], 1,
+    #         function(ex) sample(setdiff(rownames(x), ex), 1))
+    # }
     ng <- nrow(gs_by_k)
     gs <- rownames(gs_by_k)
     is_type <- map(class_tbl, "type")

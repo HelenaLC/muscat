@@ -109,6 +109,9 @@
     if (!is.null(u$phylo_tree) && u$p_type != 0)
         stop("Only one of arguments 'p_type' or 'phylo_tree'\n",
             "  can be specified; see '?simData' for 'Details'.")
+    if (!is.logical(u$positive_type) && !is.null(u$positive_type)) {
+        stop("positive_type must be logical or NULL.")
+    }
     # assure number of simulated clusters matches with specified phylogeny
     if (!is.null(u$phylo_tree)) {
         kids_phylo <- .get_clusters_from_phylo(u$phylo_tree)
