@@ -1,3 +1,8 @@
+                        Changes in version 1.25.2
+
++ bug fix in '.mm_dream' (underlying 'mmDS' methods 'poisson' and 'nbinom'):
+  transform size factors from linear- to log-scale before being used as offset
+                        
                         Changes in version 1.25.1
                         
 + fix #146: support for sparse matrices by 'pbDS'

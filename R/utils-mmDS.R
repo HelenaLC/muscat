@@ -261,7 +261,7 @@
 
     if (is.null(sizeFactors(x))) 
         x <- computeLibraryFactors(x)
-    cd$ls <- sizeFactors(x)
+    cd$ls <- log(sizeFactors(x))
 
     # get formula
     str <- c("~(1|sample_id)+offset(ls)", covs, "group_id")
