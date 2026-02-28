@@ -38,6 +38,10 @@
 #' @param p_type numeric. Probability of EE/EP gene being a type-gene.
 #'   If a gene is of class "type" in a given cluster, a unique mean 
 #'   will be used for that gene in the respective cluster.
+#' @param positive_type logical or NULL. Specifies whether the type-genes that 
+#'   are selected should have a higher expression compared to the other clusters. 
+#'   TRUE (default) to allow this, NULL if the type-genes should be selected 
+#'   randomly. 
 #' @param lfc numeric value to use as mean logFC 
 #'   (logarithm base 2) for DE, DP, DM, and DB type of genes.
 #' @param rel_lfc numeric vector of relative logFCs for each cluster. 
@@ -174,7 +178,7 @@ simData <- function(x,
     ns = NULL, nk = NULL, probs = NULL, 
     dd = TRUE, p_dd = diag(6)[1, ], paired = FALSE,
     p_ep = 0.5, p_dp = 0.3, p_dm = 0.5,
-    p_type = 0, lfc = 2, rel_lfc = NULL, 
+    p_type = 0, positive_type = TRUE, lfc = 2, rel_lfc = NULL, 
     phylo_tree = NULL, phylo_pars = c(ifelse(is.null(phylo_tree), 0, 0.1), 3),
     force = FALSE) {
     
@@ -277,13 +281,14 @@ simData <- function(x,
 
     # when 'phylo_tree' is specified, induce hierarchical cluster structure
     if (!is.null(phylo_tree)) {                                  
-        res <- .impute_shared_type_genes(x, gs_by_k, gs_idx, phylo_tree, phylo_pars)
+        res <- .impute_shared_type_genes(x, gs_by_k, gs_idx, phylo_tree, 
+                                         phylo_pars, positive_type)
         gs_by_k <- res$gs_by_k
         class  <- res$class
         specs <- res$specs
     # otherwise, simply impute type-genes w/o phylogeny
     } else if (p_type != 0) {
-        res <- .impute_type_genes(x, gs_by_k, gs_idx, p_type)
+        res <- .impute_type_genes(x, gs_by_k, gs_idx, p_type, positive_type) 
         stopifnot(!any(res$class == "shared"))
         gs_by_k <- res$gs_by_k
         class <- res$class
