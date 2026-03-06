@@ -68,7 +68,7 @@
 #' \emph{bioRxiv} \strong{713412} (2018). 
 #' doi: \url{https://doi.org/10.1101/713412}
 #' 
-#' @importFrom edgeR DGEList estimateDisp glmFit
+#' @importFrom edgeR DGEList normLibSizes estimateDisp glmFit
 #' @importFrom Matrix colSums rowSums
 #' @importFrom matrixStats rowAnyNAs
 #' @importFrom SingleCellExperiment SingleCellExperiment counts
@@ -166,7 +166,7 @@ prepSim <- function(x,
     if (verbose) 
         message("Estimating gene and cell parameters...")
     y <- DGEList(counts(x))
-    y <- calcNormFactors(y)
+    y <- normLibSizes(y)
     y <- estimateDisp(y, mm)
     y <- glmFit(y, prior.count = 0)
     

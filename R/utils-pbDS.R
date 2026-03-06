@@ -63,7 +63,7 @@
 
 #' @importFrom DESeq2 DESeq results
 #' @importFrom dplyr rename
-#' @importFrom edgeR calcNormFactors DGEList estimateDisp
+#' @importFrom edgeR normLibSizes DGEList estimateDisp
 #'   filterByExpr glmQLFit glmQLFTest glmTreat topTags
 #' @importFrom scater isOutlier
 #' @importFrom SummarizedExperiment assay
@@ -73,7 +73,7 @@
     y <- suppressMessages(DGEList(y, 
         group = x$group_id[colnames(y)], 
         remove.zeros = TRUE))
-    y <- calcNormFactors(y)
+    y <- normLibSizes(y)
     y <- estimateDisp(y, design)
     fit <- glmQLFit(y, design)
     # treat: test for DE relative to logFC threshold
@@ -99,7 +99,7 @@
     # Normalization offset to remove systematic differences between pseudobulk 
     # samples that are due to technical or nuisance biological variability. 
     # Idea obtained from cellular detection rate (CDR) normalization from MAST. 
-    # Note that this normalization is used instead of 'edgeR::calcNormFactors()'.
+    # Note that this normalization is used instead of 'edgeR::normLibSizes()'.
     of <- colMeans(sweep(y[gene_filter, ], 2, nc, "/"))
     # construct 'DGEList'
     y <- suppressMessages(DGEList(
@@ -124,7 +124,7 @@
 }
 
 #' @importFrom dplyr rename
-#' @importFrom edgeR calcNormFactors DGEList
+#' @importFrom edgeR normLibSizes DGEList
 #' @importFrom limma contrasts.fit eBayes lmFit topTable topTreat voom treat
 #' @importFrom SummarizedExperiment assay
 #' @importFrom S4Vectors metadata
@@ -134,7 +134,7 @@
     if (method == "voom") {
         trend <- robust <- FALSE
         y <- suppressMessages(DGEList(y, remove.zeros = TRUE))
-        y <- calcNormFactors(y)
+        y <- normLibSizes(y)
         y <- voom(y, design)
     } 
     w <- .n_cells(x)[k, colnames(x)]   

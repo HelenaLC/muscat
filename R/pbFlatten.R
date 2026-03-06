@@ -19,7 +19,7 @@
 #' ncol(pb_flat) == ncol(pb_stack)*length(assays(pb_stack))
 #' 
 #' @importFrom methods is
-#' @importFrom edgeR cpm calcNormFactors DGEList
+#' @importFrom edgeR cpm normLibSizes DGEList
 #' @importFrom S4Vectors DataFrame metadata as.list
 #' @importFrom SingleCellExperiment SingleCellExperiment
 #' @importFrom SummarizedExperiment assay assay<- assays colData rowData
@@ -61,7 +61,7 @@ pbFlatten <- function(pb, normalize = TRUE){
         # remove empty columns (samples that lack a cluster)
         sce <- sce[, colSums(a != 0) > 0]
         dgl <- DGEList(assay(sce))
-        dgl <- calcNormFactors(dgl)
+        dgl <- normLibSizes(dgl)
         assay(sce, "logcpm") <- log1p(cpm(dgl))
     }
     return(sce)
