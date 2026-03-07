@@ -60,7 +60,6 @@
     df[[ct]] <- c; df
 }
 
-#' @importFrom DESeq2 DESeq results
 #' @importFrom dplyr rename
 #' @importFrom edgeR normLibSizes DGEList estimateDisp
 #'   filterByExpr glmQLFit glmQLFTest glmTreat topTags
@@ -158,20 +157,21 @@
 .limma_voom <- function(x, k, design, coef, contrast, ct, cs, treat)
     .limma(x, k, design, coef, contrast, ct, cs, method = "voom", treat)
   
-#' @importFrom dplyr rename
-#' @importFrom DESeq2 DESeq DESeqDataSetFromMatrix results 
 #' @importFrom SummarizedExperiment assay colData
 .DESeq2 <- function(x, k, design, contrast, ct, cs) {
+    if (!require("DESeq2", quietly=TRUE))
+        stop("Install 'DESeq2' to use this method.")
     cd <- colData(x)
-    y <- assay(x, k)
-    mode(y) <- "integer"
-    y <- DESeqDataSetFromMatrix(y, cd, design)
-    y <- suppressMessages(DESeq(y))
+    y <- as.matrix(assay(x, k)); mode(y) <- "integer"
+    y <- DESeq2::DESeqDataSetFromMatrix(y, cd, design)
+    y <- suppressMessages(DESeq2::DESeq(y))
     tbl <- lapply(cs, function(c) {
-        tbl <- results(y, contrast[, c])
+        tbl <- DESeq2::results(y, contrast[, c])
         tbl <- .res_df(tbl, k, ct, c)
-        rename(tbl, logFC = "log2FoldChange", 
-            p_val = "pvalue", p_adj.loc = "padj")
+        old <- c("log2FoldChange", "pvalue", "padj")
+        new <- c("logFC", "p_val", "p_adj.loc")
+        idx <- match(old, names(tbl))
+        names(tbl)[idx] <- new; tbl
     })
     list(table = tbl, data = y)
 }

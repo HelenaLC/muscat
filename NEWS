@@ -1,6 +1,6 @@
                         Changes in version 1.25.4
                         
-+ move 'sctransform' to 'Suggests:'
++ move 'IHW', 'DESeq2' and 'sctransform' to 'Suggests:'
 + omit 'data.table' and 'purrr' everywhere and remove from 'Imports:'
                         
                         Changes in version 1.25.3

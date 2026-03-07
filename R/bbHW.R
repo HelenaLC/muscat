@@ -125,7 +125,6 @@
 #' types (see the `local` argument). We recommend using the local one.
 #' 
 #' @export
-#' @importFrom IHW ihw adj_pvalues
 #' @importFrom SummarizedExperiment assays
 #' @importFrom stats quantile
 #' @importFrom dplyr bind_rows
@@ -134,6 +133,10 @@ bbhw <- function(pbDEA, bulkDEA, pb=NULL, local=TRUE, useSign=TRUE, nbins=NULL,
                  correction.method=c("gBH.LSL","IHW","binwise","gBH.TST"),
                  NAsep=TRUE, alpha=0.1, nfolds=NULL, 
                  BPPARAM=SerialParam(progressbar=verbose), verbose=TRUE, ...){
+  
+  if (!require("IHW", quietly=TRUE))
+    stop("Install 'IHW' to use this function.")
+  
   correction.method <- match.arg(correction.method)
   bin.method <- match.arg(bin.method)
   if(bin.method!="sig"){

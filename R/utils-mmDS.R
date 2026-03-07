@@ -503,20 +503,19 @@
         verbosity = verbose)$y
 }
 # ------------------------------------------------------------------------------
-#' @importFrom DESeq2 varianceStabilizingTransformation
 #' @importFrom scater computeLibraryFactors
 #' @importFrom SingleCellExperiment counts sizeFactors sizeFactors<-
 .vst_DESeq2 <- function(x, covs, blind) {
+    if (!require("DESeq2", quietly=TRUE))
+        stop("Install 'DESeq2' to use this method.")
     if (is.null(sizeFactors(x)))
         x <- computeLibraryFactors(x)
     covs <- paste(c(covs, "sample_id"), collapse = "+")
     formula <- as.formula(paste("~", covs))
-    y <- counts(x)
-    mode(y) <- "integer"
-    y <- DESeqDataSetFromMatrix(y, colData(x), formula)
-    sizeFactors(y) <- sizeFactors(x)
-    if (!blind)
-        y <- estimateDispersions(y)
-    y <- varianceStabilizingTransformation(y, blind)
+    y <- as.matrix(counts(x)); mode(y) <- "integer"
+    y <- DESeq2::DESeqDataSetFromMatrix(y, colData(x), formula)
+    y <- DESeq2::`sizeFactors<-`(y, value=sizeFactors(x))
+    if (!blind) y <- DESeq2::estimateDispersions(y)
+    y <- DESeq2::varianceStabilizingTransformation(y, blind)
     assay(y)
 }
