@@ -92,7 +92,6 @@
 # generate experimental design metadata table 
 # for an input SCE or colData data.frame
 # ------------------------------------------------------------------------------
-#' @importFrom dplyr mutate_at 
 #' @importFrom methods is
 #' @importFrom SummarizedExperiment colData
 .make_ei <- function(x) {
@@ -106,8 +105,8 @@
         group_id = x$group_id[m],
         n_cells = as.numeric(table(x$sample_id)[sids]))
     for (i in c("sample_id", "group_id"))
-        if (is.factor(x[[i]]))
-            df <- mutate_at(df, i, factor, levels = levels(x[[i]]))
+        if (is.factor(x[[i]])) 
+            df[[i]] <- factor(df[[i]], levels(x[[i]]))
     return(df)
 }
 

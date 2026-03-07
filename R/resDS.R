@@ -94,7 +94,7 @@ resDS <- function(x, y, bind = c("row", "col"),
                 colnames(df)[i] <- paste(colnames(df)[i], c, sep = sep)
                 return(df)
             })
-            Reduce(\(.) full_join(., by=c("gene", "cluster_id")), res)
+            Reduce(\(x, y) full_join(x, y, by=c("gene", "cluster_id")), res)
         })
 
     .tidy <- function(u, ei, append = "") {
