@@ -61,7 +61,6 @@
 #' @importFrom dplyr %>% bind_rows inner_join full_join mutate mutate_if select all_of
 #' @importFrom edgeR cpm
 #' @importFrom methods is
-#' @importFrom purrr reduce
 #' @importFrom SummarizedExperiment colData
 #' @importFrom S4Vectors metadata
 #' @export  
@@ -95,7 +94,7 @@ resDS <- function(x, y, bind = c("row", "col"),
                 colnames(df)[i] <- paste(colnames(df)[i], c, sep = sep)
                 return(df)
             })
-            reduce(res, full_join, by = c("gene", "cluster_id"))
+            Reduce(\(.) full_join(., by=c("gene", "cluster_id")), res)
         })
 
     .tidy <- function(u, ei, append = "") {

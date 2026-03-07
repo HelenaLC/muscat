@@ -59,7 +59,6 @@ multi-sample single-cell RNA-seq data.
 
 ```{r load-libs, message=FALSE,  warning=FALSE}
 library(dplyr)
-library(purrr)
 library(tidyr)
 library(scater)
 library(muscat)
@@ -170,7 +169,7 @@ data.frame("#DD" = n_de, "%DD" = p_de, check.names = FALSE)
 
 ```{r}
 library(UpSetR)
-de_gs_by_k <- map(tbl_fil, "gene")
+de_gs_by_k <- lapply(tbl_fil, \(.) .$gene)
 upset(fromList(de_gs_by_k))
 ```
 
@@ -195,16 +194,16 @@ head(res[[1]][[1]]) # results for 1st cluster
 
 ```{r}
 # for each approach, get adjusted p-values across clusters
-ps <- map_depth(res, 2, \(df) {
-    data.frame(
-        df[, c("gene", "cluster_id")],
-        p_adj.stagewise=df$p_adj,
-        p_adj.DS=df$res_DS$p_adj.loc,
-        p_adj.DD=df$res_DD$p_adj.loc)
-}) |> 
-    lapply(do.call, what=rbind) |>
-    do.call(what=rbind) |>
-    data.frame(row.names=NULL)
+ps <- lapply(res, \(.) { 
+    lapply(., \(df) {
+        data.frame(
+            df[, c("gene", "cluster_id")],
+            p_adj.stagewise=df$p_adj,
+            p_adj.DS=df$res_DS$p_adj.loc,
+            p_adj.DD=df$res_DD$p_adj.loc)
+    }) |> do.call(what=rbind) 
+}) |> do.call(what=rbind)
+rownames(ps) <- NULL
 head(ps)
 ```
 

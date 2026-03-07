@@ -1,7 +1,6 @@
 # load packages
 suppressMessages({
     library(dplyr)
-    library(purrr)
     library(SingleCellExperiment)
 })
 

@@ -1,7 +1,6 @@
 # load packages
 suppressPackageStartupMessages({
     library(dplyr)
-    library(purrr)
     library(SingleCellExperiment)
 })
 
@@ -43,10 +42,11 @@ test_that("mmDS() - filtering", {
     z <- suppressWarnings(
         mmDS(x[gs, cs], verbose = FALSE))
     expect_setequal(names(z), ks)
-    expect_true(all(vapply(map(z, "gene"), 
-        function(u) all(u == gs), logical(1))))
-    expect_true(all(vapply(ks, function(k) 
-        all(z[[k]]$cluster_id == k), logical(1))))
+    expect_true(all(vapply(
+        lapply(z, \(.) .$gene), 
+        \(u) all(u == gs), logical(1))))
+    expect_true(all(vapply(ks, 
+        \(k) all(z[[k]]$cluster_id == k), logical(1))))
     y <- x[gs, cs]; metadata(y) <- list()
     y$group_id <- NULL; expect_error(mmDS(y))
 })

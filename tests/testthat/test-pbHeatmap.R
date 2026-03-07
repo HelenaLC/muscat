@@ -1,6 +1,5 @@
 # load packages
 suppressMessages({
-    library(purrr)
     library(scater)
     library(SingleCellExperiment)
 })

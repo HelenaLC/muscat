@@ -61,8 +61,6 @@
 #' @importFrom dplyr %>% mutate bind_rows
 #' @importFrom matrixStats rowMins
 #' @importFrom progress progress_bar
-#' @importFrom purrr map_depth
-#' @importFrom sctransform vst
 #' @importFrom SingleCellExperiment counts counts<-
 #'   colData sizeFactors sizeFactors<-
 #' @importFrom stats p.adjust

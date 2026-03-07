@@ -1,5 +1,4 @@
 #' @importFrom BiocParallel SerialParam
-#' @importFrom purrr map
 #' @importFrom scuttle summarizeAssayByGroup
 #' @importFrom SummarizedExperiment assay colData
 .pb <- function(x, by, assay, fun, BPPARAM = SerialParam()) {
@@ -21,7 +20,7 @@
   if (is.factor(ids <- y[[by[1]]]))
       ids <- droplevels(ids)
   is <- split(seq_len(ncol(y)), ids)
-  ys <- map(is, ~assay(y)[, ., drop=FALSE])
+  ys <- lapply(is, \(.) assay(y)[, ., drop=FALSE])
   
   # fill in missing combinations
   for (i in seq_along(ys)) {

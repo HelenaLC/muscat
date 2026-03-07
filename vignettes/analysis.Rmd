@@ -64,7 +64,6 @@ library(dplyr)
 library(ggplot2)
 library(limma)
 library(muscat)
-library(purrr)
 ```
 
 # Introduction
@@ -442,7 +441,7 @@ To gain an impression of the between-cluster (dis-)agreement on DE genes, we gen
 
 ```{r upset, fig.width = 10, fig.cap = "Upset plot. Included are DS findings (FDR < 0.05, |logFC| > 1) across all clusters; shown are the 50 most frequent interactions."}
 library(UpSetR)
-de_gs_by_k <- map(tbl_fil, "gene")
+de_gs_by_k <- lapply(tbl_fil, \(df) df$gene)
 upset(fromList(de_gs_by_k))
 ```
 

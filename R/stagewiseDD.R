@@ -54,7 +54,6 @@
 #' head(res[[1]][[1]]) # results for 1st cluster
 #'
 #' @importFrom S4Vectors DataFrame
-#' @importFrom purrr map_depth
 #' @export
 
 stagewise_DS_DD <- function(res_DS, res_DD, sce=NULL, verbose=FALSE) {
@@ -74,15 +73,17 @@ stagewise_DS_DD <- function(res_DS, res_DD, sce=NULL, verbose=FALSE) {
             i=lapply(x, names), 
             j=lapply(y, names))) > 0)
     if (!is.null(sce)) {
+        # helper to apply function 'g' at nested list depth 3
+        f <- \(g) lapply(list(x, y), \(.) lapply(., \(.) lapply(., g)))
         .check_sce(sce)
-        . <- map_depth(list(x, y), 3, \(df) df$gene %in% rownames(sce))
+        . <- f(\(df) df$gene %in% rownames(sce))
         stopifnot("gene(s) present in 'res_DS/D' not found in 'sce'"=unlist(.))
-        . <- map_depth(list(x, y), 3, \(df) df$cluster_id %in% sce$cluster_id)
+        . <- f(\(df) df$cluster_id %in% sce$cluster_id)
         stopifnot("cluster(s) present in 'res_DS/D' not found in 'sce'"=unlist(.))
     }
     
     # assure that results contain same set of genes, in the same order
-    # (indepedent of different filtering criteria for the two analyses)
+    # (independent of different filtering criteria for the two analyses)
     res_DX <- .res_DX(res_DS=res_DS, res_DD=res_DD)
     
     # perform harmonic mean p-value aggregation according to
@@ -90,7 +91,7 @@ stagewise_DS_DD <- function(res_DS, res_DD, sce=NULL, verbose=FALSE) {
     .mu <- \(x) 1/mean(1/x, na.rm=TRUE)
     
     # perform stagewise testing
-    res <- map_depth(res_DX, 2, \(x) {
+    res <- lapply(res_DX, \(.) lapply(., \(x) {
         ps <- data.frame(
             p_val.DS=x$DS$p_val,
             p_val.DD=x$DD$p_val,
@@ -108,7 +109,7 @@ stagewise_DS_DD <- function(res_DS, res_DD, sce=NULL, verbose=FALSE) {
         if (is.null(res)) res <- NA
         colnames(res)[1] <- "p_adj"
         return(res)
-    })
+    }))
     names(cs) <- cs <- names(res)
     lapply(cs, \(c) {
         names(ks) <- ks <- names(res[[c]])

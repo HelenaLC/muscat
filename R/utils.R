@@ -25,20 +25,21 @@
     return(m)
 }
 
-#' @importFrom dplyr mutate_if 
-#' @importFrom purrr negate
 #' @importFrom S4Vectors DataFrame metadata metadata<-
 #' @importFrom SummarizedExperiment colData colData<-
 .update_sce <- function(sce) {
     # update colData
     cd <- as.data.frame(colData(sce))
-    cd <- mutate_if(cd, is.factor, droplevels) 
-    cd <- mutate_if(cd, negate(is.factor), factor) 
+    for (. in seq_len(ncol(cd))) {
+        f <- if (is.factor(cd[[.]])) droplevels else factor
+        cd[[.]] <- f(cd[[.]])
+    }
     colData(sce) <- DataFrame(cd, row.names = colnames(sce))
     # update metadata
     if(!is.null(ei <- metadata(sce)$experiment_info)){
         ei <- ei[ei$sample_id %in% levels(sce$sample_id), ]
-        ei <- mutate_if(ei, is.factor, droplevels)
+        is <- which(vapply(ei, is.factor, logical(1)))
+        for (. in is) ei[[.]] <- droplevels(ei[[.]])
         metadata(sce)$experiment_info <- ei
     }
     return(sce)
@@ -118,16 +119,16 @@
 # > If length(by) == 1, a list of length nlevels(colData$by), else,
 #   a nested list with 2nd level of length nlevels(colData$by[2])
 # ------------------------------------------------------------------------------
-#' @importFrom data.table data.table
-#' @importFrom purrr map_depth
-.split_cells <- function(x, 
-    by = c("cluster_id", "sample_id")) {
-    if (is(x, "SingleCellExperiment"))
-        x <- colData(x)
-    cd <- data.frame(x[by], check.names = FALSE)
-    cd <- data.table(cd, cell = rownames(x)) %>% 
-        split(by = by, sorted = TRUE, flatten = FALSE)
-    map_depth(cd, length(by), "cell")
+#' @importFrom methods is
+#' @importFrom SummarizedExperiment colData
+.split_cells <- \(x, by=c("cluster_id", "sample_id")) {
+    if (is(x, "SingleCellExperiment")) x <- colData(x)
+    cd <- data.frame(x[by], cell=rownames(x), check.names=FALSE)
+    cd <- split(cd, cd[[by[1]]])
+    if (length(by) > 1) cd <- lapply(cd, \(.) split(., .[[by[2]]]))
+    if (length(by) > 2) cd <- lapply(cd, \(.) lapply(., \(.) split(., .[[by[3]]])))
+    f <- \(x, g=\(.) .$cell) if (is.data.frame(x)) g(x) else lapply(x, f, g)
+    return(f(cd))
 }
 
 # ------------------------------------------------------------------------------
@@ -138,15 +139,14 @@
 # > adds 'p_adj.glb' column containing globally adjusted p-values
 #   to the result table of ea. cluster for each comparison
 # ------------------------------------------------------------------------------
-#' @importFrom purrr map map_depth
 #' @importFrom stats p.adjust
 .p_adj_global <- function(x) {
     names(ks) <- ks <- names(x)
     names(cs) <- cs <- names(x[[1]])
     lapply(cs, function(c) {
         # get p-values
-        tbl <- map_depth(x, 1, c)
-        p_val <- map(tbl, "p_val")
+        tbl <- lapply(x, \(.) .[[c]])
+        p_val <- lapply(tbl, \(.) .$p_val)
         # adjust for each comparison
         p_adj <- p.adjust(unlist(p_val), method = "BH")
         # re-split by cluster

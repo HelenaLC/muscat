@@ -36,7 +36,7 @@
 #'
 #' @importFrom BiocParallel MulticoreParam SerialParam
 #' @importFrom edgeR DGEList
-#' @importFrom dplyr %>% last mutate_at rename
+#' @importFrom dplyr %>% mutate_at rename
 #' @importFrom limma duplicateCorrelation eBayes topTable voom
 #' @importFrom matrixStats rowSds
 #' @importFrom scater computeLibraryFactors
@@ -73,7 +73,7 @@
     if (verbose) message(formula)
 
     if (is.null(coef)) {
-        coef <- last(colnames(mm))
+        coef <- tail(colnames(mm), 1)
         if (verbose)
             message("Argument 'coef' not specified; ",
                 "testing for ", dQuote(coef), ".")
@@ -94,7 +94,7 @@
 #'
 #' @importFrom edgeR DGEList
 #' @importFrom BiocParallel MulticoreParam SerialParam
-#' @importFrom dplyr %>% last rename
+#' @importFrom dplyr %>% rename
 #' @importFrom limma topTable
 #' @importFrom matrixStats rowSds
 #' @importFrom scater computeLibraryFactors
@@ -118,7 +118,7 @@
     formula <- paste0(c("~(1|sample_id)", covs, "group_id"), collapse = "+")
 
     if (is.null(coef)) {
-        coef <- paste0("group_id", last(levels(cd$group_id)))
+        coef <- paste0("group_id", tail(levels(cd$group_id), 1))
         if (verbose)
             message("Argument 'coef' not specified; ",
                     "testing for ", dQuote(coef), ".")
@@ -148,8 +148,6 @@
 #' @param REML logical; whether to maximize REML instead of log-likelihood.
 #'
 #' @importFrom BiocParallel bplapply MulticoreParam
-#' @importFrom dplyr last
-#' @importFrom purrr set_names
 #' @importFrom SingleCellExperiment counts
 .mm_vst <- function(x,
     vst = c("sctransform", "DESeq2"),
@@ -170,17 +168,19 @@
 
     # get coefficient to test
     if (is.null(coef)) {
-        coef <- paste0("group_id", last(levels(cd$group_id)))
+        coef <- paste0("group_id", tail(levels(cd$group_id), 1))
         if (verbose)
             message("Argument 'coef' not specified; ",
                 "testing for ", dQuote(coef), ".")
     }
 
     # fit mixed models for ea. gene
-    fits <- bplapply(seq_len(nrow(y)), function(i)
-        .fit_lmer(cbind(u = y[i, ], cd), formula, coef, bayesian, REML, ddf),
-        BPPARAM = BPPARAM) %>%
-        set_names(rownames(y))
+    gs <- seq_len(nrow(y))
+    names(gs) <- rownames(y)
+    fits <- bplapply(gs, \(i) {
+        df <- cbind(u=y[i, ], cd)
+        .fit_lmer(df, formula, coef, bayesian, REML, ddf)
+    }, BPPARAM = BPPARAM)
 
     if (verbose) message("Applying empirical Bayes moderation..")
     fits <- .mm_eBayes(fits, coef)
@@ -206,7 +206,6 @@
 #' @importFrom blme blmer
 #' @importFrom lmerTest lmer contest
 #' @importFrom lme4 .makeCC lmerControl
-#' @importFrom purrr map set_names
 #' @importFrom stats df.residual residuals sd
 .fit_lmer <- function(df, formula, coef, bayesian, REML, ddf) {
     # here we should do some handling of convergence/singularity
@@ -226,13 +225,13 @@
         ct <- lmerTest::contest(mod, cs, ddf = ddf)
         re[cs == 1, ncol(re)] <- ct[, ncol(ct)]
         re <- re[, c(seq_len(3), ncol(re))]
-        split(re, col(re)) %>%
-            map(set_names, coefs) %>%
-            set_names(c("beta", "SE", "stat", "p_val")) %>%
-            c(list(
-                Amean = mean(df$u),
-                sigma = sd(residuals(mod)),
-                df.residual = df.residual(mod)))
+        re <- split(re, col(re)) %>%
+            lapply(\(.) `names<-`(., coefs)) |>
+            `names<-`(c("beta", "SE", "stat", "p_val"))
+        c(re, list(
+            Amean = mean(df$u),
+            sigma = sd(residuals(mod)),
+            df.residual = df.residual(mod)))
     }, error = function(e) e)
 }
 
@@ -246,8 +245,7 @@
 #' @param moderate logical; whether to perform empirical Bayes moderation.
 #' 
 #' @importFrom BiocParallel bplapply MulticoreParam
-#' @importFrom dplyr %>% bind_rows last
-#' @importFrom purrr set_names
+#' @importFrom dplyr %>% bind_rows
 #' @importFrom scater computeLibraryFactors
 #' @importFrom SingleCellExperiment counts
 #' @importFrom SummarizedExperiment assay
@@ -271,7 +269,7 @@
 
     # get coefficient to test
     if (is.null(coef)) {
-        coef <- paste0("group_id", last(levels(cd$group_id)))
+        coef <- paste0("group_id", tail(levels(cd$group_id), 1))
         if (verbose)
             message("Argument 'coef' not specified; ",
                 "testing for ", dQuote(coef), ".")
@@ -328,7 +326,7 @@
 
 #' @importFrom BiocParallel bplapply MulticoreParam
 #' @importFrom blme bglmer
-#' @importFrom dplyr %>% bind_rows last rename
+#' @importFrom dplyr %>% bind_rows rename
 #' @importFrom glmmTMB glmmTMB nbinom1
 #' @importFrom Matrix colSums t
 #' @importFrom scater computeLibraryFactors
@@ -365,7 +363,7 @@
 
     # get coefficient to test
     if (is.null(coef)) {
-        coef <- last(colnames(mm))
+        coef <- tail(colnames(mm), 1)
         if (verbose)
             message("Argument 'coef' not specified; ",
                 "testing for ", dQuote(coef), ".")
@@ -418,7 +416,6 @@
 # fits negative binomial mixed models and
 # returns fit information required for 'eBayes'
 #' @importFrom glmmTMB glmmTMB nbinom1
-#' @importFrom purrr map set_names
 #' @importFrom stats coef df.residual residuals sd
 .fit_nbinom <- function(df, formula, coef){
     mod <- tryCatch(
@@ -428,9 +425,9 @@
     tryCatch({
         coefs <- colnames(coef(mod)[[1]][[1]])
         re <- coef(summary(mod))[[1]]
-        re <- split(re, col(re)) %>%
-            map(set_names, coefs) %>%
-            set_names(c("beta", "SE", "stat", "p_val"))
+        re <- split(re, col(re)) |>
+            lapply(\(.) `names<-`(., coefs)) |>
+            `names<-`(c("beta", "SE", "stat", "p_val"))
         c(re, list(
             Amean = mean(df$u),
             sigma = sd(residuals(mod)),
@@ -442,7 +439,6 @@
 # fits poisson mixed models and
 # returns fit information required for 'eBayes'
 #' @importFrom blme bglmer
-#' @importFrom purrr map set_names
 #' @importFrom stats coef df.residual residuals sd
 .fit_bglmer <- function(df, formula, coef){
     mod <- tryCatch(
@@ -452,9 +448,9 @@
     tryCatch({
         coefs <- colnames(coef(mod)[[1]])
         re <- coef(summary(mod))
-        re <- split(re, col(re)) %>%
-            map(set_names, coefs) %>%
-            set_names(c("beta", "SE", "stat", "p_val"))
+        re <- split(re, col(re)) |>
+            lapply(\(.) `names<-`(., coefs)) |>
+            `names<-`(c("beta", "SE", "stat", "p_val"))
         c(re, list(
             Amean = mean(df$u),
             sigma = sd(residuals(mod)),
@@ -466,21 +462,21 @@
 # an eBayes compatible list & performs moderation
 #' @importFrom dplyr %>% bind_cols pull
 #' @importFrom limma eBayes
-#' @importFrom purrr map set_names
 .mm_eBayes <- function(fits, coef, trended = TRUE) {
     rmv <- vapply(fits, inherits, what = "error", logical(1))
     f <- fits[!rmv]
     if (length(f) > 0) {
-        vars <- set_names(names(f[[1]]))
-        res <- lapply(vars, map, .x = f) %>%
-            map(data.frame) %>% map(t) %>%
-            map(function(u) {if (ncol(u) == 1) c(u) else u})
+        names(vars) <- vars <- names(f[[1]])
+        res <- lapply(vars, \(i) lapply(f, \(.) .[[i]])) |>
+            lapply(\(.) t(data.frame(.))) |>
+            lapply(\(.) if (ncol(.) == 1) c(.) else .)
         nms <- c("coefficients", "stdev.unscaled", "z", "PValue")
         names(res)[seq_len(4)] <- nms
         res <- eBayes(res, trend = trended, robust = TRUE)
-        res <- res[c("coefficients", "z", "PValue", "p.value")] %>%
-            set_names(c("beta", "stat", "p_val0", "p_val")) %>%
-            map(as.data.frame) %>% map(pull, coef) %>%
+        res <- res[c("coefficients", "z", "PValue", "p.value")] |>
+            `names<-`(c("beta", "stat", "p_val0", "p_val")) |>
+            lapply(as.data.frame) |>
+            lapply(\(.) .[[coef]]) |>
             data.frame(row.names = names(f))
     } else {
         res <- matrix(NA, nrow = 0, ncol = 4) 
@@ -497,9 +493,11 @@
 # wrappers for variance-stabilizing transformations
 # using the 'sctransform' and 'DESeq2' package, respectively
 # ==============================================================================
-#' @importFrom sctransform vst
+
 #' @importFrom SingleCellExperiment counts
 .vst_sctransform <- function(x, verbose) {
+    if (!require("sctransform", quietly=TRUE))
+        stop("Install 'sctransform' to use this method.")
     sctransform::vst(counts(x), 
         min_cells = 0, # assure that all genes are retained
         verbosity = verbose)$y

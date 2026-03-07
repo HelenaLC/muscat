@@ -55,7 +55,6 @@ Nature Communications **11**, 6077 (2020).
 ```{r load-libs, message = FALSE,  warning = FALSE}
 library(dplyr)
 library(muscat)
-library(purrr)
 library(scater)
 library(reshape2)
 library(patchwork)
@@ -430,8 +429,8 @@ Having computed result `data.frame`s for a set of methods, we next define a wrap
 # 'x' is a list of result 'data.frame's
 .calc_perf <- function(x, facet = NULL) {
     cd <- COBRAData(truth = gi,
-        pval = data.frame(bind_cols(map(x, "p_val"))),
-        padj = data.frame(bind_cols(map(x, "p_adj.loc"))))
+        pval = data.frame(bind_cols(lapply(x, \(.) .$p_val))),
+        padj = data.frame(bind_cols(lapply(x, \(.) .$p_adj.loc))))
     perf <- calculate_performance(cd, 
         binary_truth = "is_de", maxsplit = 1e6,
         splv = ifelse(is.null(facet), "none", facet),
