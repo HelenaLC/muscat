@@ -78,6 +78,7 @@
 #' @importFrom scater isOutlier
 #' @importFrom stats model.matrix
 #' @importFrom SummarizedExperiment assay colData
+#' @importFrom utils tail
 #' @export
 
 pbDS <- function(pb, 
