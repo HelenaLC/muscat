@@ -38,6 +38,31 @@ test_that(".filter_sce()", {
         expect_true(setequal(ei$sample_id, ss))
     })
 })
+test_that(".split_cells()", {
+    by <- names(colData(x))
+    cs <- .split_cells(x, by)
+    expect_is(cs, "list")
+    # class
+    fn <- \(.) all(vapply(., is.list, logical(1)))
+    expect_true(fn(cs))
+    expect_true(all(vapply(cs, fn, logical(1))))
+    # names
+    fn <- \(., i) identical(names(.), levels(x[[i]]))
+    expect_true(fn(cs, by[1]))
+    expect_true(all(vapply(cs, fn, logical(1), i=by[2])))
+    # data
+    ns <- unname(rapply(cs, length, "character"))
+    ms <- c(table(colData(x)[, rev(by)]))
+    expect_true(identical(ns, ms))
+    # invalid 'by'
+    x$foo <- sample(letters, ncol(x), TRUE)
+    by <- names(colData(x))
+    expect_error(.split_cells(x, by))
+    x$foo <- NULL
+    by <- names(colData(x))
+    by[1] <- "foo"
+    expect_error(.split_cells(x, by))
+})
 test_that(".scale()", {
     replicate(5, {
         y <- .scale(x <- matrix(runif(200), (n <- 10), (m <- 20)))

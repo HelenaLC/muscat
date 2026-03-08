@@ -122,6 +122,9 @@
 #' @importFrom SummarizedExperiment colData
 .split_cells <- \(x, by=c("cluster_id", "sample_id")) {
     if (is(x, "SingleCellExperiment")) x <- colData(x)
+    stopifnot(
+        is.character(by), by %in% names(x), 
+        length(by) >= 1, length(by) <= 3)
     cd <- data.frame(x[by], cell=rownames(x), check.names=FALSE)
     cd <- split(cd, cd[[by[1]]])
     if (length(by) > 1) cd <- lapply(cd, \(.) split(., .[[by[2]]]))
