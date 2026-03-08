@@ -13,15 +13,18 @@ bibentry(bibtype = "article",
 )
 
 bibentry(bibtype = "article",
-  title    = "Differential detection workflows for multi-sample single-cell
-              {RNA}-seq data",
-  author   = "Gilis, Jeroen and Perin, Laura and Malfait, Milan and Van den
-              Berge, Koen and Takele Assefa, Alemu and Verbist, Bie and Risso,
-              Davide and Clement, Lieven",
-  journal  = "bioRxiv",
-  year     =  2023,
-  doi = "10.1101/2023.12.17.572043"
-)
+  title     = "{Differential detection workflows for multi-sample single-cell
+               RNA-seq data}",
+  author    = "Gilis, Jeroen and Perin, Laura and Malfait, Milan and Crowell,
+               Helena L and Van den Berge, Koen and Assefa, Alemu Takele and
+               Verbist, Bie and Risso, Davide and Clement, Lieven",
+  journal   = "BMC Genomics",
+  volume    =  26,
+  number    =  1,
+  pages     =  886,
+  year      =  2025,
+  doi       = "10.1186/s12864-025-12102-x"
+}
 
 bibentry(bibtype = "article",
   title     = "Bulk-based hypothesis weighing increases power in single-cell
