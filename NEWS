@@ -3,6 +3,7 @@
 + remove 'cowplot' in favor of 'patchwork'
 + move 'IHW', 'DESeq2' and 'sctransform' to 'Suggests:'
 + omit 'data.table' and 'purrr' everywhere and remove from 'Imports:'
++ #102 fix: use correct CPM values in 'resDS' when 'method=limma-voom'
                         
                         Changes in version 1.25.3
                         
