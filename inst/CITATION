@@ -24,7 +24,7 @@ bibentry(bibtype = "article",
   pages     =  886,
   year      =  2025,
   doi       = "10.1186/s12864-025-12102-x"
-}
+)
 
 bibentry(bibtype = "article",
   title     = "Bulk-based hypothesis weighing increases power in single-cell
