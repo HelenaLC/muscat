@@ -496,7 +496,7 @@
 
 #' @importFrom SingleCellExperiment counts
 .vst_sctransform <- function(x, verbose) {
-    if (!require("sctransform", quietly=TRUE))
+    if (!requireNamespace("sctransform", quietly=TRUE))
         stop("Install 'sctransform' to use this method.")
     sctransform::vst(counts(x), 
         min_cells = 0, # assure that all genes are retained
@@ -506,7 +506,7 @@
 #' @importFrom scater computeLibraryFactors
 #' @importFrom SingleCellExperiment counts sizeFactors sizeFactors<-
 .vst_DESeq2 <- function(x, covs, blind) {
-    if (!require("DESeq2", quietly=TRUE))
+    if (!requireNamespace("DESeq2", quietly=TRUE))
         stop("Install 'DESeq2' to use this method.")
     if (is.null(sizeFactors(x)))
         x <- computeLibraryFactors(x)

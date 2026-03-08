@@ -134,7 +134,7 @@ bbhw <- function(pbDEA, bulkDEA, pb=NULL, local=TRUE, useSign=TRUE, nbins=NULL,
                  NAsep=TRUE, alpha=0.1, nfolds=NULL, 
                  BPPARAM=SerialParam(progressbar=verbose), verbose=TRUE, ...){
   
-  if (!require("IHW", quietly=TRUE))
+  if (!requireNamespace("IHW", quietly=TRUE))
     stop("Install 'IHW' to use this function.")
   
   correction.method <- match.arg(correction.method)
