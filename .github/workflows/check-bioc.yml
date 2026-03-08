@@ -34,7 +34,7 @@ name: R-CMD-check-bioc
 ## Note that you can always run a GHA test without the cache by using the word
 ## "/nocache" in the commit message.
 env:
-  has_testthat: 'false'
+  has_testthat: 'true'
   run_covr: 'false'
   run_pkgdown: 'false'
   has_RUnit: 'false'
