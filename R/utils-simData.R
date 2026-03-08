@@ -218,29 +218,27 @@ cats <- factor(cats, levels = cats)
 #   gs_by_k = n_genes x n_clusters matrix of 'x' genes to use for sim
 #   gs_idx  = n_category x n_clusters matrix of output gene indices
 #   p_type  = prob. of EE/EP gene being of class "type"
-#   > type-genes may only be of categroy EE & EP type of genes,
+#   > type-genes may only be of category EE & EP type of genes,
 #     and use a cluster-specific mean in the NB count simulation
 # ------------------------------------------------------------------------------
-#' @importFrom data.table data.table
-#' @importFrom dplyr %>%
-#' @importFrom purrr map
 .impute_type_genes <- function(x, gs_by_k, gs_idx, p_type) {
     names(kids) <- kids <- colnames(gs_idx)
     if (length(p_type) == 1) {
         p_type <- rep(p_type, ncol(gs_by_k)) 
         names(p_type) <- colnames(gs_by_k)
     }
-    # sample gene-classes for genes of categroy EE & EP
+    # sample gene-classes for genes of category EE & EP
     non_de <- c("ee", "ep")
-    class_tbl <- lapply(kids, function(k) {
+    dfs <- lapply(kids, function(k) {
         gs <- unlist(gs_idx[non_de, k])
-        n <- length(gs)
-        data.table(
-            stringsAsFactors = FALSE,
+        p <- c(1 - p_type[k], p_type[k])
+        data.frame(
             gene = gs, cluster_id = k,
-            class = sample(factor(c("state", "type")), n,
-                prob = c(1 - p_type[k], p_type[k]), replace = TRUE))
-    }) %>% map(split, by = "class", flatten = FALSE)
+            class = sample(
+                factor(c("state", "type")), 
+                length(gs), TRUE, p))
+    })
+    class_tbl <- lapply(dfs, \(df) split(df, df$class))
     # sample cluster-specific genes for ea. cluster & type-gene
     for (k in kids) {
         type_gs <- class_tbl[[k]]$type$gene
@@ -250,8 +248,8 @@ cats <- factor(cats, levels = cats)
     }
     ng <- nrow(gs_by_k)
     gs <- rownames(gs_by_k)
-    is_type <- map(class_tbl, "type")
-    type_gs <- unlist(map(is_type, "gene"))
+    is_type <- lapply(class_tbl, \(.) .$type)
+    type_gs <- unlist(lapply(is_type, \(.) .$gene))
     shared_gs <- setdiff(gs, unlist(gs_idx))
     stopifnot(!any(shared_gs %in% type_gs))
     # get gene classes
@@ -368,18 +366,17 @@ cats <- factor(cats, levels = cats)
             }
         }
     )
-    cs <- map(re, "counts")
+    ms <- lapply(re, \(.) .$means)
+    cs <- lapply(re, \(.) .$counts)
     cs <- do.call("cbind", cs)
-    ms <- map(re, "means")
+    
     foo <- replicate(length(d), 0, simplify = FALSE)
     if (length(ms[[1]]) == 0) ms[[1]] <- foo
     if (length(ms[[2]]) == 0) ms[[2]] <- foo
-    rmv <- vapply(ms, is.null, logical(1))
-    ms <- ms[!rmv] %>% 
-        map_depth(2, mean) %>% 
-        map_depth(1, unlist) %>% 
-        data.frame %>% 
-        as.matrix
+    
+    ms <- ms[!vapply(ms, is.null, logical(1))]
+    ms <- lapply(ms, \(.) vapply(., mean, numeric(1)))
+    ms <- as.matrix(data.frame(ms))
     ms <- switch(dx, 
         ee = ms,
         de = ms,

@@ -6,8 +6,8 @@ Description: `muscat` provides various methods and visualization tools
     aggregated “pseudobulk” data, as well as a flexible simulation platform 
     that mimics both single and multi-sample scRNA-seq data.
 Type: Package
-Version: 1.24.0
-Depends: R (>= 4.5)
+Version: 1.25.4
+Depends: R (>= 4.6)
 Authors@R: c(
 	person("Helena L.", "Crowell", 
 	    role=c("aut", "cre"),
@@ -24,30 +24,31 @@ Authors@R: c(
 Imports: 
 	BiocParallel, blme, 
 	ComplexHeatmap, 
-	data.table, DESeq2, dplyr, 
+	dplyr, 
 	edgeR, 
 	ggplot2, glmmTMB, grDevices, grid,
-	IHW,
 	limma, lmerTest, lme4, 
-	Matrix, matrixStats, methods, 
-	progress, purrr,  
+	Matrix, MatrixGenerics, matrixStats, methods, 
+	progress,
 	rlang,
-	S4Vectors, scales, scater, scuttle, sctransform, stats, 
+	S4Vectors, scales, scater, scuttle, stats, 
 	SingleCellExperiment, SummarizedExperiment, 
 	variancePartition
 Suggests: 
 	BiocStyle,
-	cowplot,
 	countsimQC,
+	DESeq2,
 	AnnotationHub, 
 	ExperimentHub, 
 	iCOBRA,
+	IHW,
 	knitr, 
 	patchwork,
 	phylogram,
 	RColorBrewer,
 	reshape2,
 	rmarkdown,
+	sctransform,
 	statmod,
 	stageR,
 	testthat, 

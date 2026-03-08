@@ -1,5 +1,4 @@
 #' @importFrom BiocParallel SerialParam
-#' @importFrom purrr map
 #' @importFrom scuttle summarizeAssayByGroup
 #' @importFrom SummarizedExperiment assay colData
 .pb <- function(x, by, assay, fun, BPPARAM = SerialParam()) {
@@ -21,7 +20,7 @@
   if (is.factor(ids <- y[[by[1]]]))
       ids <- droplevels(ids)
   is <- split(seq_len(ncol(y)), ids)
-  ys <- map(is, ~assay(y)[, ., drop=FALSE])
+  ys <- lapply(is, \(.) assay(y)[, ., drop=FALSE])
   
   # fill in missing combinations
   for (i in seq_along(ys)) {
@@ -61,9 +60,8 @@
     df[[ct]] <- c; df
 }
 
-#' @importFrom DESeq2 DESeq results
 #' @importFrom dplyr rename
-#' @importFrom edgeR calcNormFactors DGEList estimateDisp
+#' @importFrom edgeR normLibSizes DGEList estimateDisp
 #'   filterByExpr glmQLFit glmQLFTest glmTreat topTags
 #' @importFrom scater isOutlier
 #' @importFrom SummarizedExperiment assay
@@ -73,7 +71,7 @@
     y <- suppressMessages(DGEList(y, 
         group = x$group_id[colnames(y)], 
         remove.zeros = TRUE))
-    y <- calcNormFactors(y)
+    y <- normLibSizes(y)
     y <- estimateDisp(y, design)
     fit <- glmQLFit(y, design)
     # treat: test for DE relative to logFC threshold
@@ -99,7 +97,7 @@
     # Normalization offset to remove systematic differences between pseudobulk 
     # samples that are due to technical or nuisance biological variability. 
     # Idea obtained from cellular detection rate (CDR) normalization from MAST. 
-    # Note that this normalization is used instead of 'edgeR::calcNormFactors()'.
+    # Note that this normalization is used instead of 'edgeR::normLibSizes()'.
     of <- colMeans(sweep(y[gene_filter, ], 2, nc, "/"))
     # construct 'DGEList'
     y <- suppressMessages(DGEList(
@@ -124,7 +122,7 @@
 }
 
 #' @importFrom dplyr rename
-#' @importFrom edgeR calcNormFactors DGEList
+#' @importFrom edgeR normLibSizes DGEList
 #' @importFrom limma contrasts.fit eBayes lmFit topTable topTreat voom treat
 #' @importFrom SummarizedExperiment assay
 #' @importFrom S4Vectors metadata
@@ -134,7 +132,7 @@
     if (method == "voom") {
         trend <- robust <- FALSE
         y <- suppressMessages(DGEList(y, remove.zeros = TRUE))
-        y <- calcNormFactors(y)
+        y <- normLibSizes(y)
         y <- voom(y, design)
     } 
     w <- .n_cells(x)[k, colnames(x)]   
@@ -159,20 +157,21 @@
 .limma_voom <- function(x, k, design, coef, contrast, ct, cs, treat)
     .limma(x, k, design, coef, contrast, ct, cs, method = "voom", treat)
   
-#' @importFrom dplyr rename
-#' @importFrom DESeq2 DESeq DESeqDataSetFromMatrix results 
 #' @importFrom SummarizedExperiment assay colData
 .DESeq2 <- function(x, k, design, contrast, ct, cs) {
+    if (!require("DESeq2", quietly=TRUE))
+        stop("Install 'DESeq2' to use this method.")
     cd <- colData(x)
-    y <- assay(x, k)
-    mode(y) <- "integer"
-    y <- DESeqDataSetFromMatrix(y, cd, design)
-    y <- suppressMessages(DESeq(y))
+    y <- as.matrix(assay(x, k)); mode(y) <- "integer"
+    y <- DESeq2::DESeqDataSetFromMatrix(y, cd, design)
+    y <- suppressMessages(DESeq2::DESeq(y))
     tbl <- lapply(cs, function(c) {
-        tbl <- results(y, contrast[, c])
+        tbl <- DESeq2::results(y, contrast[, c])
         tbl <- .res_df(tbl, k, ct, c)
-        rename(tbl, logFC = "log2FoldChange", 
-            p_val = "pvalue", p_adj.loc = "padj")
+        old <- c("log2FoldChange", "pvalue", "padj")
+        new <- c("logFC", "p_val", "p_adj.loc")
+        idx <- match(old, names(tbl))
+        names(tbl)[idx] <- new; tbl
     })
     list(table = tbl, data = y)
 }

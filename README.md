@@ -57,11 +57,10 @@ For details, please see the package vignettes.
 
 `muscat` also supports testing for differential detection as proposed in 
 
-> Gilis J, Perin L, Malfait M, Van den Berge K,  
-Assefa AT, Verbist B, Risso D, and Clement L:  
-Differential detection workflows for  
-multi-sample single-cell RNA-seq data.  
-*bioRxiv* (2023). [DOI: 10.1101/2023.12.17.572043](https://doi.org/10.1101/2023.12.17.572043)
+> Gilis J, Perin L, Malfait M, Crowell HL, Van den 
+Berge K, Assefa AT, Verbist B, Risso D, and Clement L: 
+Differential detection workflows for multi-sample single-cell RNA-seq data. 
+*BMC Genomics* **26**, 886 (2025). [DOI: 10.1186/s12864-025-12102-x](https://doi.org/10.1186/s12864-025-12102-x)
 
 Key alterations to the commands above are highlighted below (!!!), 
 however, we recommend users consult the corresponding publication 

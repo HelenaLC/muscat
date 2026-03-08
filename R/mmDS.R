@@ -56,13 +56,9 @@
 #' \emph{bioRxiv} \strong{713412} (2018).
 #' doi: \url{https://doi.org/10.1101/713412}
 #'
-#' @importFrom DESeq2 DESeqDataSetFromMatrix estimateDispersions
-#'   sizeFactors varianceStabilizingTransformation
 #' @importFrom dplyr %>% mutate bind_rows
 #' @importFrom matrixStats rowMins
 #' @importFrom progress progress_bar
-#' @importFrom purrr map_depth
-#' @importFrom sctransform vst
 #' @importFrom SingleCellExperiment counts counts<-
 #'   colData sizeFactors sizeFactors<-
 #' @importFrom stats p.adjust

@@ -19,7 +19,7 @@
 #' 
 #' @author Helena L Crowell & Mark D Robinson
 #' 
-#' @importFrom edgeR calcNormFactors cpm DGEList plotMDS.DGEList
+#' @importFrom edgeR normLibSizes cpm DGEList plotMDS.DGEList
 #' @importFrom SummarizedExperiment assays
 #' @importFrom grDevices colorRampPalette
 #' @importFrom S4Vectors metadata
@@ -37,7 +37,7 @@ pbMDS <- function(x) {
     y <- do.call("cbind", y)
     y <- y[, (j <- c(t(.n_cells(x))) != 0)]
     d <- DGEList(unname(y), remove.zeros = TRUE)
-    d <- calcNormFactors(d)
+    d <- normLibSizes(d)
     
     mds <- plotMDS.DGEList(d, plot = FALSE)
     nk <- length(kids <- assayNames(x))

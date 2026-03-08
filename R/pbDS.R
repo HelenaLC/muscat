@@ -71,9 +71,8 @@
 #'
 #' @importFrom BiocParallel bplapply SerialParam 
 #' @importFrom edgeR filterByExpr
-#' @importFrom dplyr last rename
 #' @importFrom limma makeContrasts
-#' @importFrom matrixStats colAnys
+#' @importFrom MatrixGenerics colAnys
 #' @importFrom Matrix qr rowSums
 #' @importFrom methods is
 #' @importFrom scater isOutlier
@@ -103,7 +102,7 @@ pbDS <- function(pb,
         args$design <- design
     }
     if (is.null(coef) & is.null(contrast)) {
-        c <- colnames(design)[ncol(design)]
+        c <- tail(colnames(design), 1)
         contrast <- makeContrasts(contrasts=c, levels=design)
         args$contrast <- contrast
     }
@@ -179,7 +178,7 @@ pbDS <- function(pb,
     
     # reorganize & do global p-value adjustment
     names(i) <- i <- c("table", "data", "fit")
-    res <- lapply(i, map, .x=res)
+    res <- lapply(i, \(.) lapply(res, \(df) df[[.]]))
     res$table <- .p_adj_global(res$table)
     return(c(res, list(args=args)))
 }

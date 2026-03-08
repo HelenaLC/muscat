@@ -35,7 +35,6 @@
 #' 
 #' @importFrom Matrix rowMeans
 #' @importFrom methods is
-#' @importFrom purrr set_names
 #' @importFrom SummarizedExperiment assays colData SummarizedExperiment
 #' @export
     
@@ -64,8 +63,8 @@ calcExprFreqs <- function(x, assay = "counts", th = 0) {
         
         ei <- metadata(x)$experiment_info
         s_by_g <- split(ei$sample_id, ei$group_id) 
+        names(kids) <- kids <- levels(kids)
         gids <- names(s_by_g)
-        kids <- set_names(levels(kids))
         
         fq <- lapply(kids, function(k) {
             nc_by_s <- fq[[k]] * nc_by_ks[k, ][col(fq[[k]])]

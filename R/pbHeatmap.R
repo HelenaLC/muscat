@@ -56,7 +56,6 @@
 #' @importFrom dplyr bind_rows filter
 #' @importFrom grDevices hcl.colors
 #' @importFrom grid gpar
-#' @importFrom purrr map
 #' @importFrom scales hue_pal
 #' @export
 
@@ -100,7 +99,7 @@ pbHeatmap <- function(x, y,
         y <- lapply(kids, function(k) 
             y[[k]][seq_len(ns[k]), ])
     } else {
-        vs <- map(y, sort_by)
+        vs <- lapply(y, \(.) .[[sort_by]])
         os <- lapply(vs, order, decreasing = decreasing)
         y <- lapply(kids, function(k) {
             o <- os[[k]][seq_len(ns[k])]

@@ -1,7 +1,6 @@
 # load packages
 suppressMessages({
     library(dplyr)
-    library(purrr)
     library(SingleCellExperiment)
 })
 
@@ -40,10 +39,10 @@ for (method in ms) {
             verbose = FALSE)
         tbl <- res$table[[1]]
         expect_identical(names(tbl), kids)
-        top <- map(tbl, function(u)
-            dplyr::arrange(u, p_adj.loc) %>% 
-                dplyr::slice(seq_len(5)) %>% 
-                pull("gene"))
+        top <- lapply(tbl, \(df) df |>
+            dplyr::arrange(p_adj.loc) |>
+            dplyr::slice(seq_len(5)) |>
+            dplyr::pull("gene"))
         expect_true(all(vapply(top, setequal, y = degs, logical(1))))
     })
 }
@@ -62,16 +61,15 @@ for (method in ms) {
             
             expect_identical(length(res$table), ncol(contrast))
             expect_identical(names(res$table), colnames(contrast))
-            expect_true(all(vapply(map(res$table, names), "==",
+            expect_true(all(vapply(lapply(res$table, names), "==",
                 levels(kids), FUN.VALUE = logical(nlevels(kids)))))
             
             # check that top genes equal 'degs' in ea. comparison & cluster
-            top <- map_depth(res$table, 2, function(u) {
-                dplyr::arrange(u, p_adj.loc) %>% 
-                    dplyr::slice(seq_len(nde)) %>% 
-                    pull("gene")
-            }) %>% Reduce(f = "c")
-            expect_true(all(unlist(map(top, setequal, degs))))
+            top <- Reduce("c", lapply(res$table, \(.) lapply(., \(df)
+                dplyr::arrange(df, p_adj.loc) |>
+                dplyr::slice(seq_len(nde)) |> 
+                dplyr::pull("gene") )))
+            expect_true(all(unlist(lapply(top, setequal, degs))))
         }
     })
 }

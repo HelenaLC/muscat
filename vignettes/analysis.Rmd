@@ -43,7 +43,6 @@ abstract: >
 ```{r echo = FALSE, message = FALSE, warning = FALSE}
 library(BiocStyle)
 library(patchwork)
-library(cowplot)
 ```
 
 *** 
@@ -64,7 +63,6 @@ library(dplyr)
 library(ggplot2)
 library(limma)
 library(muscat)
-library(purrr)
 ```
 
 # Introduction
@@ -343,7 +341,7 @@ Mixed model based approaches can be run directly on cell-level measurements, and
 # 1st approach
 mm <- mmDS(sce, method = "dream",
   n_cells = 10, n_samples = 2,
-  min_counts = 1, min_cells = 20)
+  min_count = 1, min_cells = 20)
 
 # 2nd & 3rd approach
 mm <- mmDS(sce, method = "vst", vst = "sctransform")
@@ -440,9 +438,9 @@ DS analysis aims at identifying population-specific changes in state (or express
 
 To gain an impression of the between-cluster (dis-)agreement on DE genes, we generate an UpSet-plot that visualizes the number of DE genes that are shared across or unique to certain clusters:
 
-```{r upset, fig.width = 10, fig.cap = "Upset plot. Included are DS findings (FDR < 0.05, |logFC| > 1) across all clusters; shown are the 50 most frequent interactions."}
+```{r upset, message=FALSE, warning=FALSE, fig.width = 10, fig.cap = "Upset plot. Included are DS findings (FDR < 0.05, |logFC| > 1) across all clusters; shown are the 50 most frequent interactions."}
 library(UpSetR)
-de_gs_by_k <- map(tbl_fil, "gene")
+de_gs_by_k <- lapply(tbl_fil, \(df) df$gene)
 upset(fromList(de_gs_by_k))
 ```
 
@@ -460,12 +458,10 @@ top8 <- bind_rows(tbl_fil) %>%
   pull("gene")
 
 # for ea. gene in 'top8', plot t-SNE colored by its expression 
-ps <- lapply(top8, function(g)
-  .plot_dr(sce[, cs100], "TSNE", g) + 
-    ggtitle(g) + theme(legend.position = "none"))
+ps <- lapply(top8, function(g) .plot_dr(sce[, cs100], "TSNE", g) + ggtitle(g))
 
 # arrange plots
-plot_grid(plotlist = ps, ncol = 4, align = "vh")
+wrap_plots(ps, ncol = 4) & theme(legend.position = "none")
 ```
 
 ## Cell-level viz.: Violin plots

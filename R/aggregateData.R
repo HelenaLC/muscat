@@ -61,7 +61,7 @@
 #' doi: \url{https://doi.org/10.1101/713412}
 #' 
 #' @importFrom Matrix colSums
-#' @importFrom purrr map
+#' @importFrom methods is
 #' @importFrom S4Vectors DataFrame metadata
 #' @importFrom SingleCellExperiment SingleCellExperiment int_colData<-
 #' @importFrom SummarizedExperiment colData colData<-
@@ -111,7 +111,7 @@ aggregateData <- function(x,
     ns <- table(cd)
     if (length(by) == 2) {
         ns <- asplit(ns, 2)
-        ns <- map(ns, ~c(unclass(.)))
+        ns <- lapply(ns, \(.) c(unclass(.)))
     } else ns <- c(unclass(ns))
     int_colData(pb)$n_cells <- ns
     

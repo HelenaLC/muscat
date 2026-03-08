@@ -159,10 +159,8 @@
 #' \emph{bioRxiv} \strong{713412} (2018). 
 #' doi: \url{https://doi.org/10.1101/713412}
 #' 
-#' @importFrom data.table data.table
 #' @importFrom dplyr mutate_all mutate_at
 #' @importFrom edgeR DGEList estimateDisp glmFit
-#' @importFrom purrr modify_depth set_names
 #' @importFrom stats model.matrix rgamma setNames
 #' @importFrom SingleCellExperiment SingleCellExperiment
 #' @importFrom SummarizedExperiment colData
@@ -210,16 +208,16 @@ simData <- function(x,
     nk <- args$nk <- args_tmp$nk
 
     # reference IDs
-    nk0 <- length(kids0 <- set_names(levels(x$cluster_id)))
-    ns0 <- length(sids0 <- set_names(levels(x$sample_id)))
+    nk0 <- length(names(kids0) <- kids0 <- levels(x$cluster_id))
+    ns0 <- length(names(sids0) <- sids0 <- levels(x$sample_id))
     
     # get number of samples to simulate
     ns <- .get_ns(ns0, ns, dd, paired, force)
     
     # simulation IDs
-    nk <- length(kids <- set_names(paste0("cluster", seq_len(nk))))
-    sids <- set_names(paste0("sample", seq_len(ns)))
-    gids <- set_names(c("A", "B"))
+    names(kids) <- kids <- paste0("cluster", seq_len(nk))
+    names(sids) <- sids <- paste0("sample", seq_len(ns))
+    names(gids) <- gids <- c("A", "B")
     
     # sample reference clusters & samples
     ref_kids <- setNames(sample(kids0, nk, nk > nk0), kids)
@@ -259,7 +257,7 @@ simData <- function(x,
         ids = list(kids, sids, gids))
     rownames(cd) <- cs
     cs_idx <- .split_cells(cd, by = colnames(cd))
-    n_cs <- modify_depth(cs_idx, -1, length)
+    n_cs <- rapply(cs_idx, length, "character", how="list")
     
     # split input cells by cluster-sample
     cs_by_ks <- .split_cells(x)
@@ -294,9 +292,9 @@ simData <- function(x,
         names(class) <- names(specs) <- gs
     }
 
-    # split by cluster & categroy
+    # split by cluster & category
     gs_by_k <- split(gs_by_k, col(gs_by_k))
-    gs_by_k <- setNames(map(gs_by_k, set_names, gs), kids)
+    gs_by_k <- setNames(lapply(gs_by_k, `names<-`, gs), kids)
     gs_by_kc <- lapply(kids, function(k) 
         lapply(unfactor(cats), function(c) 
             gs_by_k[[k]][gs_idx[[c, k]]])) 
@@ -384,7 +382,7 @@ simData <- function(x,
         mutate_at("gene", as.character)
     # add true simulation means
     sim_mean <- sim_mean %>%
-        map(bind_cols) %>% 
+        lapply(bind_cols) %>% 
         bind_rows(.id = "cluster_id") %>% 
         mutate(gene = rep(gs, nk))
     gi <- full_join(gi, sim_mean, by = c("gene", "cluster_id")) %>% 
