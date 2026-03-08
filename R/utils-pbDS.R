@@ -159,7 +159,7 @@
   
 #' @importFrom SummarizedExperiment assay colData
 .DESeq2 <- function(x, k, design, contrast, ct, cs) {
-    if (!require("DESeq2", quietly=TRUE))
+    if (!requireNamespace("DESeq2", quietly=TRUE))
         stop("Install 'DESeq2' to use this method.")
     cd <- colData(x)
     y <- as.matrix(assay(x, k)); mode(y) <- "integer"
