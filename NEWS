@@ -1,5 +1,6 @@
                         Changes in version 1.25.4
                         
++ remove 'cowplot' in favor of 'patchwork'
 + move 'IHW', 'DESeq2' and 'sctransform' to 'Suggests:'
 + omit 'data.table' and 'purrr' everywhere and remove from 'Imports:'
                         

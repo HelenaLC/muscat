@@ -36,7 +36,6 @@ Imports:
 	variancePartition
 Suggests: 
 	BiocStyle,
-	cowplot,
 	countsimQC,
 	DESeq2,
 	AnnotationHub, 
