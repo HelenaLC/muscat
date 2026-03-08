@@ -52,15 +52,13 @@ test_that(".split_cells()", {
     expect_true(all(vapply(cs, fn, logical(1), i=by[2])))
     # data
     ns <- unname(rapply(cs, length, "character"))
-    ms <- c(table(colData(x)[, rev(by)]))
+    ms <- c(table(as.list(colData(x)[rev(by)])))
     expect_true(identical(ns, ms))
     # invalid 'by'
+    by[1] <- "foo"
+    expect_error(.split_cells(x, by))
     x$foo <- sample(letters, ncol(x), TRUE)
     by <- names(colData(x))
-    expect_error(.split_cells(x, by))
-    x$foo <- NULL
-    by <- names(colData(x))
-    by[1] <- "foo"
     expect_error(.split_cells(x, by))
 })
 test_that(".scale()", {
