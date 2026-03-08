@@ -89,8 +89,8 @@ pbDS <- function(pb,
     
     # check validity of input arguments
     args <- as.list(environment())
-    method <- match.arg(method)
-    filter <- match.arg(filter)
+    args$method <- method <- match.arg(method)
+    args$filter <- filter <- match.arg(filter)
     .check_pbs(pb, check_by=TRUE)
     .check_args_pbDS(args)
     stopifnot(is(BPPARAM, "BiocParallelParam"))

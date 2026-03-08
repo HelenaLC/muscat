@@ -28,7 +28,7 @@ by \code{\link{pbDS}} or \code{\link{mmDS}}.}
 as returned by \code{\link{calcExprFreqs}}.}
 
 \item{cpm}{logical specifying whether CPM by cluster-sample 
-should be appendeded to the output result table(s).}
+should be appended to the output result table(s).}
 
 \item{digits}{integer value specifying the 
 number of significant digits to maintain.}

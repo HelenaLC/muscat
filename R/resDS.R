@@ -13,7 +13,7 @@
 #' @param frq logical or a pre-computed list of expression frequencies 
 #'   as returned by \code{\link{calcExprFreqs}}.
 #' @param cpm logical specifying whether CPM by cluster-sample 
-#'   should be appendeded to the output result table(s).
+#'   should be appended to the output result table(s).
 #' @param digits integer value specifying the 
 #'   number of significant digits to maintain.
 #' @param sep character string to use as separator 
@@ -127,7 +127,9 @@ resDS <- function(x, y, bind = c("row", "col"),
         cpm <- lapply(kids, function(k) {
             if (is.null(y$data[[k]])) 
                 return(NULL)
-            cpm <- cpm(y$data[[k]])
+            cpm <- y$data[[k]]
+            v <- y$args$method == "limma-voom"
+            if (v) cpm <- 2**cpm$E else cpm <- cpm(cpm)
             data.frame(cpm, 
                 gene = rownames(cpm),
                 cluster_id = k,
