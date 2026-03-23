@@ -34,13 +34,13 @@ name: R-CMD-check-bioc
 ## Note that you can always run a GHA test without the cache by using the word
 ## "/nocache" in the commit message.
 env:
-  has_testthat: 'true'
+  has_testthat: 'false'
   run_covr: 'false'
   run_pkgdown: 'false'
   has_RUnit: 'false'
   cache-version: 'cache-v1'
   run_docker: 'false'
-  bioc_version: 'bioc-release'
+  bioc_version: 'bioc-devel'
   ## Valid options are:
   ##    "bioc-release"
   ##    "bioc-devel"
@@ -238,7 +238,7 @@ jobs:
       - name: Install pkgdown
         if: github.ref == 'refs/heads/devel' && env.run_pkgdown == 'true' && runner.os == 'Linux'
         run: |
-          remotes::install_cran("pkgdown")
+          remotes::install_github("r-lib/pkgdown")
         shell: Rscript {0}
 
       - name: Session info
