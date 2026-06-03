@@ -72,7 +72,7 @@
     y <- suppressMessages(DGEList(y, 
         group = x$group_id[colnames(y)], 
         remove.zeros = TRUE))
-    y <- normLibSizes(y)
+    y <- normLibSizes(y, method="TMMwsp")
     y <- estimateDisp(y, design)
     fit <- do.call(glmQLFit, c(list(y=y, design=design), downstream_args))
     # treat: test for DE relative to logFC threshold
