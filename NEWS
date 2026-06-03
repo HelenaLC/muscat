@@ -1,3 +1,8 @@
+                        Changes in version 1.27.2
+
++ added logFC shrinkage option and downstream arguments to 'pbDS'
++ changed default edgeR normalization from TMM to TMMwsp
+
                         Changes in version 1.25.4
                         
 + update Gilis et al. citation for DD
