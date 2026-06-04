@@ -12,7 +12,7 @@ pbDS(
   coef = NULL,
   contrast = NULL,
   min_cells = 10,
-  shrinkLFC = FALSE,
+  lfcShrink = FALSE,
   filter = c("both", "genes", "samples", "none"),
   treat = FALSE,
   verbose = TRUE,
@@ -53,9 +53,9 @@ created with \code{\link[limma]{makeContrasts}}.}
 \item{min_cells}{a numeric. Specifies the minimum number of cells in a given 
 cluster-sample required to consider the sample for differential testing.}
 
-\item{shrinkLFC}{Whether/how to shrink logFCs in DESeq2 analysis. Either 
+\item{lfcShrink}{Whether/how to shrink logFCs in DESeq2 analysis. Either 
 FALSE (default, no shrinkage), TRUE (uses \code{\link[DESeq2]{lfcShrink}} 
-with default method, which reguires the \code{apeglm} package), or a 
+with default method, which requires the \code{apeglm} package), or a 
 character argument indicating the shrinkage method, passed to 
 \code{\link[DESeq2]{lfcShrink}}. Ignored for other methods.}
 

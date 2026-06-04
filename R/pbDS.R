@@ -27,9 +27,9 @@
 #'   Only applicable for methods \code{"limma-x"} 
 #'   (\code{\link[limma:eBayes]{treat}}) and \code{"edgeR"} 
 #'   (\code{\link[edgeR]{glmTreat}}), and ignored otherwise.
-#' @param shrinkLFC Whether/how to shrink logFCs in DESeq2 analysis. Either 
+#' @param lfcShrink Whether/how to shrink logFCs in DESeq2 analysis. Either 
 #'   FALSE (default, no shrinkage), TRUE (uses \code{\link[DESeq2]{lfcShrink}} 
-#'   with default method, which reguires the \code{apeglm} package), or a 
+#'   with default method, which requires the \code{apeglm} package), or a 
 #'   character argument indicating the shrinkage method, passed to 
 #'   \code{\link[DESeq2]{lfcShrink}}. Ignored for other methods.
 #' @param BPPARAM a \code{\link[BiocParallel]{BiocParallelParam}}
@@ -91,7 +91,7 @@
 
 pbDS <- function(pb, 
     method=c("edgeR", "DESeq2", "limma-trend", "limma-voom", "DD"),
-    design=NULL, coef=NULL, contrast=NULL, min_cells=10, shrinkLFC=FALSE,
+    design=NULL, coef=NULL, contrast=NULL, min_cells=10, lfcShrink=FALSE,
     filter=c("both", "genes", "samples", "none"), treat=FALSE, 
     verbose=TRUE, BPPARAM=SerialParam(progressbar=verbose), ...) {
     
@@ -131,9 +131,9 @@ pbDS <- function(pb,
     }
     ct <- ifelse(is.null(coef), "contrast", "coef")
     
-    if(ct=="contrast" && method=="DESeq2" && 
-       (isTRUE(shrinkLFC) || shrinkLFC=="apeglm"))
-      stop("apeglm shrinkage requires the use of the 'coef' interface.")
+    if (ct == "contrast" && method == "DESeq2" && 
+       (isTRUE(lfcShrink) || lfcShrink == "apeglm"))
+        stop("apeglm shrinkage requires the use of the 'coef' interface.")
     
     if (!is.function(method)) {
         fun <- switch(method,
@@ -175,7 +175,7 @@ pbDS <- function(pb,
         args <- list(
             x=y, k=k, design=d, coef=coef, 
             contrast=contrast, ct=ct, cs=cs,
-            treat=treat, nc=n_cells[k, !rmv], shrinkLFC=shrinkLFC,
+            treat=treat, nc=n_cells[k, !rmv], lfcShrink=lfcShrink,
             downstream_args=list(...))
         args <- args[intersect(names(args), fun_args)]
         suppressWarnings(do.call(fun, args))

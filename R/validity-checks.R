@@ -160,7 +160,7 @@
         is.numeric(u$min_cells), length(u$min_cells) == 1,
         is.logical(u$verbose), length(u$verbose) == 1,
         is.logical(u$treat), length(u$treat) == 1,
-        length(u$shrinkLFC) == 1)
+        length(u$lfcShrink) == 1)
 }
 
 .check_args_mmDS <- function(u) {

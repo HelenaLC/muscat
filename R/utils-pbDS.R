@@ -159,8 +159,8 @@
     .limma(x, k, design, coef, contrast, ct, cs, method = "voom", treat)
   
 #' @importFrom SummarizedExperiment assay colData
-.DESeq2 <- function(x, k, design, coef, contrast, ct, cs, shrinkLFC,
-                    downstream_args=list()) {
+.DESeq2 <- function(x, k, design, coef, contrast, ct, cs, 
+    lfcShrink, downstream_args=list()) {
     if (!requireNamespace("DESeq2", quietly=TRUE))
         stop("Install 'DESeq2' to use this method.")
     cd <- colData(x)
@@ -168,13 +168,13 @@
     y <- DESeq2::DESeqDataSetFromMatrix(y, cd, design)
     args <- c(list(object=y), downstream_args)
     y <- suppressMessages(do.call(DESeq2::DESeq, args))
-    if(isTRUE(shrinkLFC)) shrinkLFC <- "apeglm"
+    if (isTRUE(lfcShrink)) lfcShrink <- "apeglm"
     tbl <- lapply(cs, function(c) {
-        if(isFALSE(shrinkLFC)){
+        if (isFALSE(lfcShrink)){
           tbl <- DESeq2::results(y, contrast[, c])
-        }else{
+        } else{
           tbl <- suppressMessages(
-            DESeq2::lfcShrink(y, coef=coef[[c]], type=shrinkLFC) )
+              DESeq2::lfcShrink(y, coef=coef[[c]], type=lfcShrink))
         }
         tbl <- .res_df(tbl, k, ct, c)
         old <- c("log2FoldChange", "pvalue", "padj")
