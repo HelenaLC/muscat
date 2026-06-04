@@ -195,12 +195,11 @@ t(table(sce$cluster_id, sce$sample_id))
 
 ### Dimension reduction {.tabset}
 
-The dimension reductions (DR) available within the SCE can be accessed via `reducedDims`. The data provided by @Kang2018-demuxlet already contains t-SNE coordinates; however, we can of course compute additional dimension reductions using one of `r Biocpkg("scrapper")`'s `runX` functions:
+The dimension reductions (DR) available within the SCE can be accessed via `reducedDims`. The data provided by @Kang2018-demuxlet already contains t-SNE coordinates; however, we can of course compute additional dimension reductions using one of `r Biocpkg("scater")`'s `runX` functions:
 
 ```{r umap}
 # compute UMAP using 1st 20 PCs
-sce <- runPca.se(sce, features=rownames(sce), number=20)
-sce <- runUmap.se(sce)
+sce <- runUMAP(sce, pca=20)
 ```
 
 Using `r Biocpkg("scater")`'s `plotReducedDim` function, we can plot t-SNE and UMAP representations colored by cluster and group IDs, respectively. We additionally create a small wrapper function, `.plot_dr()`, to improve the readability of color legends and simplify the plotting theme:
