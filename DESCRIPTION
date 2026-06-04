@@ -6,7 +6,7 @@ Description: `muscat` provides various methods and visualization tools
     aggregated “pseudobulk” data, as well as a flexible simulation platform 
     that mimics both single and multi-sample scRNA-seq data.
 Type: Package
-Version: 1.27.0
+Version: 1.27.2
 Depends: R (>= 4.6)
 Authors@R: c(
 	person("Helena L.", "Crowell", 
@@ -58,7 +58,7 @@ biocViews: ImmunoOncology, DifferentialExpression, Sequencing,
     SingleCell, Software, StatisticalMethod, Visualization
 License: GPL-3
 VignetteBuilder: knitr
-RoxygenNote: 7.3.3
 Encoding: UTF-8
 URL: https://github.com/HelenaLC/muscat
 BugReports: https://github.com/HelenaLC/muscat/issues
+Config/roxygen2/version: 8.0.0

@@ -59,8 +59,8 @@
 #' @importFrom dplyr %>% mutate bind_rows
 #' @importFrom matrixStats rowMins
 #' @importFrom progress progress_bar
-#' @importFrom SingleCellExperiment counts counts<-
-#'   colData sizeFactors sizeFactors<-
+#' @importFrom SingleCellExperiment counts counts<- colData 
+#' @importFrom SingleCellExperiment sizeFactors sizeFactors<-
 #' @importFrom stats p.adjust
 #' @export
 

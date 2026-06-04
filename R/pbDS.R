@@ -8,7 +8,7 @@
 #' @param pb a \code{\link[SingleCellExperiment]{SingleCellExperiment}}
 #'   containing pseudobulks as returned by \code{\link{aggregateData}}.
 #' @param method a character string.
-#' @param design For methods \code{"edegR"} and \code{"limma"}, a design matrix 
+#' @param design For methods \code{"edgeR"} and \code{"limma"}, a design matrix 
 #'   with row & column names(!) created with \code{\link[stats]{model.matrix}}; 
 #'   For \code{"DESeq2"}, a formula with variables in \code{colData(pb)}.
 #'   Defaults to \code{~ group_id} or the corresponding \code{model.matrix}.
@@ -27,9 +27,17 @@
 #'   Only applicable for methods \code{"limma-x"} 
 #'   (\code{\link[limma:eBayes]{treat}}) and \code{"edgeR"} 
 #'   (\code{\link[edgeR]{glmTreat}}), and ignored otherwise.
+#' @param lfcShrink Whether/how to shrink logFCs in DESeq2 analysis. Either 
+#'   FALSE (default, no shrinkage), TRUE (uses \code{\link[DESeq2]{lfcShrink}} 
+#'   with default method, which requires the \code{apeglm} package), or a 
+#'   character argument indicating the shrinkage method, passed to 
+#'   \code{\link[DESeq2]{lfcShrink}}. Ignored for other methods.
 #' @param BPPARAM a \code{\link[BiocParallel]{BiocParallelParam}}
 #'   object specifying how differential testing should be parallelized.
 #' @param verbose logical. Should information on progress be reported?
+#' @param ... Further arguments passed to downstream functions, specifically
+#'   (depending on \code{method}) \code{\link[DESeq2]{DESeq}} or
+#'   \code{\link[edgeR]{glmQLFit}}. Ignored for other methods.
 #'
 #' @return a list containing \itemize{
 #' \item a data.frame with differential testing results,
@@ -83,9 +91,9 @@
 
 pbDS <- function(pb, 
     method=c("edgeR", "DESeq2", "limma-trend", "limma-voom", "DD"),
-    design=NULL, coef=NULL, contrast=NULL, min_cells=10, 
+    design=NULL, coef=NULL, contrast=NULL, min_cells=10, lfcShrink=FALSE,
     filter=c("both", "genes", "samples", "none"), treat=FALSE, 
-    verbose=TRUE, BPPARAM=SerialParam(progressbar=verbose)) {
+    verbose=TRUE, BPPARAM=SerialParam(progressbar=verbose), ...) {
     
     # check validity of input arguments
     args <- as.list(environment())
@@ -122,6 +130,10 @@ pbDS <- function(pb,
         names(cs) <- names(coef) <- cs
     }
     ct <- ifelse(is.null(coef), "contrast", "coef")
+    
+    if (ct == "contrast" && method == "DESeq2" && 
+       (isTRUE(lfcShrink) || lfcShrink == "apeglm"))
+        stop("apeglm shrinkage requires the use of the 'coef' interface.")
     
     if (!is.function(method)) {
         fun <- switch(method,
@@ -163,7 +175,8 @@ pbDS <- function(pb,
         args <- list(
             x=y, k=k, design=d, coef=coef, 
             contrast=contrast, ct=ct, cs=cs,
-            treat=treat, nc=n_cells[k, !rmv])
+            treat=treat, nc=n_cells[k, !rmv], lfcShrink=lfcShrink,
+            downstream_args=list(...))
         args <- args[intersect(names(args), fun_args)]
         suppressWarnings(do.call(fun, args))
     })

@@ -63,7 +63,7 @@ library(SingleCellExperiment)
 
 # Data description {-}
 
-To demonstrate `r Biocpkg("muscat")`'s simulation framework, we will use a `r Biocpkg("SingleCellExperiment")` (SCE) containing 10x droplet-based scRNA-seq PBCM data from 8 Lupus patients obtained befor and after 6h-treatment with IFN-$\beta$ [@Kang2018-demuxlet]. The complete raw data, as well as gene and cell metadata is available through the NCBI GEO, accession number [GSE96583](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE96583). 
+To demonstrate `r Biocpkg("muscat")`'s simulation framework, we will use a `r Biocpkg("SingleCellExperiment")` (SCE) containing 10x droplet-based scRNA-seq PBCM data from 8 Lupus patients obtained before and after 6h-treatment with IFN-$\beta$ [@Kang2018-demuxlet]. The complete raw data, as well as gene and cell metadata is available through the NCBI GEO, accession number [GSE96583](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE96583). 
 
 # Simulation framework
 
@@ -221,9 +221,9 @@ ggplot(df, aes(x = value, col = group_id)) +
 
 ### `rel_lfc`: Simulating cluster-specific state changes
 
-By default, for each gene and subpopulation, we draw a vector of fold changes (FCs) from a Gamma distribution with rate parameter $\beta\propto\mu_\text{logFC}$, where $\mu_\text{logFC}$ is the desired average logFC across all genes and subpopulations specified via argument `lfc`. This results in state changes that are of same magnitute for each subpopulation.
+By default, for each gene and subpopulation, we draw a vector of fold changes (FCs) from a Gamma distribution with rate parameter $\beta\propto\mu_\text{logFC}$, where $\mu_\text{logFC}$ is the desired average logFC across all genes and subpopulations specified via argument `lfc`. This results in state changes that are of same magnitude for each subpopulation.
 
-Now, suppose we wanted to have a subpopulation that does *not* exhibit any state changes across conditions, or vary the magnitute of changes across subpopulations. To this end, argument `rel_lfc` supplies a subpopulation-specific factor applied to the FCs sampled for subpopulation. Fig. \@ref(fig:rel-lfc) demonstrates how this manifests in in two-dimensional embeddings of the cells: Here, we generate a set of 3 simulations with
+Now, suppose we wanted to have a subpopulation that does *not* exhibit any state changes across conditions, or vary the magnitude of changes across subpopulations. To this end, argument `rel_lfc` supplies a subpopulation-specific factor applied to the FCs sampled for subpopulation. Fig. \@ref(fig:rel-lfc) demonstrates how this manifests in in two-dimensional embeddings of the cells: Here, we generate a set of 3 simulations with
 
 i. equal magnitude of change for all subpopulations: `rel_lfc=c(1,1,1)`
 i. stronger change for one cluster: `rel_lfc=c(1,1,3)`

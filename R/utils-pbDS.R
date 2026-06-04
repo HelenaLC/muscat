@@ -61,19 +61,20 @@
 }
 
 #' @importFrom dplyr rename
-#' @importFrom edgeR normLibSizes DGEList estimateDisp
-#'   filterByExpr glmQLFit glmQLFTest glmTreat topTags
+#' @importFrom edgeR normLibSizes DGEList estimateDisp filterByExpr glmQLFit 
+#' @importFrom edgeR glmQLFTest glmTreat topTags
 #' @importFrom scater isOutlier
 #' @importFrom SummarizedExperiment assay
 #' @importFrom S4Vectors metadata
-.edgeR <- function(x, k, design, coef, contrast, ct, cs, treat) {
+.edgeR <- function(x, k, design, coef, contrast, ct, cs, treat, 
+                   downstream_args=list()){
     y <- assay(x, k)
     y <- suppressMessages(DGEList(y, 
         group = x$group_id[colnames(y)], 
         remove.zeros = TRUE))
-    y <- normLibSizes(y)
+    y <- normLibSizes(y, method="TMMwsp")
     y <- estimateDisp(y, design)
-    fit <- glmQLFit(y, design)
+    fit <- do.call(glmQLFit, c(list(y=y, design=design), downstream_args))
     # treat: test for DE relative to logFC threshold
     # else:  genewise NB GLM with quasi-likelihood test
     .fun <- ifelse(treat, glmTreat, glmQLFTest)
@@ -158,20 +159,29 @@
     .limma(x, k, design, coef, contrast, ct, cs, method = "voom", treat)
   
 #' @importFrom SummarizedExperiment assay colData
-.DESeq2 <- function(x, k, design, contrast, ct, cs) {
+.DESeq2 <- function(x, k, design, coef, contrast, ct, cs, 
+    lfcShrink, downstream_args=list()) {
     if (!requireNamespace("DESeq2", quietly=TRUE))
         stop("Install 'DESeq2' to use this method.")
     cd <- colData(x)
     y <- as.matrix(assay(x, k)); mode(y) <- "integer"
     y <- DESeq2::DESeqDataSetFromMatrix(y, cd, design)
-    y <- suppressMessages(DESeq2::DESeq(y))
+    args <- c(list(object=y), downstream_args)
+    y <- suppressMessages(do.call(DESeq2::DESeq, args))
+    if (isTRUE(lfcShrink)) lfcShrink <- "apeglm"
     tbl <- lapply(cs, function(c) {
-        tbl <- DESeq2::results(y, contrast[, c])
+        if (isFALSE(lfcShrink)){
+          tbl <- DESeq2::results(y, contrast[, c])
+        } else{
+          tbl <- suppressMessages(
+              DESeq2::lfcShrink(y, coef=coef[[c]], type=lfcShrink))
+        }
         tbl <- .res_df(tbl, k, ct, c)
         old <- c("log2FoldChange", "pvalue", "padj")
         new <- c("logFC", "p_val", "p_adj.loc")
         idx <- match(old, names(tbl))
-        names(tbl)[idx] <- new; tbl
+        names(tbl)[idx] <- new
+        tbl
     })
     list(table = tbl, data = y)
 }

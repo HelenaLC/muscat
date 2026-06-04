@@ -12,10 +12,12 @@ pbDS(
   coef = NULL,
   contrast = NULL,
   min_cells = 10,
+  lfcShrink = FALSE,
   filter = c("both", "genes", "samples", "none"),
   treat = FALSE,
   verbose = TRUE,
-  BPPARAM = SerialParam(progressbar = verbose)
+  BPPARAM = SerialParam(progressbar = verbose),
+  ...
 )
 
 pbDD(
@@ -35,7 +37,7 @@ containing pseudobulks as returned by \code{\link{aggregateData}}.}
 
 \item{method}{a character string.}
 
-\item{design}{For methods \code{"edegR"} and \code{"limma"}, a design matrix 
+\item{design}{For methods \code{"edgeR"} and \code{"limma"}, a design matrix 
 with row & column names(!) created with \code{\link[stats]{model.matrix}}; 
 For \code{"DESeq2"}, a formula with variables in \code{colData(pb)}.
 Defaults to \code{~ group_id} or the corresponding \code{model.matrix}.}
@@ -51,6 +53,12 @@ created with \code{\link[limma]{makeContrasts}}.}
 \item{min_cells}{a numeric. Specifies the minimum number of cells in a given 
 cluster-sample required to consider the sample for differential testing.}
 
+\item{lfcShrink}{Whether/how to shrink logFCs in DESeq2 analysis. Either 
+FALSE (default, no shrinkage), TRUE (uses \code{\link[DESeq2]{lfcShrink}} 
+with default method, which requires the \code{apeglm} package), or a 
+character argument indicating the shrinkage method, passed to 
+\code{\link[DESeq2]{lfcShrink}}. Ignored for other methods.}
+
 \item{filter}{character string specifying whether
 to filter on genes, samples, both or neither.}
 
@@ -64,6 +72,10 @@ Only applicable for methods \code{"limma-x"}
 
 \item{BPPARAM}{a \code{\link[BiocParallel]{BiocParallelParam}}
 object specifying how differential testing should be parallelized.}
+
+\item{...}{Further arguments passed to downstream functions, specifically
+(depending on \code{method}) \code{\link[DESeq2]{DESeq}} or
+\code{\link[edgeR]{glmQLFit}}. Ignored for other methods.}
 }
 \value{
 a list containing \itemize{
