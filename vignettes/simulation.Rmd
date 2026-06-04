@@ -56,7 +56,6 @@ Nature Communications **11**, 6077 (2020).
 library(dplyr)
 library(muscat)
 library(scater)
-library(scrapper)
 library(reshape2)
 library(patchwork)
 library(SingleCellExperiment)
@@ -64,7 +63,7 @@ library(SingleCellExperiment)
 
 # Data description {-}
 
-To demonstrate `r Biocpkg("muscat")`'s simulation framework, we will use a `r Biocpkg("SingleCellExperiment")` (SCE) containing 10x droplet-based scRNA-seq PBCM data from 8 Lupus patients obtained befor and after 6h-treatment with IFN-$\beta$ [@Kang2018-demuxlet]. The complete raw data, as well as gene and cell metadata is available through the NCBI GEO, accession number [GSE96583](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE96583). 
+To demonstrate `r Biocpkg("muscat")`'s simulation framework, we will use a `r Biocpkg("SingleCellExperiment")` (SCE) containing 10x droplet-based scRNA-seq PBCM data from 8 Lupus patients obtained before and after 6h-treatment with IFN-$\beta$ [@Kang2018-demuxlet]. The complete raw data, as well as gene and cell metadata is available through the NCBI GEO, accession number [GSE96583](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE96583). 
 
 # Simulation framework
 
