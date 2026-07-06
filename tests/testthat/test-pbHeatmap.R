@@ -1,6 +1,6 @@
 # load packages
 suppressMessages({
-    library(scater)
+    library(scrapper)
     library(SingleCellExperiment)
 })
 
@@ -18,7 +18,7 @@ g23 <- sce$group_id %in% c("g2", "g3")
 # sample 'nde' genes & multiply counts by 10 for 'g2'- & 'g3'-cells
 degs <- sample(rownames(sce), (nde <- 5))
 assay(sce[degs, g23]) <- assay(sce[degs, g23]) * 10
-sce <- logNormCounts(computeLibraryFactors(sce))
+sce <- normalizeRnaCounts.se(sce)
 
 # run DS analysis using 'edgeR' on pseudobulks
 pb <- aggregateData(sce, assay = "counts", fun = "sum")

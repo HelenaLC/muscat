@@ -80,6 +80,7 @@ pbHeatmap <- function(x, y,
     y <- y[!vapply(y, is.null, logical(1))]
     
     # filter results
+    gene <- p_adj.loc <- logFC <- NULL # R CMD check
     if (!is.null(g)) y <- lapply(y, filter, gene %in% g)
     y <- lapply(y, filter, p_adj.loc < fdr, abs(logFC) > lfc)
     

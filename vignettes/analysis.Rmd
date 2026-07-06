@@ -60,9 +60,14 @@ Nature Communications **11**, 6077 (2020).
 
 ```{r load-libs, message=FALSE,  warning=FALSE}
 library(dplyr)
+library(ExperimentHub)
 library(ggplot2)
 library(limma)
 library(muscat)
+library(scater)
+library(scrapper)
+library(sctransform)
+library(UpSetR)
 ```
 
 # Introduction
@@ -92,7 +97,6 @@ For this vignette, we will use a `r Biocpkg("SingleCellExperiment")` (SCE) conta
 The @Kang2018-demuxlet dataset has been made available through Bioconductor's `ExperimentHub` and can be loaded into R as follows: We first initialize a Hub instance to search for and load available data with the `ExperimentHub` function, and store the complete list of records in the variable `eh`. Using `query`, we then retrieve any records that match our keyword(s) of interest, as well as their corresponding accession ID (EH1234).
 
 ```{r eh, message=FALSE}
-library(ExperimentHub)
 eh <- ExperimentHub()
 query(eh, "Kang")
 ```
@@ -105,7 +109,7 @@ Finally, we load the data of interest into R via `[[` and the corresponding acce
 
 ## Preprocessing
 
-The `r Biocpkg("scuttle")` and `r Biocpkg("scuttle")` packages provide a variety of tools for preprocessing and quality control of single-cell transcriptomic data. For completeness, we will apply some minimal filtering steps to
+The `r Biocpkg("scrapper")` package provide a variety of tools for preprocessing and quality control of single-cell transcriptomic data. For completeness, we will apply some minimal filtering steps to
 
 - remove undetected genes
 - remove cells with very few or many detected genes
@@ -120,40 +124,34 @@ sce <- sce[rowSums(counts(sce) > 0) > 0, ]
 dim(sce)
 ```
 
-We use `computeRnaQcMetrics` to compute various per-cell quality control metrics, and proceed with filtering cells and genes as noted above:
+We use `quickRnaQc.se` to compute various per-cell quality control metrics, determine thresholds on median absolute deviations (MADs) from the median, and proceed with filtering cells and genes as noted above:
 
 ```{r qc, message=FALSE}
-# calculate per-cell quality control (QC) metrics
-library(scater)
-qc <- perCellQCMetrics(sce)
-
-# remove cells with few or many detected genes
-ol <- isOutlier(metric=qc$detected, nmads=2, log=TRUE)
-sce <- sce[, !ol]
-dim(sce)
+# remove low-quality cells
+sce <- quickRnaQc.se(sce, subsets=list())
+sce <- sce[, sce$keep]
 
 # remove lowly expressed genes
 sce <- sce[rowSums(counts(sce) > 1) >= 10, ]
 dim(sce)
 ```
 
-Finally, we use `logNormCounts` to calculate log$_2$-transformed normalized expression values by dividing each count by its size factor, adding a pseudo-count of 1, and log-transforming[^1].  
+Finally, we use `normalizeRnaCounts.se` to calculate log$_2$-transformed normalized expression values by dividing each count by its size factor, adding a pseudo-count of 1, and log-transforming[^1].  
 
 [^1]: Note that, in this workflow, expression values are used for visualization only, and that differential analyses are performed on pseudobulks (section \@ref(sec-pbDS)) or the count data directly (section \@ref(sec-mmDS)).
 
 ```{r norm}
 # log-library size normalization
-sce <- logNormCounts(sce)
+sce <- normalizeRnaCounts.se(sce)
 ```
 
 Alternatively, expression values could be obtained via `vst` (variance stabilizing transformation) from the `r CRANpkg("sctransform")` package [@Hafemeister2019-sctransform], which returns Pearson residuals from a regularized negative binomial regression model that can be interpreted as normalized expression values:
 
 ```{r vst, eval=FALSE}
-library(sctransform)
 assays(sce)$vstresiduals <- vst(counts(sce), verbosity=FALSE)$y
 ```
 
-By default, `r BiocStyle::Biocpkg("scater")`'s functions will try to access the assay data specified via argument `exprs_values` (default `logcounts`) for e.g. visualization and dimension reduction. When an alternative assay such as the `vstresiduals` above should be used, it is thus necessary to explicitly specify this, for example, via `runUMAP(sce, exprs_values="vstresiduals")` to compute UMAP cell embeddings on the assay data compute above.
+By default, `r BiocStyle::Biocpkg("scrapper")`'s functions will try to access the assay data specified via argument `assay.type` (default `logcounts`) for e.g. visualization and dimension reduction. When an alternative assay such as the `vstresiduals` above should be used, it is thus necessary to explicitly specify this, for example, via `runPca.se(sce, assay.type="vstresiduals")` to compute UMAP cell embeddings on the assay data compute above.
 
 ## Data preparation
 
@@ -195,11 +193,13 @@ t(table(sce$cluster_id, sce$sample_id))
 
 ### Dimension reduction {.tabset}
 
-The dimension reductions (DR) available within the SCE can be accessed via `reducedDims`. The data provided by @Kang2018-demuxlet already contains t-SNE coordinates; however, we can of course compute additional dimension reductions using one of `r Biocpkg("scater")`'s `runX` functions:
+The dimension reductions (DR) available within the SCE can be accessed via `reducedDims`. The data provided by @Kang2018-demuxlet already contains t-SNE coordinates; however, we can of course compute additional dimension reductions using one of `r Biocpkg("scrapper")`'s `runX.se` functions:
 
 ```{r umap}
-# compute UMAP using 1st 20 PCs
-sce <- runUMAP(sce, pca=20)
+# compute UMAP from PCs on highly variable features
+sce <- chooseRnaHvgs.se(sce)
+sce <- runPca.se(sce, features=rowData(sce)$hvg)
+sce <- runUmap.se(sce, reddim.type="PCA")
 ```
 
 Using `r Biocpkg("scater")`'s `plotReducedDim` function, we can plot t-SNE and UMAP representations colored by cluster and group IDs, respectively. We additionally create a small wrapper function, `.plot_dr()`, to improve the readability of color legends and simplify the plotting theme:
@@ -438,7 +438,6 @@ DS analysis aims at identifying population-specific changes in state (or express
 To gain an impression of the between-cluster (dis-)agreement on DE genes, we generate an UpSet-plot that visualizes the number of DE genes that are shared across or unique to certain clusters:
 
 ```{r upset, message=FALSE, warning=FALSE, fig.width=10, fig.cap="Upset plot. Included are DS findings (FDR < 0.05, |logFC| > 1) across all clusters; shown are the 50 most frequent interactions."}
-library(UpSetR)
 de_gs_by_k <- lapply(tbl_fil, \(df) df$gene)
 upset(fromList(de_gs_by_k))
 ```
