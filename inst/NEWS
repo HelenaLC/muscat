@@ -1,3 +1,8 @@
+                        Changes in version 1.27.4
+                        
++ clear 'scrapper'-related warnings, e.g., 'scater::runPCA > runPca.se', 
+  'scuttle::computeLibraryFactors > normalizeRnaCounts.se', etc.
+                        
                         Changes in version 1.27.3
                         
 + enable contrast-based 'lfcShrink' for 'pbDS' with DESeq2 (#151)
