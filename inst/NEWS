@@ -1,3 +1,7 @@
+                        Changes in version 1.27.3
+                        
++ enable contrast-based 'lfcShrink' for 'pbDS' with DESeq2 (#151)
+                        
                         Changes in version 1.27.2
 
 + added logFC shrinkage option and downstream arguments to 'pbDS'
