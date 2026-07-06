@@ -168,13 +168,13 @@
     y <- DESeq2::DESeqDataSetFromMatrix(y, cd, design)
     args <- c(list(object=y), downstream_args)
     y <- suppressMessages(do.call(DESeq2::DESeq, args))
-    if (isTRUE(lfcShrink)){
-      lfcShrink <- ifelse(is.null(coef), "ashr", "apeglm")
+    if (isTRUE(lfcShrink)) {
+        lfcShrink <- ifelse(is.null(coef), "ashr", "apeglm")
     }
     tbl <- lapply(cs, function(c) {
         if (isFALSE(lfcShrink)){
           tbl <- DESeq2::results(y, contrast[, c])
-        } else if(lfcShrink=="ashr" && !is.null(contrast)){
+        } else if (lfcShrink=="ashr" && !is.null(contrast)) {
           tbl <- suppressMessages(
               DESeq2::lfcShrink(y, contrast=contrast[,c], type="ashr"))
         }else{
