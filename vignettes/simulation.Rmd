@@ -55,6 +55,7 @@ Nature Communications **11**, 6077 (2020).
 ```{r load-libs, message = FALSE,  warning = FALSE}
 library(dplyr)
 library(muscat)
+library(scater)
 library(scrapper)
 library(reshape2)
 library(patchwork)
@@ -229,7 +230,7 @@ i. equal magnitude of change for all subpopulations: `rel_lfc=c(1,1,1)`
 i. stronger change for one cluster: `rel_lfc=c(1,1,3)`
 i. cluster-specific FC factors with no change for one cluster: `rel_lfc=c(0,1,2)`
 
-```{r rel-lfc, echo = FALSE, message = FALSE, warning = FALSE, fig.wide = TRUE, fig.cap = "t-SNEs of exemplary simulations demonstrating `rel_lfc`'s effect to induce cluster-specific state changes. Cells are colored by cluster ID (top-row) and group ID (bottom-row), respectively. From left to right: No cluster-specific changes, stronger change for `cluster3`, different logFC factors for all clusters with no change for `cluster1`."}
+```{r rel-lfc, echo = FALSE, message = FALSE, fig.wide = TRUE, fig.cap = "t-SNEs of exemplary simulations demonstrating `rel_lfc`'s effect to induce cluster-specific state changes. Cells are colored by cluster ID (top-row) and group ID (bottom-row), respectively. From left to right: No cluster-specific changes, stronger change for `cluster3`, different logFC factors for all clusters with no change for `cluster1`."}
 rel_lfc <- list(
     c(1, 1, 1), # same FC factor for all clusters
     c(1, 1, 2), # stronger change for cluster3 only
@@ -241,7 +242,8 @@ sim <- lapply(rel_lfc, function(u)
         ng = 1e3, force = TRUE))
 # normalize & run dimension reduction
 sim <- lapply(sim, normalizeRnaCounts.se)
-sim <- lapply(sim, runTSNE)
+sim <- lapply(sim, \(.) runPca.se(., rownames(.)))
+sim <- lapply(sim, runTsne.se, reddim.type="PCA")
 # plotting
 cs <- list(
   group_id=c("royalblue", "tomato"),
@@ -265,14 +267,15 @@ The idea underlying *differential state* (DS) analysis to test for subpopulation
 
 The fraction of type features introduced into each subpopulation is specified via argument `p_type`. Note that, without introducing any differential states, a non-zero fraction of type genes will result in separation of cells into clusters. Fig. \@ref(fig:p-type) demonstrates how increasing values for `p_type` lead to more and more separation of the cells when coloring by cluster ID, but that the lack of state changes leads to homogenous mixing of cells when coloring by group ID.
 
-```{r p-type, echo = FALSE, message=FALSE, warning=FALSE, fig.wide = TRUE, fig.cap = "t-SNEs of exemplary simulations demonstrating `p_type`'s effect to introduce *type* features. Cells are colored by cluster ID (top-row) and group ID (bottom-row), respectively. The percentage of type features increases from left to right (1, 5, 10%). Simulations are pure EE, i.e., all genes are non-differential across groups."}
+```{r p-type, echo = FALSE, message=FALSE, fig.wide = TRUE, fig.cap = "t-SNEs of exemplary simulations demonstrating `p_type`'s effect to introduce *type* features. Cells are colored by cluster ID (top-row) and group ID (bottom-row), respectively. The percentage of type features increases from left to right (1, 5, 10%). Simulations are pure EE, i.e., all genes are non-differential across groups."}
 sim <- lapply(c(0.01, 0.05, 0.1), function(u)
     simData(ref, p_type = u, 
         nc = 1e3, nk = 3, 
         ng = 1e3, force = TRUE))
 # normalize & run dimension reduction
 sim <- lapply(sim, normalizeRnaCounts.se)
-sim <- lapply(sim, runTSNE)
+sim <- lapply(sim, \(.) runPca.se(., rownames(.)))
+sim <- lapply(sim, runTsne.se, reddim.type="PCA")
 # plotting
 ps <- lapply(c("cluster_id", "group_id"), 
   function(id) lapply(sim, function(u) {
@@ -435,7 +438,7 @@ Having computed result `data.frame`s for a set of methods, we next define a wrap
 
 Putting it all together, we can finally simulate some data, run a set of DS analysis methods, calculate their performance, and plot a variety of performance metrics depending on the `aspects` calculated by `.calc_perf`:
 
-```{r iCOBRA-comparison, warning = FALSE, message = FALSE, fig.height = 4, fig.width = 9}
+```{r iCOBRA-comparison, message = FALSE, warning = FALSE, fig.height = 4, fig.width = 9}
 # simulation with all DD types
 sim <- simData(ref, 
     p_dd = c(rep(0.3, 2), rep(0.1, 4)),

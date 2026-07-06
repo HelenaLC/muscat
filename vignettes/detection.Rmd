@@ -58,11 +58,11 @@ Differential detection workflows for multi-sample single-cell RNA-seq data.
 
 ```{r load-libs, message=FALSE,  warning=FALSE}
 library(dplyr)
-library(tidyr)
-library(scater)
-library(muscat)
 library(ggplot2)
+library(muscat)
 library(patchwork)
+library(scrapper)
+library(tidyr)
 ```
 
 # Introduction
@@ -88,8 +88,8 @@ We further apply some minimal filtering to remove low-quality genes and cells, a
 
 ```{r prep-data}
 sce <- sce[rowSums(counts(sce) > 0) > 0, ]
-qc <- perCellQCMetrics(sce)
-sce <- sce[, !isOutlier(qc$detected, nmads=2, log=TRUE)]
+sce <- quickRnaQc.se(sce, subsets=list())
+sce <- sce[, sce$keep]
 sce <- sce[rowSums(counts(sce) > 1) >= 10, ]
 sce$id <- paste0(sce$stim, sce$ind)
 sce <- prepSCE(sce, "cell", "id", "stim")
@@ -166,7 +166,7 @@ p_de <- format(n_de / nrow(sce) * 100, digits = 3)
 data.frame("#DD" = n_de, "%DD" = p_de, check.names = FALSE)
 ```
 
-```{r}
+```{r warning=FALSE}
 library(UpSetR)
 de_gs_by_k <- lapply(tbl_fil, \(.) .$gene)
 upset(fromList(de_gs_by_k))
@@ -236,7 +236,7 @@ ggplot(ns, aes(th, value, col=name)) +
 We can further identify which hits are shared between or unique to a given approach.
 In the example below, for instance, the vast majority of hits is common to all approaches, many hits are shared between DD and stagewise testing, and only few genes are specific to any one approach:
 
-```{r upset, fig.width = 5, fig.height = 3, fig.cap = "Upset plot of differential findings (FDR < 0.05) across DS, DD, and stagewise analysis for an exemplary cluster; shown are the 50 most frequent interactions."}
+```{r upset, warning=FALSE, fig.width = 5, fig.height = 3, fig.cap = "Upset plot of differential findings (FDR < 0.05) across DS, DD, and stagewise analysis for an exemplary cluster; shown are the 50 most frequent interactions."}
 # subset adjuster p-values for cluster of interest
 qs <- ps[grep("CD4", ps$cluster_id), grep("p_", names(ps))]
 # for each approach, extract genes at 5% FDR threshold
