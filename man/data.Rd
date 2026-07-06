@@ -22,8 +22,8 @@ The original data has been filtered to
 \item{retain at most 100 cells per cluster-sample instance}
 }
 
-Assay \code{logcounts} corresponds to log-normalized values 
-obtained from \code{\link[scater]{logNormCounts}} with default parameters.
+Assay \code{logcounts} corresponds to log-library size normalized values 
+obtained from \code{\link[scrapper]{normalizeRnaCounts.se}} with defaults.
   
 The original measurement data, as well as gene and cell metadata 
 is available through the NCBI GEO accession number GSE96583;
@@ -68,9 +68,8 @@ cs <- sapply(cs_by_ks, function(u)
 sce <- sce[, unlist(cs)]
 
 # compute logcounts
-library(scater)
-sce <- computeLibraryFactors(sce)
-sce <- logNormCounts(sce)
+library(scrapper)
+sce <- normalizeRnaCounts.se(sce)
 
 # re-format for 'muscat'
 sce <- prepSCE(sce, 

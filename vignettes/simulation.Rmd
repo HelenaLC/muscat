@@ -55,7 +55,7 @@ Nature Communications **11**, 6077 (2020).
 ```{r load-libs, message = FALSE,  warning = FALSE}
 library(dplyr)
 library(muscat)
-library(scater)
+library(scrapper)
 library(reshape2)
 library(patchwork)
 library(SingleCellExperiment)
@@ -184,7 +184,7 @@ sim <- simData(ref,
     p_dd = c(0.5, rep(0.1, 5)),
     ng = 1e3, force = TRUE)
 # normalize 
-sim <- logNormCounts(sim)
+sim <- normalizeRnaCounts.se(sim)
 # get 'n' genes per category
 n <- 3
 gi <- metadata(sim)$gene_info %>% 
@@ -240,7 +240,7 @@ sim <- lapply(rel_lfc, function(u)
         p_dd = c(0.95, 0, 0.05, 0, 0, 0),
         ng = 1e3, force = TRUE))
 # normalize & run dimension reduction
-sim <- lapply(sim, logNormCounts)
+sim <- lapply(sim, normalizeRnaCounts.se)
 sim <- lapply(sim, runTSNE)
 # plotting
 cs <- list(
@@ -271,7 +271,7 @@ sim <- lapply(c(0.01, 0.05, 0.1), function(u)
         nc = 1e3, nk = 3, 
         ng = 1e3, force = TRUE))
 # normalize & run dimension reduction
-sim <- lapply(sim, logNormCounts)
+sim <- lapply(sim, normalizeRnaCounts.se)
 sim <- lapply(sim, runTSNE)
 # plotting
 ps <- lapply(c("cluster_id", "group_id"), 
@@ -307,7 +307,7 @@ sim <- simData(ref, p_type = 0.1,
     nc = 2e3, ng = 1e3, force = TRUE,
     probs = list(NULL, NULL, c(1, 0)))
 # do log-library size normalization
-sim <- logNormCounts(sim)
+sim <- normalizeRnaCounts.se(sim)
 ```
 
 For visualizing the above simulation, we select for genes that are of class *type* (`rowData()$class == "type"`) and have a decent simulated expression mean. Furthermore, we sample a subset of cells for each cluster. The resulting heatmap (Fig. \@ref(fig:heatmap-type)) shows that the 3 clusters separate well from one another, but that type genes aren't necessarily expressed higher in a single cluster. This is the case because a gene selected as reference for a type gene in a given cluster may indeed have a lower expression than the gene used for the remainder of clusters.
@@ -347,7 +347,7 @@ sim <- simData(ref,
     phylo_tree = tree, phylo_pars = c(0.1, 1),
     nc = 800, ng = 1e3, dd = FALSE, force = TRUE)
 # do log-library size normalization
-sim <- logNormCounts(sim)
+sim <- normalizeRnaCounts.se(sim)
 ```
 
 ```{r heatmap-phylo, fig.width = 12, fig.height = 8, fig.cap = "Exemplary heatmap demonstrating the effect of `phylo_tree` to introduce a hierarchical cluster structure. Included are 100 randomly sampled non-state, i.e. type or shared, genes (= rows) with a simulated expression mean > 1, and a random subset of 100 cells (= columns) per cluster; column annotations represent cluster IDs. Bins are colored by expression scaled in row direction, and both genes and cells are hierarchically clustered."}

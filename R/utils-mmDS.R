@@ -1,3 +1,13 @@
+#' @importFrom scrapper normalizeRnaCounts.se
+#' @importFrom SingleCellExperiment sizeFactors sizeFactors<-
+.sf <- \(x) {
+    if (is.null(sizeFactors(x))) {
+        y <- normalizeRnaCounts.se(x)
+        sizeFactors(x) <- sizeFactors(y)
+    }
+    return(x)
+}
+
 #' @describeIn mmDS
 #'
 #' see details.
@@ -39,7 +49,6 @@
 #' @importFrom dplyr %>% mutate_at rename
 #' @importFrom limma duplicateCorrelation eBayes topTable voom
 #' @importFrom matrixStats rowSds
-#' @importFrom scater computeLibraryFactors
 #' @importFrom SingleCellExperiment counts sizeFactors
 #' @importFrom stats as.formula model.matrix
 #' @importFrom variancePartition dream getContrast
@@ -49,9 +58,7 @@
     ddf = c("Satterthwaite", "Kenward-Roger"),
     verbose = FALSE, BPPARAM = SerialParam(progressbar = verbose)) {
 
-    if (is.null(sizeFactors(x)))
-        x <- computeLibraryFactors(x)
-
+    x <- .sf(x)
     ddf <- match.arg(ddf)
     x <- x[rowSds(as.matrix(counts(x))) > 0, ]
     y <- DGEList(counts(x), 
@@ -97,7 +104,6 @@
 #' @importFrom dplyr %>% rename
 #' @importFrom limma topTable
 #' @importFrom matrixStats rowSds
-#' @importFrom scater computeLibraryFactors
 #' @importFrom SingleCellExperiment counts sizeFactors
 #' @importFrom stats as.formula
 #' @importFrom variancePartition dream voomWithDreamWeights
@@ -105,9 +111,7 @@
     ddf = c("Satterthwaite", "Kenward-Roger"),
     verbose = FALSE, BPPARAM =  SerialParam(progressbar = verbose)) {
 
-    if (is.null(sizeFactors(x)))
-        x <- computeLibraryFactors(x)
-
+    x <- .sf(x)
     ddf <- match.arg(ddf)
     x <- x[rowSds(as.matrix(counts(x))) > 0, ]
     y <- DGEList(counts(x), 
@@ -246,8 +250,7 @@
 #' 
 #' @importFrom BiocParallel bplapply MulticoreParam
 #' @importFrom dplyr %>% bind_rows
-#' @importFrom scater computeLibraryFactors
-#' @importFrom SingleCellExperiment counts
+#' @importFrom SingleCellExperiment counts sizeFactors
 #' @importFrom SummarizedExperiment assay
 .mm_glmm <- function(x, coef = NULL, covs = NULL, 
     family = c("poisson","nbinom"), moderate = FALSE,
@@ -257,8 +260,7 @@
     cd <- .prep_cd(x, covs)
     y <- counts(x)
 
-    if (is.null(sizeFactors(x))) 
-        x <- computeLibraryFactors(x)
+    x <- .sf(x)
     cd$ls <- log(sizeFactors(x))
 
     # get formula
@@ -329,8 +331,8 @@
 #' @importFrom dplyr %>% bind_rows rename
 #' @importFrom glmmTMB glmmTMB nbinom1
 #' @importFrom Matrix colSums t
-#' @importFrom scater computeLibraryFactors
-#' @importFrom SingleCellExperiment counts sizeFactors
+#' @importFrom scrapper normalizeRnaCounts.se
+#' @importFrom SingleCellExperiment counts sizeFactors sizeFactors<-
 #' @importFrom stats model.matrix
 #' @importFrom SummarizedExperiment colData
 .mm_hybrid <- function(x, 
@@ -342,8 +344,7 @@
     cd <- .prep_cd(x, covs)
     y <- counts(x)
 
-    if (is.null(sizeFactors(x))) 
-        x <- computeLibraryFactors(x)
+    x <- .sf(x)
     cd$ls <- sizeFactors(x)
 
     # compute pseudobulks (sum of counts)
@@ -503,13 +504,11 @@
         verbosity = verbose)$y
 }
 # ------------------------------------------------------------------------------
-#' @importFrom scater computeLibraryFactors
-#' @importFrom SingleCellExperiment counts sizeFactors sizeFactors<-
+#' @importFrom SingleCellExperiment counts sizeFactors
 .vst_DESeq2 <- function(x, covs, blind) {
     if (!requireNamespace("DESeq2", quietly=TRUE))
         stop("Install 'DESeq2' to use this method.")
-    if (is.null(sizeFactors(x)))
-        x <- computeLibraryFactors(x)
+    x <- .sf(x)
     covs <- paste(c(covs, "sample_id"), collapse = "+")
     formula <- as.formula(paste("~", covs))
     y <- as.matrix(counts(x)); mode(y) <- "integer"
